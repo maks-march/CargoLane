@@ -55,7 +55,7 @@ public class OrderPostControllerTests : OrderTest
                 }
             ],
             RoutePoints = [
-                new RoutePointCreateCommand
+                new RoutePointVm
                 {
                     City = tooBigString,
                     Address = tooBigString,
@@ -63,7 +63,7 @@ public class OrderPostControllerTests : OrderTest
                     LoadTimeEnd = TimeSpan.MinValue,
                     Date = DateOnly.FromDateTime(DateTime.Now.AddDays(-1)),
                     IsLoad = false
-                }, new RoutePointCreateCommand()
+                }, new RoutePointVm()
             ]
         };
         var response = await PostOrder(command);
@@ -77,7 +77,7 @@ public class OrderPostControllerTests : OrderTest
             PayloadCreateCommand, 
             PaymentCreateCommand, 
             TransportCreateCommand, 
-            RoutePointCreateCommand>(error).Should().BeTrue();
+            RoutePointVm>(error).Should().BeTrue();
     }
     
     [Test]

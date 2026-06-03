@@ -1,6 +1,6 @@
-namespace Domain.Models.Order;
+namespace Domain.Models.Abstract;
 
-public class RoutePoint : OrderCollectionField
+public class RoutePoint<T> : CollectionField<T> where T : Entity
 {
     public required string City { get; set; }
     public required string Address { get; set; }

@@ -9,6 +9,10 @@ namespace Application.CQRS.OrderCQ.Queries.GetOrdersList;
 public record GetOrderListQuery : IRequest<IList<OrderListVm>>
 {
     /// <summary>
+    /// В разработке
+    /// </summary>
+    public string? SearchWord { get; set; }
+    /// <summary>
     /// Фильтр на статус заказа
     /// </summary>
     public string? Status { get; init; }

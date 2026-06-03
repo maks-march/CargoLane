@@ -1,7 +1,9 @@
 using Application.DTO.Auth;
 using Application.Interfaces;
 using Domain.Models;
+using Domain.Models.Abstract;
 using Domain.Models.Order;
+using Domain.Models.Truck;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -14,10 +16,11 @@ public class AppDbContext
     : IdentityDbContext<ApplicationUser, IdentityRole<Guid>, Guid>, IAppDbContext
 {
     public DbSet<User> BusinessUsers { get; set; }
-    public DbSet<Truck> Trucks { get; set; }
+    public DbSet<TruckEntity> Trucks { get; set; }
     public DbSet<OrderEntity> Orders { get; set; }
     public DbSet<Payload> Payloads { get; set; }
-    public DbSet<RoutePoint> RoutePoints { get; set; }
+    public DbSet<RoutePoint<OrderEntity>> OrderRoutePoints { get; set; }
+    public DbSet<RoutePoint<TruckEntity>> TruckRoutePoints { get; set; }
     public DbSet<Transport> Transports { get; set; }
     public DbSet<Payment> Payments { get; set; }
     public DbSet<OrderPhoto> Files { get; set; }
@@ -36,7 +39,7 @@ public class AppDbContext
         builder.ApplyConfiguration(new TruckConfiguration());
         builder.ApplyConfiguration(new OrderConfiguration());
         builder.ApplyConfiguration(new PayloadConfiguration());
-        builder.ApplyConfiguration(new RoutePointsConfiguration());
+        builder.ApplyConfiguration(new OrderRoutePointsConfiguration());
         builder.ApplyConfiguration(new TransportConfiguration());
         builder.ApplyConfiguration(new PaymentConfiguration());
         builder.ApplyConfiguration(new FileConfiguration<OrderEntity>());

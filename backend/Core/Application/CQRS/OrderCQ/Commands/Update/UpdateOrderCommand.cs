@@ -2,6 +2,7 @@ using System.ComponentModel;
 using Application.Common.Mappings;
 using AutoMapper;
 using Domain.Enums;
+using Domain.Models.Abstract;
 using Domain.Models.Order;
 using MediatR;
 
@@ -137,7 +138,7 @@ public record UpdateOrderCommand : IRequest<Guid>, IMapWith<OrderEntity>
                 opts.Condition((src, dest, srcMember) => 
                     srcMember != null && src != null));
         
-        profile.CreateMap<RoutePointUpdateCommand, RoutePoint>()
+        profile.CreateMap<RoutePointUpdateCommand, RoutePoint<OrderEntity>>()
             .ForAllMembers(opts => 
                 opts.Condition((src, dest, srcMember) => 
                     srcMember != null && src != null));

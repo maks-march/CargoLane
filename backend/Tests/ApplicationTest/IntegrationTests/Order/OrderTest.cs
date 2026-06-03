@@ -20,7 +20,7 @@ public abstract class OrderTest : BaseIntegrationTest
         createDto = createDto ?? new CreateOrderCommand()
         {
             Payloads = [new PayloadCreateCommand()],
-            RoutePoints = [new RoutePointCreateCommand(), new RoutePointCreateCommand()]
+            RoutePoints = [new RoutePointVm(), new RoutePointVm()]
         };
         
         return await Client.PostAsJsonAsync(BaseUrl, createDto);

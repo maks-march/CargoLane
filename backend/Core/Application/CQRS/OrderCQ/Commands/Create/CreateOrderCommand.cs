@@ -4,6 +4,7 @@ using Application.Common.Mappings;
 using Application.DTO.Attributes;
 using AutoMapper;
 using Domain.Enums;
+using Domain.Models.Abstract;
 using Domain.Models.Order;
 using MediatR;
 
@@ -63,8 +64,8 @@ public record CreateOrderCommand : IRequest<Guid>, IMapWith<OrderEntity>
     /// <summary>
     /// Коллекция точек маршрута
     /// </summary>
-    [SwaggerJsonDefault(typeof(RoutePointCreateCommand), 2)]
-    public IList<RoutePointCreateCommand> RoutePoints { get; init; } = [new (), new()];
+    [SwaggerJsonDefault(typeof(RoutePointVm), 2)]
+    public IList<RoutePointVm> RoutePoints { get; init; } = [new (), new()];
 
     /// <summary>
     /// Настройка маппинга команды в доменную модель заказа
@@ -99,28 +100,28 @@ public record CreateOrderCommand : IRequest<Guid>, IMapWith<OrderEntity>
         // Также нам нужны маппинги для самих DTO в их доменные аналоги
         profile.CreateMap<PaymentCreateCommand, Payment>()
                .ForMember(dest => dest.Id, opt => opt.Ignore())
-               .ForMember(dest => dest.OrderId, opt => opt.Ignore())
+               .ForMember(dest => dest.EntityId, opt => opt.Ignore())
                .ForMember(dest => 
                    dest.PaymentType,opt => 
                    opt.MapFrom(src => Enum.Parse<PaymentType>(src.PaymentType)));
         
         profile.CreateMap<TransportCreateCommand, Transport>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
-            .ForMember(dest => dest.OrderId, opt => opt.Ignore());
+            .ForMember(dest => dest.EntityId, opt => opt.Ignore());
 
        profile.CreateMap<PayloadCreateCommand, Payload>()
            .ForMember(dest => dest.Id, opt => opt.Ignore())
            .ForMember(dest => dest.OrderIndex, opt => opt.Ignore())
            .ForMember(dest => 
-               dest.OrderId, opt => opt.Ignore())
+               dest.EntityId, opt => opt.Ignore())
            .ForMember(dest => 
                dest.Wrap,opt => 
                opt.MapFrom(src => Enum.Parse<Wrap>(src.Wrap)));
 
-        profile.CreateMap<RoutePointCreateCommand, RoutePoint>()
+        profile.CreateMap<RoutePointVm, RoutePoint<OrderEntity>>()
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.OrderIndex, opt => opt.Ignore())
-            .ForMember(dest => dest.OrderId, opt => opt.Ignore());
+            .ForMember(dest => dest.EntityId, opt => opt.Ignore());
     }
 }
 
@@ -226,7 +227,7 @@ public record PayloadCreateCommand
 /// <summary>
 /// DTO с информацией о точке маршрута
 /// </summary>
-public record RoutePointCreateCommand
+public record RoutePointVm
 {
     /// <summary>
     /// Город точки маршрута

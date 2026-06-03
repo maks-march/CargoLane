@@ -1,8 +1,9 @@
 using Domain.Enums;
+using Domain.Models.Abstract;
 
 namespace Domain.Models.Order;
 
-public class Payment : OrderField
+public class Payment : EntityField<OrderEntity>
 {
     public required PaymentType PaymentType { get; set; } = PaymentType.NoNegotiable;
     public required bool IsTaxedByCard {get; set;}

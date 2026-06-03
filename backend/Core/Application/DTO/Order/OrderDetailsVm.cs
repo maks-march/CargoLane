@@ -1,6 +1,7 @@
 using Application.Common.Mappings;
 using Application.CQRS.OrderCQ.Commands.Create;
 using AutoMapper;
+using Domain.Models.Abstract;
 using Domain.Models.Order;
 
 namespace Application.DTO.Order;
@@ -46,7 +47,7 @@ public record OrderDetailsVm : CreateOrderCommand, IMapWith<OrderEntity>
                 opt.MapFrom(src => src.Payloads))
             .ForMember(dest => 
                 dest.RoutePoints, opt => 
-                opt.MapFrom(src => src.RoutePoints));
+                opt.MapFrom(src => src.RoutePoints.OrderBy(r => r.OrderIndex)));
             
         // Также нам нужны маппинги для самих DTO в их доменные аналоги
         profile.CreateMap<Payment, PaymentCreateCommand>()
@@ -61,6 +62,6 @@ public record OrderDetailsVm : CreateOrderCommand, IMapWith<OrderEntity>
                dest.Wrap,opt => 
                opt.MapFrom(src => src.Wrap.ToString()));
 
-       profile.CreateMap<RoutePoint, RoutePointCreateCommand>();
+       profile.CreateMap<RoutePoint<OrderEntity>, RoutePointVm>();
     }
 }

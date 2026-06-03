@@ -19,24 +19,24 @@ public class OrderConfiguration : IEntityTypeConfiguration<OrderEntity>
         
         // Связи с вложенными сущностями (один к одному)
         builder.HasOne(o => o.Payment)
-            .WithOne(p => p.Order)
-            .HasForeignKey<Payment>(p => p.OrderId)
+            .WithOne(p => p.Entity)
+            .HasForeignKey<Payment>(p => p.EntityId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(o => o.Transport)
-            .WithOne(p => p.Order)
-            .HasForeignKey<Transport>(t => t.OrderId)
+            .WithOne(p => p.Entity)
+            .HasForeignKey<Transport>(t => t.EntityId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // Связи с коллекциями (один ко многим)
         builder.HasMany(o => o.Payloads)
-            .WithOne(p => p.Order)
-            .HasForeignKey(p => p.OrderId)
+            .WithOne(p => p.Entity)
+            .HasForeignKey(p => p.EntityId)
             .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasMany(o => o.RoutePoints)
-            .WithOne(p => p.Order)
-            .HasForeignKey(rp => rp.OrderId)
+            .WithOne(p => p.Entity)
+            .HasForeignKey(rp => rp.EntityId)
             .OnDelete(DeleteBehavior.Cascade);
                
         // Настройка для массивов строк

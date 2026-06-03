@@ -1,10 +1,11 @@
 using Domain.Models.Abstract;
+using Domain.Models.Order;
 
-namespace Domain.Models.Order;
+namespace Domain.Models.Truck;
 
-public class Transport : EntityField<OrderEntity>
+public class TruckEntity : HasAuthor, IManyFiles<TruckPhoto>
 {
-    public required IList<string> BodyType {get; set;}
+    public required string BodyType {get; set;}
     public IList<string> LoadType {get; set;} = [];
     public IList<string> UnloadType {get; set;} = [];
     
@@ -22,4 +23,12 @@ public class Transport : EntityField<OrderEntity>
     public bool IsT1 { get; set; } = false;
     public bool IsCmr { get; set; } = false;
     public bool IsMedicalBook { get; set; } = false;
+    public IList<TruckPhoto> Photos { get; set; } = [];
+    
+    public bool IsPaymentRequested { get; set; } = false;
+    public double TaxedByCard { get; set; }
+    public double NotTaxedByCard { get; set; }
+    public double ByCash { get; set; }
+    public string Description {  get; set; } = string.Empty;
+    public IList<RoutePoint<TruckEntity>> RoutePoints { get; set; } = [];
 }

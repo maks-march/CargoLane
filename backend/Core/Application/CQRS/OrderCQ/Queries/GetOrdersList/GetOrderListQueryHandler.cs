@@ -16,7 +16,7 @@ public class GetOrderListQueryHandler(
     public async Task<IList<OrderListVm>> Handle(GetOrderListQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.Orders.AsNoTracking();
-
+        
         if (!string.IsNullOrWhiteSpace(request.Status) && Enum.TryParse(request.Status, out OrderStatus orderStatus))
         {
             query = query.Where(o => o.Status == orderStatus);

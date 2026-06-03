@@ -1,4 +1,5 @@
 using Application.Common.Exceptions;
+using Application.CQRS.AbstractHandlers;
 using Application.Interfaces;
 using AutoMapper;
 using Domain.Models.Order;
@@ -8,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Application.CQRS.OrderCQ.Commands.Update;
 
 public class UpdateOrderCommandHandler(IAppDbContext dbContext, IMapper mapper) 
-    : IRequestHandler<UpdateOrderCommand, Guid>
+    : UpdateCollectionCommandHandler(dbContext, mapper), IRequestHandler<UpdateOrderCommand, Guid>
 {
     public async Task<Guid> Handle(UpdateOrderCommand request, CancellationToken cancellationToken)
     {
@@ -48,36 +49,5 @@ public class UpdateOrderCommandHandler(IAppDbContext dbContext, IMapper mapper)
         order.Updated = DateTime.UtcNow;
         await dbContext.SaveChangesAsync(cancellationToken);
         return order.Id;
-    }
-
-    private void UpdateCollection<T, K>(IList<T> orderCollection, IList<K> newList, OrderEntity order) 
-        where T : OrderCollectionField
-    {
-        for (int i = orderCollection.Count - 1; i >= 0; i--)
-        {
-            var existing = orderCollection[i];
-            if (i < newList.Count)
-            {
-                mapper.Map(newList[i], existing);
-                existing.OrderIndex = i;
-            }
-            else
-            {
-                dbContext.GetDbSet<T>().Remove(existing);
-            }
-        }
-        if (newList.Count > orderCollection.Count)
-        {
-            for (int i = orderCollection.Count; i < newList.Count; i++)
-            {
-                var dto = newList[i];
-            
-                var newPayload = mapper.Map<T>(dto);
-                newPayload.OrderId = order.Id;
-                newPayload.OrderIndex = i;
-            
-                orderCollection.Add(newPayload);
-            }
-        }
     }
 }

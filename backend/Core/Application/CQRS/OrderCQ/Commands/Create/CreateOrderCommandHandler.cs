@@ -17,15 +17,15 @@ public class CreateOrderCommandHandler(IAppDbContext dbContext, IMapper mapper)
         order.Updated = DateTime.UtcNow;
         
         order.Payment.Id = Guid.NewGuid();
-        order.Payment.OrderId = order.Id;
+        order.Payment.EntityId = order.Id;
         order.Transport.Id = Guid.NewGuid();
-        order.Transport.OrderId = order.Id;
+        order.Transport.EntityId = order.Id;
         
         for (var index = 0; index < order.Payloads.Count; index++)
         {
             var payload = order.Payloads[index];
             payload.Id = Guid.NewGuid();
-            payload.OrderId = order.Id;
+            payload.EntityId = order.Id;
             payload.OrderIndex = index;
         }
 
@@ -34,7 +34,7 @@ public class CreateOrderCommandHandler(IAppDbContext dbContext, IMapper mapper)
         {
             var point = order.RoutePoints[index];
             point.Id = Guid.NewGuid();
-            point.OrderId = order.Id;
+            point.EntityId = order.Id;
             point.OrderIndex = index;
         }
 

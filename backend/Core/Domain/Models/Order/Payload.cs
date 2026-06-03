@@ -1,8 +1,9 @@
 using Domain.Enums;
+using Domain.Models.Abstract;
 
 namespace Domain.Models.Order;
 
-public class Payload : OrderCollectionField
+public class Payload : CollectionField<OrderEntity>
 {
     public required string Name { get; set; }
     public required double Weight { get; set; } = 1;

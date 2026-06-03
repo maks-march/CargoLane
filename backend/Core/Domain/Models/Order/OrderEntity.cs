@@ -16,5 +16,5 @@ public class OrderEntity : HasAuthor, IManyFiles<OrderPhoto>
     public required Transport Transport { get; set; }
 
     public IList<Payload> Payloads { get; set; } = [];
-    public IList<RoutePoint> RoutePoints { get; set; } = [];
+    public IList<RoutePoint<OrderEntity>> RoutePoints { get; set; } = [];
 }

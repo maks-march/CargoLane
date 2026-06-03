@@ -4,11 +4,10 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Persistence.Common.EntityTypeConfigurations.Order;
 
-public class TransportConfiguration : OrderFieldConfiguration<Transport>
+public class TransportConfiguration : EntityFieldConfiguration<Transport, OrderEntity>
 {
     public override void Configure(EntityTypeBuilder<Transport> builder)
     {
-        builder.ToTable("Transports");
         base.Configure(builder);
         
         builder
