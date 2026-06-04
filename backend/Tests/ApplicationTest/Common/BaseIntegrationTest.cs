@@ -67,7 +67,10 @@ public abstract class BaseIntegrationTest
     protected static async Task<T?> ExtractFromResponse<T>(HttpResponseMessage response)
     {
         if (!response.IsSuccessStatusCode)
-            Console.WriteLine(await response.Content.ReadFromJsonAsync<ErrorResponse>());
+        {
+            var err = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+            Console.WriteLine(err);
+        }
         response.IsSuccessStatusCode.Should().BeTrue();
         var result = await response.Content.ReadFromJsonAsync<T>();
         return result;

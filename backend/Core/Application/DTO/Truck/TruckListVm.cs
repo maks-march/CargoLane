@@ -34,7 +34,7 @@ public record TruckListVm : IMapWith<TruckEntity>
                 opt.MapFrom(src =>
                     new[] { src.ByCash, src.NotTaxedByCard, src.TaxedByCard }.Max()))
             .ForMember(dest =>
-                dest.MaxPayment, opt =>
+                dest.MinPayment, opt =>
                 opt.MapFrom(src =>
                     new[] { src.ByCash, src.NotTaxedByCard, src.TaxedByCard }.Min()));
     }

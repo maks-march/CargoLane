@@ -63,7 +63,7 @@ public class TruckController(IMediator mediator) : BaseController(mediator)
     public async Task<ActionResult<Guid>> Update(Guid id, [FromBody] UpdateTruckCommand command)
     {
         if (UserId == Guid.Empty)
-            return Unauthorized();
+            throw new UnauthorizedAccessException("User unauthorized!");
             
         command.Id = id;
         command.UserId = UserId;

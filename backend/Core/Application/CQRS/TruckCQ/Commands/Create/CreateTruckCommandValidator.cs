@@ -57,36 +57,34 @@ public class CreateTruckCommandValidator : AbstractValidator<CreateTruckCommand>
             .WithMessage("Description must be 500 characters or fewer.");
         
         // Валидация температурного режима (опционально, если рефрижератор)
-        When(x => x.BodyType?.ToLower() == "рефрижератор" || x.BodyType?.ToLower() == "refrigerator", () =>
-        {
-            RuleFor(x => x.TemperatureFrom)
-                .NotNull()
-                .WithMessage("Temperature from is required for refrigerator body type.")
-                .InclusiveBetween(-50, 50)
-                .WithMessage("Temperature from must be between -50°C and 50°C.");
+        RuleFor(x => x.TemperatureFrom)
+            .InclusiveBetween(-50, 50)
+            .When(x => x.TemperatureFrom != null)
+            .WithMessage("Temperature from must be between -50°C and 50°C.");
             
-            RuleFor(x => x.TemperatureTo)
-                .NotNull()
-                .WithMessage("Temperature to is required for refrigerator body type.")
-                .InclusiveBetween(-50, 50)
-                .WithMessage("Temperature to must be between -50°C and 50°C.");
+        RuleFor(x => x.TemperatureTo)
+            .InclusiveBetween(-50, 50)
+            .When(x => x.TemperatureTo != null)
+            .WithMessage("Temperature to must be between -50°C and 50°C.");
             
-            RuleFor(x => x)
-                .Must(x => x.TemperatureFrom <= x.TemperatureTo)
-                .WithMessage("Temperature from must be less than or equal to temperature to.");
-        });
+        RuleFor(x => x)
+            .Must(x => x.TemperatureFrom <= x.TemperatureTo || x.TemperatureFrom == null && x.TemperatureTo == null)
+            .WithMessage("Temperature from must be less than or equal to temperature to.");
         
         // Валидация финансовых полей
         RuleFor(x => x.TaxedByCard)
             .GreaterThanOrEqualTo(0)
+            .When(x => x.TaxedByCard != null)
             .WithMessage("Taxed by card amount must be greater than or equal to 0.");
         
         RuleFor(x => x.NotTaxedByCard)
             .GreaterThanOrEqualTo(0)
+            .When(x => x.NotTaxedByCard != null)
             .WithMessage("Not taxed by card amount must be greater than or equal to 0.");
         
         RuleFor(x => x.ByCash)
             .GreaterThanOrEqualTo(0)
+            .When(x => x.ByCash != null)
             .WithMessage("Cash amount must be greater than or equal to 0.");
         
         RuleFor(x => x)

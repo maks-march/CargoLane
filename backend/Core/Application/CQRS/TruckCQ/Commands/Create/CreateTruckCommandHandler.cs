@@ -31,6 +31,13 @@ public class CreateTruckCommandHandler(IAppDbContext dbContext, IMapper mapper)
         // 4. Установка значений по умолчанию для обязательных полей
         truck.Vehicles = request.Vehicles > 0 ? request.Vehicles : 1;
         truck.Adr = request.Adr >= 0 ? request.Adr : 0;
+
+        if (!request.IsPaymentRequested)
+        {
+            truck.ByCash = request.ByCash ?? 0;
+            truck.NotTaxedByCard = request.NotTaxedByCard ?? 0;
+            truck.TaxedByCard = request.TaxedByCard ?? 0;
+        }
         
         // 6. Если есть точки маршрута, инициализируем их (опционально)
         for (var index = 0; index < truck.RoutePoints.Count; index++)

@@ -17,28 +17,43 @@ public class GetTruckListQueryHandler(
     {
         var query = dbContext.Trucks.AsNoTracking();
 
-        // if (!string.IsNullOrWhiteSpace(request.SearchWord))
-        // {
-        //     query = query.Where(t => t.BodyType.Contains(request.SearchWord, StringComparison.OrdinalIgnoreCase));
-        // }
-
         if (!string.IsNullOrWhiteSpace(request.BodyType))
         {
-            query = query.Where(t => t.BodyType.Contains(request.BodyType, StringComparison.OrdinalIgnoreCase));
+            // Используем ToLower(), так как это гарантированно транслируется в SQL
+            query = query.Where(t => t.BodyType.Contains(request.BodyType));
         }
-
+        
         if (request.PriceFrom.HasValue)
         {
             var pf = request.PriceFrom.Value;
             query = query.Where(t => t.ByCash >= pf || t.TaxedByCard >= pf || t.NotTaxedByCard >= pf);
         }
-
+        
         if (request.PriceTo.HasValue)
         {
             var pt = request.PriceTo.Value;
             query = query.Where(t => t.ByCash <= pt || t.TaxedByCard <= pt || t.NotTaxedByCard <= pt);
         }
-
+        
+        if (!string.IsNullOrWhiteSpace(request.StartCity))
+        {
+            query = query.Where(o =>
+                o.RoutePoints
+                    .OrderBy(rp => rp.OrderIndex)
+                    .First()
+                    .City
+                    .Contains(request.StartCity));
+        }
+        if (!string.IsNullOrWhiteSpace(request.EndCity))
+        {
+            query = query.Where(o => 
+                o.RoutePoints
+                    .OrderByDescending(rp => rp.OrderIndex)
+                    .First()
+                    .City
+                    .Contains(request.EndCity));
+        }
+        
         var columnsMap = new Dictionary<string, Expression<Func<TruckEntity, object>>>
         {
             ["date"] = t => t.Created, 
@@ -51,15 +66,15 @@ public class GetTruckListQueryHandler(
 
         if (!string.IsNullOrWhiteSpace(sortByColumn) && columnsMap.ContainsKey(sortByColumn))
         {
-            query = request.IsAscending 
-                ? query.OrderBy(columnsMap[sortByColumn])
-                : query.OrderByDescending(columnsMap[sortByColumn]);
+            query = request.IsDescending 
+                ? query.OrderByDescending(columnsMap[sortByColumn])
+                : query.OrderBy(columnsMap[sortByColumn]);
         }
         else
         {
             query = query.OrderByDescending(t => t.Id);
         }
-
+        Console.WriteLine($"order {query.ToList()}");
         return await query
             .ProjectTo<TruckListVm>(mapper.ConfigurationProvider)
             .ToArrayAsync(cancellationToken);

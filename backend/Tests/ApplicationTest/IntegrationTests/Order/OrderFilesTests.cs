@@ -5,7 +5,7 @@ using WebApi.DTO;
 namespace ApplicationTest.IntegrationTests.Order;
 
 [TestFixture]
-public class OrderFilesTests : OrderTest
+public class OrderFilesTests : OrderTestBase
 {
     [Test]
     public async Task PutNewPhotos()

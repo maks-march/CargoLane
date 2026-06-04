@@ -10,7 +10,7 @@ using WebApi.DTO;
 
 namespace ApplicationTest.IntegrationTests.Order;
 
-public class OrderUpdateControllerTests : OrderTest
+public class OrderUpdateControllerTests : OrderTestBase
 {
     private async Task<(OrderDetailsVm order, OrderDetailsVm updated)> PrepareVm(UpdateOrderCommand command)
     {

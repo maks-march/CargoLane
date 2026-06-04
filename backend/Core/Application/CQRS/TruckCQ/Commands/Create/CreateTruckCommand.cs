@@ -102,17 +102,17 @@ public record CreateTruckCommand : IRequest<Guid>, IMapWith<TruckEntity>
     /// <summary>
     /// Сумма оплаты, облагаемая налогом и оплачиваемая картой
     /// </summary>
-    public double TaxedByCard { get; set; }
+    public double? TaxedByCard { get; set; }
 
     /// <summary>
     /// Сумма оплаты, не облагаемая налогом и оплачиваемая картой
     /// </summary>
-    public double NotTaxedByCard { get; set; }
+    public double? NotTaxedByCard { get; set; }
 
     /// <summary>
     /// Сумма оплаты наличными деньгами
     /// </summary>
-    public double ByCash { get; set; }
+    public double? ByCash { get; set; }
 
     /// <summary>
     /// Идентификатор пользователя, создающего грузовик

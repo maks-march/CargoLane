@@ -90,7 +90,7 @@ public class OrderController(IMediator mediator) : BaseController(mediator)
     public async Task<ActionResult<Guid>> Update(Guid id, [FromBody]UpdateOrderCommand command)
     {
         if (UserId == Guid.Empty)
-            return Unauthorized();
+            throw new UnauthorizedAccessException("User unauthorized!");
         command.Id = id;
         command.UserId = UserId;
         return Ok(await Mediator.Send(command));

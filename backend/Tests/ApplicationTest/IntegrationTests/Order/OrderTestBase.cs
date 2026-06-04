@@ -1,12 +1,13 @@
 using System.Net.Http.Json;
 using Application.CQRS.OrderCQ.Commands.Create;
+using Application.DTO.Order;
 using ApplicationTest.Common;
 using FluentAssertions;
 using WebApi.DTO;
 
 namespace ApplicationTest.IntegrationTests.Order;
 
-public abstract class OrderTest : BaseIntegrationTest
+public abstract class OrderTestBase : BaseIntegrationTest
 {
     protected const string BaseUrl = "/api/Order";
     protected async Task<Guid> PostValidOrder(CreateOrderCommand? command = null)
@@ -45,5 +46,20 @@ public abstract class OrderTest : BaseIntegrationTest
                 Console.WriteLine(name);
                 return error.Error.Contains(name);
             });
+    }
+    
+    [TearDown]
+    public async Task TearDown()
+    {
+        var response = await Client.GetAsync(BaseUrl);
+        var result = await ExtractFromResponse<OrderListVm[]>(response);
+        
+        if (result == null)
+            return;
+        
+        foreach (var order in result)
+        {
+            await Client.DeleteAsync($"{BaseUrl}/{order.Id}");
+        }
     }
 }

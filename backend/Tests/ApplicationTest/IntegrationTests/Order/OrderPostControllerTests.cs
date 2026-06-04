@@ -7,7 +7,7 @@ using WebApi.DTO;
 namespace ApplicationTest.IntegrationTests.Order;
 
 [TestFixture]
-public class OrderPostControllerTests : OrderTest
+public class OrderPostControllerTests : OrderTestBase
 {
     [Test]
     public void Post_WithValidCredentials_ShouldBeOk()

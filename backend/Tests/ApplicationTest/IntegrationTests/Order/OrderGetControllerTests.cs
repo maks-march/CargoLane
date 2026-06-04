@@ -7,7 +7,7 @@ using FluentAssertions;
 namespace ApplicationTest.IntegrationTests.Order;
 
 [TestFixture]
-public class OrderGetControllerTests : OrderTest
+public class OrderGetControllerTests : OrderTestBase
 {
     [Test]
     public async Task Get_WithInvalidCredentials_ShouldBeNotFound()
@@ -26,8 +26,9 @@ public class OrderGetControllerTests : OrderTest
         var response = await Client.GetAsync(BaseUrl);
         
         var orders = await ExtractFromResponse<OrderListVm[]>(response);
+        
         orders.Should().NotBeNull();
-        orders!.Length.Should().BeGreaterThanOrEqualTo(2);
+        orders.Length.Should().BeGreaterThanOrEqualTo(2);
     }
 
     [Test]
@@ -39,7 +40,7 @@ public class OrderGetControllerTests : OrderTest
 
         var order = await ExtractFromResponse<OrderDetailsVm>(response);
         order.Should().NotBeNull();
-        order!.Id.Should().Be(orderId);
+        order.Id.Should().Be(orderId);
     }
 
     [Test]
