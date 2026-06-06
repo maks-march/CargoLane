@@ -1,7 +1,7 @@
 import type { LoadData } from '../types';
 
 // Базовый URL бэкенда. Если бэкенд крутится на другом порту (например, 8080), поменяй здесь.
-const API_BASE_URL = 'http://localhost:5000/api'; 
+const API_BASE_URL = 'http://localhost:8080/api'; 
 
 export const loadsService = {
   // Получить все грузы (GET /api/Order)
