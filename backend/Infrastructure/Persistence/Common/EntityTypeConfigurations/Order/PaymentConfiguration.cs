@@ -1,5 +1,4 @@
 using Domain.Models.Order;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Persistence.Common.EntityTypeConfigurations.Order;

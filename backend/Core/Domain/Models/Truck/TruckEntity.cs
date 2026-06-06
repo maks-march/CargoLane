@@ -1,5 +1,4 @@
 using Domain.Models.Abstract;
-using Domain.Models.Order;
 
 namespace Domain.Models.Truck;
 

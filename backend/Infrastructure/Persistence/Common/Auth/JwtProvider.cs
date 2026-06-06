@@ -23,6 +23,7 @@ public class JwtProvider(IConfiguration configuration, UserManager<ApplicationUs
             new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Name, user.UserName!),
             new(ClaimTypes.Name, user.UserName!),
+            new(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
         

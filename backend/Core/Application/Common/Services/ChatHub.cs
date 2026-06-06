@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 
-namespace Persistence.Common.Hubs;
+namespace Application.Common.Services;
 
 public class ChatHub : Hub
 {

@@ -3,7 +3,7 @@ using Domain.Models.Chat;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.CQRS.ChatCQ;
+namespace Application.CQRS.ChatCQ.Commands;
 
 public class StartChatCommandHandler(IAppDbContext dbContext) : IRequestHandler<StartChatCommand, Guid>
 {

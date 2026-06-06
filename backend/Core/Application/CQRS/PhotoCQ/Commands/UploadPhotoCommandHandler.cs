@@ -1,10 +1,6 @@
-using Application.Common.Exceptions;
 using Application.Interfaces;
 using Domain.Models;
 using Domain.Models.Abstract;
-using Domain.Models.Order;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Application.CQRS.PhotoCQ.Commands;
 

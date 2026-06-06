@@ -1,4 +1,5 @@
 using Application;
+using Application.Common.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Persistence.Extensions;
 using WebApi.Extensions;
@@ -25,6 +26,8 @@ var app = builder.Build();
 app.UseCustomExceptionHandler();
 app.UseStaticAssets(builder.Environment);
 app.UseRouting();
+
+app.MapHub<ChatHub>("/chathub");
 
 app.UseStatusCodePages();
 app.UseForwardedHeaders();
