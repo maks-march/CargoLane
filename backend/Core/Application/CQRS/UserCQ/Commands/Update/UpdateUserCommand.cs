@@ -11,17 +11,24 @@ public record UpdateUserCommand : IRequest<Guid>, IMapWith<User>
     /// Идентификатор обновляемого пользователя
     /// </summary>
     public Guid Id { get; set; } = Guid.Empty;
+    public string? FirstName { get; init; } = null;
+    public string? LastName { get; init; } = null;
     
-    /// <summary>
-    /// Новое имя пользователя (часть nickname)
-    /// </summary>
-    public string? Name { get; init; }
+    public string? NickName { get; set; } = null;
+    public int? TimeZone { get; set; } = null;
+    public string? PhoneNumber { get; set; } = null;
     
-    /// <summary>
-    /// Новая фамилия пользователя (часть nickname)
-    /// </summary>
-    public string? Surname { get; init; }
-
+    public string? CompanyName { get; set; } = null;
+    public string? CompanyCountry { get; set; } = null;
+    public string? CompanyType { get; set; } = null;
+    
+    public string? Country { get; set; } = null;
+    public string? Region { get; set; } = null;
+    public string? City { get; set; } = null;
+    public string? Address { get; set; } = null;
+    public string? PostalCode { get; set; } = null;
+    public string? Purpose { get; set; } = null;
+    
     public void Mapping(Profile profile)
     {
         profile.CreateMap<UpdateUserCommand, User>()

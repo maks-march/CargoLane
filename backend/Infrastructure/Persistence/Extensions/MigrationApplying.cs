@@ -67,8 +67,8 @@ public static class MigrationApplying
                 var businessUser = new User
                 {
                     Id = newAdminUser.Id,
-                    Name = configuration["Admin:Name"]!,
-                    Surname = configuration["Admin:Surname"]!,
+                    FirstName = configuration["Admin:Name"]!,
+                    LastName = configuration["Admin:Surname"]!,
                     Created = DateTime.UtcNow,
                     Updated = DateTime.UtcNow,
                 };

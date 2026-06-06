@@ -15,7 +15,7 @@ public class RegisterCommandHandler(
     {
         // 1. Создаем пользователя через наш сервис
         var (succeeded, errors, userId) = await identityService.CreateUserAsync(
-            request.Login, request.Password, request.Name, request.Surname);
+            request.Login, request.Password, "", "");
         
         if (!succeeded)
         {

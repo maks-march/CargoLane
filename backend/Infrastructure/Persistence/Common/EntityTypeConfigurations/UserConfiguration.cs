@@ -11,8 +11,8 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.ToTable("Users");
         builder.HasKey(x => x.Id);
         
-        builder.Property(x => x.Name).HasMaxLength(50).IsRequired();
-        builder.Property(x => x.Surname).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.FirstName).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.LastName).HasMaxLength(50).IsRequired();
         
         builder.HasMany(x => x.Trucks)
             .WithOne(x => x.User)

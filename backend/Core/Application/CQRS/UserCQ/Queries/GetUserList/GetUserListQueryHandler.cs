@@ -11,9 +11,9 @@ namespace Application.CQRS.UserCQ.Queries.GetUserList;
 
 public class GetUserListQueryHandler(
     IAppDbContext dbContext, IMapper mapper) 
-    : IRequestHandler<GetUserListQuery, UserListVm>
+    : IRequestHandler<GetUserListQuery, ICollection<UserDetailsVm>>
 {
-    public async Task<UserListVm> Handle(GetUserListQuery request, CancellationToken cancellationToken)
+    public async Task<ICollection<UserDetailsVm>> Handle(GetUserListQuery request, CancellationToken cancellationToken)
     {
         var users = await dbContext.BusinessUsers
             .ProjectTo<UserDetailsVm>(mapper.ConfigurationProvider)
@@ -23,6 +23,6 @@ public class GetUserListQueryHandler(
             throw new NotFoundException(nameof(User), request);
         }
 
-        return new () { Users = users };
+        return users;
     }
 }

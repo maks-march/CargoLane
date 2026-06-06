@@ -21,8 +21,8 @@ public class IdentityService(UserManager<ApplicationUser> userManager, AppDbCont
         var businessUser = new User
         {
             Id = appUser.Id, 
-            Name = name, 
-            Surname = surname,
+            FirstName = name, 
+            LastName = surname,
             Created = DateTime.Now,
             Updated = DateTime.Now
         };

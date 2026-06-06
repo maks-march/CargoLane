@@ -20,7 +20,7 @@ public class GetChatQueryHandler(IAppDbContext dbContext)
                 // Выбираем участника, который НЕ является текущим пользователем
                 ChatName = c.Participants
                     .Where(p => p.Id != request.UserId)
-                    .Select(p => p.Name + " " + p.Surname)
+                    .Select(p => p.FirstName + " " + p.LastName)
                     .FirstOrDefault() ?? "Удаленный пользователь",
                 
                 ChatAvatarUrl = c.Participants

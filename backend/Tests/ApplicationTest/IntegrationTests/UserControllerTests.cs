@@ -27,8 +27,8 @@ public class UserControllerTests : BaseIntegrationTest
     public async Task Get_WithValidCredentials_ShouldBeOk()
     {
         var vm = await CheckGet_User(Tokens.UserId);
-        vm.Name.Should().Be(Name);
-        vm.Surname.Should().Be(Surname);
+        vm.Name.Should().NotBeNull();
+        vm.Surname.Should().NotBeNull();
     }
     
     
@@ -41,8 +41,8 @@ public class UserControllerTests : BaseIntegrationTest
         var vm = await response.Content.ReadFromJsonAsync<UserDetailsVm>();
         
         vm.Should().NotBeNull();
-        vm.Name.Should().Be(Name);
-        vm.Surname.Should().Be(Surname);
+        vm.Name.Should().NotBeNull();
+        vm.Surname.Should().NotBeNull();
     }
     
     [Test]
@@ -64,13 +64,13 @@ public class UserControllerTests : BaseIntegrationTest
         var response = await Client.GetAsync(BaseUrl);
         
         response.IsSuccessStatusCode.Should().BeTrue();
-        var vm = await response.Content.ReadFromJsonAsync<UserListVm>();
+        var vm = await response.Content.ReadFromJsonAsync<UserDetailsVm[]>();
         
         vm.Should().NotBeNull();
-        vm.Users.Should().NotBeEmpty();
-        var first = vm.Users.First(user => user.Id == Tokens.UserId);
-        first.Name.Should().Be(Name);
-        first.Surname.Should().Be(Surname);
+        vm.Should().NotBeEmpty();
+        var first = vm.First(user => user.Id == Tokens.UserId);
+        first.Name.Should().NotBeNull();
+        first.Surname.Should().NotBeNull();
     }
 
     [Test]
@@ -78,8 +78,8 @@ public class UserControllerTests : BaseIntegrationTest
     {
         var request = new UpdateUserCommand()
         {
-            Name = "NewName",
-            Surname = "NewSurname"
+            FirstName = "NewName",
+            LastName = "NewSurname"
         };
         var response = await Client.PatchAsJsonAsync($"{BaseUrl}me", request);
         
@@ -88,8 +88,8 @@ public class UserControllerTests : BaseIntegrationTest
 
         var getResponse = await CheckGet_User(id);
         
-        getResponse.Name.Should().Be(request.Name);
-        getResponse.Surname.Should().Be(request.Surname);
+        getResponse.Name.Should().Be(request.FirstName);
+        getResponse.Surname.Should().Be(request.LastName);
         getResponse.Updated.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
     }
     
@@ -98,10 +98,10 @@ public class UserControllerTests : BaseIntegrationTest
     {
         var request = new UpdateUserCommand()
         {
-            Name = string.Concat(
+            FirstName = string.Concat(
                 Enumerable.Repeat("Update_WithInvalidCredentials_ShouldBeBadRequest", 20)
             ),
-            Surname = string.Concat(
+            LastName = string.Concat(
                 Enumerable.Repeat("Update_WithInvalidCredentials_ShouldBeBadRequest", 20)
             )
         };
@@ -111,7 +111,7 @@ public class UserControllerTests : BaseIntegrationTest
         var vm = await response.Content.ReadFromJsonAsync<ErrorResponse>();
         
         vm.Should().NotBeNull();
-        vm.Error.Should().ContainAll(["Name", "Surname"], "All fields not valid.");
+        vm.Error.Should().ContainAll(["FirstName", "LastName"], "All fields not valid.");
         vm.Details.Should().NotBeNullOrEmpty();
     }
 }

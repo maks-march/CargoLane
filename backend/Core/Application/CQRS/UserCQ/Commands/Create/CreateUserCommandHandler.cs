@@ -11,8 +11,8 @@ public class CreateUserCommandHandler(IAppDbContext dbContext)
         var user = new Domain.Models.User
         {
             Id = Guid.NewGuid(),
-            Name = request.Name,
-            Surname = request.Surname,
+            FirstName = request.FirstName,
+            LastName = request.LastName,
             Created = DateTime.Now,
             Updated = DateTime.Now
         };

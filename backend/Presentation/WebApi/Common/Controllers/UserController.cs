@@ -65,10 +65,10 @@ public class UserController(IMediator mediator)
     /// <response code="401">Не авторизован (токен отсутствует или невалиден).</response>
     /// <response code="404">Пользователи не найдены.</response>
     [HttpGet]
-    [ProducesResponseType(typeof(UserListVm), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ICollection<UserDetailsVm>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<UserListVm>> Get()
+    public async Task<ActionResult<ICollection<UserDetailsVm>>> Get()
     {
         var query = new GetUserListQuery();
         var vm = await Mediator.Send(query);
@@ -96,6 +96,22 @@ public class UserController(IMediator mediator)
         var query = new DeleteUserCommand()
         {
             Id = id
+        };
+        await Mediator.Send(query);
+        return NoContent();
+    }
+    
+    /// <summary>
+    /// Удаляет текущего пользователя.
+    /// </summary>
+    [HttpDelete("me")]
+    public async Task<ActionResult<UserDetailsVm>> DeleteMe()
+    {
+        if (UserId == Guid.Empty)
+            return Unauthorized();
+        var query = new DeleteUserCommand()
+        {
+            Id = UserId
         };
         await Mediator.Send(query);
         return NoContent();

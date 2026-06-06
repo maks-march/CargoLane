@@ -16,8 +16,6 @@ public abstract class BaseIntegrationTest
     private TestWebApplicationFactory<Program> _factory;
     protected HttpClient Client;
     protected IFileService FileService;
-    protected const string Name = "Test";
-    protected const string Surname = "User";
     protected const string Password = "Password123!";
     protected string Login = "RequestAuthor";
     protected AuthResponse Tokens;
@@ -40,8 +38,6 @@ public abstract class BaseIntegrationTest
     {
         var command = new RegisterCommand
         {
-            Name = Name,
-            Surname = Surname,
             Login = login,
             Password = Password
         };

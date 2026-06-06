@@ -25,7 +25,13 @@ public class GetChatHistoryQueryHandler(IAppDbContext dbContext, IMapper mapper)
             // Бросаем Forbidden, чтобы Middleware превратил его в 403 ошибку
             throw new ForbiddenException("У вас нет доступа к этому чату", request.UserId);
         }
+        
+        var unreadMessages = await dbContext.Messages
+            .Where(m => m.ChatId == request.ChatId && m.SenderId != request.UserId && !m.IsRead)
+            .ToListAsync(cancellationToken);
 
+        foreach(var msg in unreadMessages) msg.IsRead = true;
+        
         // 2. Тянем сообщения
         return await dbContext.Messages
             .AsNoTracking()

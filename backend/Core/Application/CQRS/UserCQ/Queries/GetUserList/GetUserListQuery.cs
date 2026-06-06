@@ -3,7 +3,7 @@ using MediatR;
 
 namespace Application.CQRS.UserCQ.Queries.GetUserList;
 
-public class GetUserListQuery : IRequest<UserListVm>
+public class GetUserListQuery : IRequest<ICollection<UserDetailsVm>>
 {
     
 }
