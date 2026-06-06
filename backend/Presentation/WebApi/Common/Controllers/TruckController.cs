@@ -1,8 +1,10 @@
+using Application.CQRS.PhotoCQ.Commands;
 using Application.CQRS.TruckCQ.Commands.Create;
 using Application.CQRS.TruckCQ.Commands.Delete;
 using Application.CQRS.TruckCQ.Commands.Update;
 using Application.CQRS.TruckCQ.Queries;
 using Application.DTO.Truck;
+using Domain.Models.Truck;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -39,6 +41,32 @@ public class TruckController(IMediator mediator) : BaseController(mediator)
     {
         return Ok(await Mediator.Send(query));
     }
+    
+    
+    /// <summary>
+    /// Получает список грузовиков принадлежащих пользователю.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("user/{id:guid}")]
+    [ProducesResponseType(typeof(TruckListVm[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(TruckListVm[]), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TruckListVm[]>> GetByUserId(Guid id)
+    {
+        return Ok(await Mediator.Send(new GetUserTrucksQuery(id)));
+    }
+    
+    /// <summary>
+    /// Получает список грузовиков принадлежащих текущему пользователю.
+    /// </summary>
+    [HttpGet("user/me")]
+    [ProducesResponseType(typeof(TruckListVm[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(TruckListVm[]), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<TruckListVm[]>> GetMy()
+    {
+        if (UserId == Guid.Empty)
+            throw new UnauthorizedAccessException("User unauthorized!");
+        return await GetByUserId(UserId);
+    }
 
     /// <summary>
     /// Добавляет новый грузовик.
@@ -49,6 +77,8 @@ public class TruckController(IMediator mediator) : BaseController(mediator)
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<Guid>> Post([FromBody] CreateTruckCommand command)
     {
+        if (UserId == Guid.Empty)
+            throw new UnauthorizedAccessException("User unauthorized!");
         command.UserId = UserId;
         return Ok(await Mediator.Send(command));
     }
@@ -80,7 +110,21 @@ public class TruckController(IMediator mediator) : BaseController(mediator)
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> Delete(Guid id)
     {
+        if (UserId == Guid.Empty)
+            throw new UnauthorizedAccessException("User unauthorized!");
         var command = new DeleteTruckCommand(id, UserId);
+        await Mediator.Send(command);
+        return NoContent();
+    }
+    
+    [HttpPut("{id:guid}/photos")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> PutPhotos(Guid id, [FromForm]PhotoDto? photos)
+    {
+        var command = new UploadPhotoCommand<TruckEntity>(id, UserId, photos?.Photos ?? []);
         await Mediator.Send(command);
         return NoContent();
     }

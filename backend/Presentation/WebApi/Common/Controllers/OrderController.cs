@@ -3,6 +3,7 @@ using Application.CQRS.OrderCQ.Commands.Delete;
 using Application.CQRS.OrderCQ.Commands.Update;
 using Application.CQRS.OrderCQ.Queries.GetOrderDetails;
 using Application.CQRS.OrderCQ.Queries.GetOrdersList;
+using Application.CQRS.OrderCQ.Queries.GetUserOrders;
 using Application.CQRS.PhotoCQ.Commands;
 using Application.DTO.Order;
 using Domain.Models.Order;
@@ -54,6 +55,32 @@ public class OrderController(IMediator mediator) : BaseController(mediator)
     public async Task<ActionResult<OrderListVm[]>> Get([FromQuery] GetOrderListQuery query)
     {
         return Ok(await Mediator.Send(query));
+    }
+    
+    
+    /// <summary>
+    /// Получает список заказов принадлежащих пользователю.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("user/{id:guid}")]
+    [ProducesResponseType(typeof(OrderListVm[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(OrderListVm[]), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<OrderListVm[]>> GetByUserId(Guid id)
+    {
+        return Ok(await Mediator.Send(new GetUserOrdersQuery(id)));
+    }
+    
+    /// <summary>
+    /// Получает список заказов принадлежащих текущему пользователю.
+    /// </summary>
+    [HttpGet("user/me")]
+    [ProducesResponseType(typeof(OrderListVm[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(OrderListVm[]), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<OrderListVm[]>> GetMy()
+    {
+        if (UserId == Guid.Empty)
+            throw new UnauthorizedAccessException("User unauthorized!");
+        return await GetByUserId(UserId);
     }
 
     /// <summary>

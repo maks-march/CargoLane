@@ -3,7 +3,7 @@ using Domain.Models.Order;
 
 namespace Domain.Models.Truck;
 
-public class TruckEntity : HasAuthor, IManyFiles<TruckPhoto>
+public class TruckEntity : HasAuthor, IManyFiles<TruckFile>
 {
     public required string BodyType {get; set;}
     public IList<string> LoadType {get; set;} = [];
@@ -23,7 +23,7 @@ public class TruckEntity : HasAuthor, IManyFiles<TruckPhoto>
     public bool IsT1 { get; set; } = false;
     public bool IsCmr { get; set; } = false;
     public bool IsMedicalBook { get; set; } = false;
-    public IList<TruckPhoto> Photos { get; set; } = [];
+    public IList<TruckFile> Photos { get; set; } = [];
     
     public bool IsPaymentRequested { get; set; } = false;
     public double TaxedByCard { get; set; }
