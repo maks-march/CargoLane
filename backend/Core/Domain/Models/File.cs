@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Domain.Models.Abstract;
 using Domain.Models.Truck;
 
@@ -8,8 +9,36 @@ public abstract class FileEntity<TOwner> : CollectionEntity where TOwner : Entit
     public required string FilePath { get; set; }
     public Guid OwnerId { get; set; }
     public TOwner Owner { get; set; }
+    
+    
+    [SetsRequiredMembers]
+    public FileEntity()
+    {
+        FilePath = "";
+        OwnerId = Guid.Empty;
+    }
 }
 
-public class OrderPhoto : FileEntity<Order.OrderEntity>;
-public class TruckPhoto : FileEntity<TruckEntity>;
-public class UserAvatar : FileEntity<User>;
+public class OrderFile : FileEntity<Order.OrderEntity>
+{
+    [SetsRequiredMembers]
+    public OrderFile()
+    {
+    }
+}
+
+public class TruckFile : FileEntity<TruckEntity>
+{
+    [SetsRequiredMembers]
+    public TruckFile()
+    {
+    }
+}
+
+public class UserFile : FileEntity<User>
+{
+    [SetsRequiredMembers]
+    public UserFile()
+    {
+    }
+}

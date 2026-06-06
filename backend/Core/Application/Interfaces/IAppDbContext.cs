@@ -17,7 +17,7 @@ public interface IAppDbContext
     public DbSet<RoutePoint<TruckEntity>> TruckRoutePoints { get; set; }
     public DbSet<Transport> Transports { get; set; }
     public DbSet<Payment> Payments { get; set; }
-    public DbSet<OrderPhoto> Files { get; set; }
+    public DbSet<OrderFile> Files { get; set; }
 
     public ChangeTracker ChangeTracker { get; }
     public DbSet<T> GetDbSet<T>() where T : class;
