@@ -19,4 +19,5 @@ export interface LoadData {
   vehicle: string;
   price: string;
   match: number;
+  status?: 'active' | 'pending' | 'draft' | 'closed'; // Добавили поле
 }

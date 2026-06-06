@@ -24,23 +24,8 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
       setIsLoading(true);
       try {
         const data = await loadsService.getAllLoads();
-        const safeData = (Array.isArray(data) ? data : []) as LoadData[];
-        
-        const loadsWithStatus: MyLoadData[] = safeData.slice(0, 7).map((load, index) => {
-          let status: MyLoadData['status'] = 'active';
-          let bids = 14;
-          let views = 312;
-
-          if (index === 1) { status = 'pending'; bids = 0; views = 12; }
-          if (index === 2) { status = 'active'; bids = 22; views = 412; }
-          if (index === 3) { status = 'draft'; bids = 0; views = 0; }
-          if (index === 4) { status = 'closed'; bids = 18; views = 280; }
-          if (index === 5) { status = 'closed'; bids = 11; views = 198; }
-
-          return { ...load, status, bids, views };
-        });
-        
-        setLoads(loadsWithStatus);
+        const safeData = (Array.isArray(data) ? data : []) as MyLoadData[];
+        setLoads(safeData);
       } catch (error) {
         console.error("Data fetch error:", error);
         setLoads([]);
@@ -72,7 +57,7 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
 
   const getStatusBadge = (status: string) => {
     const labels: Record<string, string> = { active: 'Active', pending: 'In review', draft: 'Draft', closed: 'Closed' };
-    return <span className={`status-pill ${status}`}>{labels[status]}</span>;
+    return <span className={`status-pill ${status}`}>{labels[status] || status}</span>;
   };
 
   return (
@@ -130,7 +115,6 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              {/* КНОПКА FILTER ВЕРНУЛАСЬ СЮДА */}
               <button className="btn-figma-secondary">
                 <span style={{ fontSize: '16px' }}>⚙</span> Filter
               </button>
@@ -165,7 +149,8 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
                     <tr 
                       key={load.id} 
                       style={{ cursor: 'pointer' }} 
-                      onClick={() => onNavigate('load-detail', { loadId: load.id, fromPage: 'my-listings' })}
+                      /* ФИКС: Используем || '' для безопасной передачи ID */
+                      onClick={() => onNavigate('load-detail', { loadId: load.id || '', fromPage: 'my-listings' })}
                     >
                       <td style={{ paddingLeft: '24px' }}>
                         <div className="load-id" style={{ color: '#3D5AFE', fontWeight: 600, fontSize: '14px' }}>{load.id}</div>
@@ -176,14 +161,13 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
                         </div>
                       </td>
                       <td style={{ color: '#5C6470' }}>{load.dateStart}</td>
-                      <td>{load.cargo}</td>
+                      <td>{load.cargo.split('·')[0]}</td>
                       <td style={{ fontWeight: 600 }}>{load.price}</td>
-                      <td>{getStatusBadge(load.status)}</td>
-                      <td style={{ fontWeight: 500 }}>{load.bids}</td>
-                      <td style={{ color: '#5C6470' }}>{load.views}</td>
+                      <td>{getStatusBadge(load.status || 'active')}</td>
+                      <td style={{ fontWeight: 500 }}>{load.bids || 0}</td>
+                      <td style={{ color: '#5C6470' }}>{load.views || 0}</td>
                       <td style={{ textAlign: 'right', paddingRight: '24px' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
-                           {/* КНОПКА "ТРОЕТОЧИЕ" КАК В FIGMA */}
                           <button className="action-dots">⋯</button>
                         </div>
                       </td>
@@ -193,7 +177,6 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
               </table>
             )}
           </div>
-          
         </div>
       </main>
     </div>
