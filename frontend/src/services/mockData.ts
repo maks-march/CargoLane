@@ -1,0 +1,103 @@
+import type { LoadData } from '../types';
+
+export const mockLoads: LoadData[] = [
+  {
+    id: 'CL-48201',
+    company: 'Nordhafen',
+    from: 'Rotterdam, NL',
+    to: 'Warsaw, PL',
+    extraRoute: '+ Hamburg',
+    dateStart: 'May 12',
+    dateEnd: '14',
+    cargo: 'FMCG · Pallets',
+    mass: '18.2 t',
+    volume: '76 m³',
+    vehicle: 'Tautliner',
+    price: '€1,840',
+    match: 98
+  },
+  {
+    id: 'CL-48198',
+    company: 'Belgo Transport',
+    from: 'Antwerp, BE',
+    to: 'Vienna, AT',
+    dateStart: 'May 13',
+    cargo: 'Industrial parts',
+    mass: '24.0 t',
+    volume: '88 m³',
+    vehicle: 'Mega trailer',
+    price: '€2,210',
+    match: 94
+  },
+  {
+    id: 'CL-48197',
+    company: 'Rhône Cargo',
+    from: 'Lyon, FR',
+    to: 'Madrid, ES',
+    extraRoute: '+ Barcelona',
+    dateStart: 'May 14',
+    dateEnd: '15',
+    cargo: 'Wine · Refrigerated',
+    mass: '12.5 t',
+    volume: '54 m³',
+    vehicle: 'Reefer',
+    price: '€1,560',
+    match: 91
+  },
+  {
+    id: 'CL-48195',
+    company: 'Elbe Forwarding',
+    from: 'Hamburg, DE',
+    to: 'Copenhagen, DK',
+    dateStart: 'May 12',
+    cargo: 'Container · 40ft',
+    mass: '21.0 t',
+    volume: '67 m³',
+    vehicle: 'Container',
+    price: '€940',
+    match: 88
+  },
+  {
+    id: 'CL-48190',
+    company: 'Lombardia Logistics',
+    from: 'Milan, IT',
+    to: 'Munich, DE',
+    extraRoute: '+ Verona',
+    dateStart: 'May 13',
+    dateEnd: '14',
+    cargo: 'Textiles',
+    mass: '8.4 t',
+    volume: '42 m³',
+    vehicle: 'Curtainsider',
+    price: '€1,120',
+    match: 86
+  },
+  {
+    id: 'CL-48184',
+    company: 'Baltica Spedycja',
+    from: 'Gdańsk, PL',
+    to: 'Berlin, DE',
+    dateStart: 'May 14',
+    cargo: 'Electronics · Fragile',
+    mass: '6.2 t',
+    volume: '38 m³',
+    vehicle: 'Box truck',
+    price: '€780',
+    match: 84
+  },
+  {
+    id: 'CL-48181',
+    company: 'Atlantic Cargo',
+    from: 'Lisbon, PT',
+    to: 'Bordeaux, FR',
+    extraRoute: '+ Porto',
+    dateStart: 'May 15',
+    dateEnd: '17',
+    cargo: 'Cork · Bulk',
+    mass: '14.0 t',
+    volume: '61 m³',
+    vehicle: 'Tautliner',
+    price: '€1,420',
+    match: 81
+  }
+];
