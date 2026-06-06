@@ -1,6 +1,5 @@
 using Application.DTO.Truck;
 using FluentAssertions;
-using WebApi.DTO;
 
 namespace ApplicationTest.IntegrationTests.Truck;
 

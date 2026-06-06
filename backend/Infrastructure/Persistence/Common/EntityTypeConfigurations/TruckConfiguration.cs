@@ -1,4 +1,3 @@
-using Domain.Models;
 using Domain.Models.Truck;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

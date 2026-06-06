@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace Application.CQRS.ChatCQ;
+namespace Application.CQRS.ChatCQ.Commands;
 
 public class StartChatCommand : IRequest<Guid>
 {

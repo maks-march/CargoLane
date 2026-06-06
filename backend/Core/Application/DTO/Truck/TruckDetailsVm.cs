@@ -1,6 +1,5 @@
 using Application.Common.Mappings;
 using Application.CQRS.OrderCQ.Commands.Create;
-using Application.CQRS.TruckCQ.Commands;
 using Application.CQRS.TruckCQ.Commands.Create;
 using AutoMapper;
 using Domain.Models.Abstract;

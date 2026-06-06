@@ -1,6 +1,5 @@
 using Application.Common.Exceptions;
 using Application.DTO.Order;
-using Application.DTO.Truck;
 using Application.Interfaces;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;

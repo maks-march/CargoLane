@@ -1,6 +1,5 @@
 using Application.DTO.Order;
 using FluentAssertions;
-using WebApi.DTO;
 
 namespace ApplicationTest.IntegrationTests.Order;
 
