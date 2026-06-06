@@ -1,15 +1,10 @@
-export type PageType = 
-  | 'landing' 
-  | 'signin' 
-  | 'signup' 
-  | 'recovery' 
-  | 'dashboard' 
-  | 'dashboard-filters' 
-  | 'dashboard-empty' 
-  | 'saved' 
-  | 'load-detail';
+export type PageType = 'landing' | 'signin' | 'signup' | 'recovery' | 'dashboard' | 'saved' | 'load-detail' | 'create-load' | 'my-listings';
 
-// Новый интерфейс для данных таблицы грузов
+export interface NavigationPayload {
+  loadId?: string;
+  fromPage?: string;
+}
+
 export interface LoadData {
   id: string;
   company: string;

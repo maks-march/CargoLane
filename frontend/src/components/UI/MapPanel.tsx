@@ -1,51 +1,60 @@
-import React from 'react';
-import mapBg from '../../assets/map.png';
-import type { LoadData } from '../../types';
+import React, { useState } from 'react';
+import type { LoadData, PageType, NavigationPayload } from '../../types';
+import { RoutingMap } from './RoutingMap';
 
-interface MapPanelProps {
-  loadsCount: number;
-  selectedLoad: LoadData | null;
-  onViewDetails: (id: string) => void;
+interface Props {
+  load: LoadData | null;
+  onNavigate?: (page: PageType, payload?: NavigationPayload) => void;
 }
 
-export const MapPanel: React.FC<MapPanelProps> = ({ loadsCount, selectedLoad, onViewDetails }) => {
+export const MapPanel: React.FC<Props> = ({ load, onNavigate }) => {
+  const [routeInfo, setRouteInfo] = useState({ distance: '-', duration: '-' });
+
+  if (!load) {
+    return (
+      <div className="dash-map-panel">
+        <div className="dash-empty-state">Select a load to view details</div>
+      </div>
+    );
+  }
+
+  const mapStops = [
+    { address: load.from || '', type: 'start' },
+    ...(load.extraRoute ? [{ address: load.extraRoute.replace('+ ', ''), type: 'stop' }] : []),
+    { address: load.to || '', type: 'end' }
+  ];
+
   return (
     <div className="dash-map-panel">
       <div className="dash-map-header">
-        <h3>Map preview</h3>
-        <span className="dash-map-count">{loadsCount.toLocaleString()} loads</span>
+        <h3>Load map</h3>
       </div>
-      
-      <div className="dash-map-container">
-        {selectedLoad ? (
-          <>
-            <img src={mapBg} alt="Europe map" />
-            <div className="dash-map-zoom">
-              <button className="zoom-btn">+</button>
-              <button className="zoom-btn">−</button>
-            </div>
-          </>
-        ) : (
-          <div className="dash-empty-state">Choose load to see details</div>
-        )}
+      <div className="dash-map-container" style={{ position: 'relative' }}>
+        <RoutingMap 
+          stops={mapStops} 
+          hideFloatingWidget={true} 
+          onRouteCalculated={(dist, dur) => setRouteInfo({ distance: dist, duration: dur })} 
+        />
       </div>
-
-      {selectedLoad && (
-        <div className="dash-map-footer">
-          <div className="dash-map-footer-label">Selected lane</div>
-          <div className="dash-map-footer-route">{selectedLoad.from} → {selectedLoad.to}</div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
-            <div className="dash-map-footer-meta">1,283 km · 2 stops</div>
-            <button 
-              className="btn-primary" 
-              style={{ padding: '6px 12px', fontSize: '13px' }}
-              onClick={() => onViewDetails(selectedLoad.id)}
-            >
-              Open details
-            </button>
-          </div>
+      <div className="dash-map-footer">
+        <div className="dash-map-footer-label">Route</div>
+        <div className="dash-map-footer-route">{load.from} → {load.to}</div>
+        <div className="dash-map-footer-meta">
+          {routeInfo.distance !== '-' ? `${routeInfo.distance} km` : '-'} · {routeInfo.duration} · {load.cargo.split('·')[0].trim()}
         </div>
-      )}
+        <div className="dash-map-footer-action-row">
+          <div className="dash-map-footer-btn-specs">
+            <span className="cargo-tag">{load.vehicle}</span>
+          </div>
+          <button 
+            className="btn-figma-primary" 
+            style={{ padding: '8px 16px' }}
+            onClick={() => onNavigate && onNavigate('load-detail', { loadId: load.id, fromPage: 'dashboard' })}
+          >
+            View details
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

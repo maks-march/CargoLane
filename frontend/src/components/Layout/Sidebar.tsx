@@ -1,49 +1,42 @@
 import React from 'react';
-import type { PageType } from '../../types';
+import type { PageType, NavigationPayload } from '../../types';
 
 interface SidebarProps {
-  onNavigate: (page: PageType) => void;
-  activePage?: PageType;
+  onNavigate: (page: PageType, payload?: NavigationPayload) => void;
+  activePage: 'dashboard' | 'listings' | 'messages' | 'settings' | 'saved';
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ onNavigate, activePage }) => {
   return (
     <aside className="dash-sidebar">
-      <div className="dash-sidebar-logo" onClick={() => onNavigate('landing')} style={{ cursor: 'pointer' }}>
+      <div className="dash-sidebar-logo" onClick={() => onNavigate('dashboard')} style={{ cursor: 'pointer' }}>
         <div className="logo-icon">▲</div>
-        Cargolane
+        <span>Cargolane</span>
       </div>
-      <button className="dash-new-listing">+ New listing</button>
-      
+
+      <button className="dash-new-listing" onClick={() => onNavigate('create-load')}>
+        + New listing
+      </button>
+
       <div className="dash-nav-section">Marketplace</div>
-      <div 
-        className={`dash-nav-item ${activePage?.startsWith('dashboard') ? 'active' : ''}`} 
-        onClick={() => onNavigate('dashboard')}
-      >
-        <span>🔍</span> Search
+      <div className={`dash-nav-item ${activePage === 'dashboard' ? 'active' : ''}`} onClick={() => onNavigate('dashboard')}>
+        🔍 Search
       </div>
-      <div 
-        className={`dash-nav-item ${activePage === 'saved' ? 'active' : ''}`} 
-        onClick={() => onNavigate('saved')}
-      >
-        <span>🔖</span> Saved searches
+      <div className={`dash-nav-item ${activePage === 'saved' ? 'active' : ''}`} onClick={() => onNavigate('saved')}>
+        📌 Saved searches
       </div>
-      
-      <div className="dash-nav-section">Workspace</div>
-      <div className="dash-nav-item">
-        <span>📦</span> My listings
-        <span className="dash-nav-badge">7</span>
+
+      <div className="dash-nav-section" style={{ marginTop: '16px' }}>Workspace</div>
+      <div className={`dash-nav-item ${activePage === 'listings' ? 'active' : ''}`} onClick={() => onNavigate('my-listings')}>
+        📦 My listings <span className="dash-nav-badge">6</span>
       </div>
       <div className="dash-nav-item">
-        <span>💬</span> Messages
-        <span className="dash-nav-badge">1</span>
+        💬 Messages <span className="dash-nav-badge" style={{ background: '#F6F7FB', color: '#5C6470' }}>1</span>
       </div>
-      
-      <div className="dash-nav-section">Other</div>
-      <div className="dash-nav-item">
-        <span>⚙️</span> Settings
-      </div>
-      
+
+      <div className="dash-nav-section" style={{ marginTop: '16px' }}>Other</div>
+      <div className={`dash-nav-item ${activePage === 'settings' ? 'active' : ''}`}>⚙ Settings</div>
+
       <div className="dash-user">
         <div className="dash-user-avatar">EM</div>
         <div className="dash-user-info">

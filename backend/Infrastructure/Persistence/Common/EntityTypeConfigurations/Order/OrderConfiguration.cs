@@ -39,7 +39,6 @@ public class OrderConfiguration : IEntityTypeConfiguration<OrderEntity>
             .HasForeignKey(rp => rp.EntityId)
             .OnDelete(DeleteBehavior.Cascade);
                
-        // Настройка для массивов строк
         builder.HasMany(o => o.Photos)
             .WithOne(f => f.Owner)
             .HasForeignKey(f => f.OwnerId);

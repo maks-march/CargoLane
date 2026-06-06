@@ -18,7 +18,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddPersistenceServices(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddAuth(configuration);
+        services
+            .AddAuth(configuration)
+            .AddSignalR();
         
         var environment = configuration.GetSection(EnvironmentType).Value;
         var connectionString = configuration.GetConnectionString(DefaultConnection);
@@ -29,6 +31,18 @@ public static class DependencyInjection
             Development => services.AddSqliteContext(connectionString!),
             _ => throw new InvalidOperationException($"Unsupported environment: {environment}")
         };
+    }
+
+    private static IServiceCollection AddSignalR(this IServiceCollection services)
+    {
+        services.AddSignalR(options =>
+        {
+            options.EnableDetailedErrors = true; // Для разработки
+            options.MaximumReceiveMessageSize = 102400; // 100 KB
+            options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+            options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+        });
+        return services;
     }
 
     private static IServiceCollection AddAuth(this IServiceCollection services, IConfiguration configuration)

@@ -1,4 +1,15 @@
-# Logs
+# Зависимости (Защита от случайного добавления npm пакетов)
+node_modules/
+/.pnp
+.pnp.js
+
+# Сборка и временные файлы компиляции
+dist/
+dist-ssr/
+.tmp/
+*.tsbuildinfo
+
+# Логи и отчеты об ошибках
 logs
 *.log
 npm-debug.log*
@@ -7,19 +18,18 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
+# Конфиденциальные данные (Файлы окружения)
+.env
+.env.local
+.env.*.local
 
-# Editor directories and files
+# Настройки редакторов кода (Кастомизация VS Code и системный мусор)
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-.env

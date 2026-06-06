@@ -9,7 +9,6 @@ public class FileConfiguration<TOwner> : IEntityTypeConfiguration<FileEntity<TOw
 {
     public void Configure(EntityTypeBuilder<FileEntity<TOwner>> builder)
     {
-        builder.ToTable("Files");
         builder.HasKey(x => x.Id);
     }
 }

@@ -1,35 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import type { PageType, LoadData } from '../../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import type { PageType, LoadData, NavigationPayload } from '../../types';
 import { Sidebar } from '../../components/Layout/Sidebar';
-import { FilterBar } from '../../components/UI/FilterBar';
 import { LoadsTable } from '../../components/UI/LoadsTable';
 import { MapPanel } from '../../components/UI/MapPanel';
+import { FilterBar } from '../../components/UI/FilterBar';
 import { loadsService } from '../../services/loadsService';
 
 interface SearchPageProps {
-  onNavigate: (page: PageType, payload?: { loadId?: string }) => void;
+  onNavigate: (page: PageType, payload?: NavigationPayload) => void;
 }
 
 export const SearchPage: React.FC<SearchPageProps> = ({ onNavigate }) => {
   const [loads, setLoads] = useState<LoadData[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [selectedLoadId, setSelectedLoadId] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLoadId, setSelectedLoadId] = useState<string>('');
 
   useEffect(() => {
     const fetchLoads = async () => {
       setIsLoading(true);
-      const data = await loadsService.getAllLoads();
-      setLoads(data);
-      setIsLoading(false);
+      try {
+        const data = await loadsService.getAllLoads();
+        const safeData = Array.isArray(data) ? data : [];
+        setLoads(safeData);
+        if (safeData.length > 0) setSelectedLoadId(safeData[0].id);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchLoads();
   }, []);
 
-  const handleNavigateDetails = (id: string) => {
-    onNavigate('load-detail', { loadId: id });
-  };
+  const filteredLoads = useMemo(() => {
+    if (!Array.isArray(loads)) return [];
+    if (!searchQuery.trim()) return loads;
+    const query = searchQuery.toLowerCase();
+    return loads.filter((load) => 
+      load.from.toLowerCase().includes(query) ||
+      load.to.toLowerCase().includes(query) ||
+      load.cargo.toLowerCase().includes(query) ||
+      load.id.toLowerCase().includes(query)
+    );
+  }, [loads, searchQuery]);
 
-  const selectedLoad = loads.find(load => load.id === selectedLoadId) || null;
+  const selectedLoad = useMemo(() => {
+    if (!Array.isArray(loads)) return null;
+    return loads.find(l => l.id === selectedLoadId) || null;
+  }, [loads, selectedLoadId]);
 
   return (
     <div className="dashboard-page active">
@@ -38,51 +57,55 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onNavigate }) => {
       <main className="dash-main">
         <header className="dash-header">
           <div className="dash-breadcrumb">
-            Marketplace <span style={{ color: '#ccc' }}>›</span> <strong>Search</strong>
+            Marketplace <strong>› Search</strong>
           </div>
           <div className="dash-header-right">
-            <input type="text" className="dash-search" placeholder="🔍 Search lanes, cargo, ID..." />
-            <button className="dash-post-btn">+ Post load</button>
+            <input 
+              type="text" 
+              className="dash-search" 
+              placeholder="Search by city, ID or cargo..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <button className="dash-post-btn" onClick={() => onNavigate('create-load')}>+ Post load</button>
             <div className="dash-notify">🔔</div>
           </div>
         </header>
-        
+
         <FilterBar />
-        
+
         <div className="dash-content">
           <div className="dash-table-area">
             <div className="dash-stats-bar">
               <div>
-                <span className="dash-stat-number">
-                  {loads.length.toLocaleString()} <span>matching loads</span>
-                </span>
-                <span className="dash-stat-growth">+12% today</span>
+                <div className="dash-stat-number">
+                  {filteredLoads.length} <span>loads</span>
+                  <span className="dash-stat-growth">↑ 124 new</span>
+                </div>
               </div>
-              <div className="dash-sort">
-                Sort
-                <select defaultValue="Best match" style={{ padding: '6px 12px', border: '1px solid #eee', borderRadius: '6px', fontSize: '14px', outline: 'none', background: 'white' }}>
-                  <option>Best match</option>
-                </select>
-              </div>
+              {/* Сортировка "Sort by" удалена отсюда */}
             </div>
-            
+
             {isLoading ? (
-              <div style={{ padding: '60px 0', textAlign: 'center', color: '#888' }}>⏳ Connecting...</div>
+              <div className="dash-loading-container">⏳ Loading available loads...</div>
+            ) : filteredLoads.length === 0 ? (
+              <div className="dash-loading-container">No loads found matching your search.</div>
             ) : (
               <LoadsTable 
-                loads={loads} 
+                loads={filteredLoads} 
                 selectedId={selectedLoadId}
-                onSelect={(id) => setSelectedLoadId(id)}
-                onNavigateDetails={handleNavigateDetails}
+                onSelect={setSelectedLoadId}
+                onNavigateDetails={(id) => onNavigate('load-detail', { loadId: id, fromPage: 'dashboard' })}
               />
             )}
           </div>
           
-          <MapPanel 
-            loadsCount={loads.length} 
-            selectedLoad={selectedLoad} 
-            onViewDetails={handleNavigateDetails} 
-          />
+          {selectedLoad && (
+            <MapPanel 
+              load={selectedLoad} 
+              onNavigate={(page, payload) => onNavigate(page, payload)}
+            />
+          )}
         </div>
       </main>
     </div>
