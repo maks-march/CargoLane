@@ -23,9 +23,28 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
     const fetchMyLoads = async () => {
       setIsLoading(true);
       try {
-        const data = await loadsService.getAllLoads();
-        const safeData = (Array.isArray(data) ? data : []) as MyLoadData[];
-        setLoads(safeData);
+        const data = await loadsService.getUserLoads();
+        const safeData = (Array.isArray(data) ? data : []) as LoadData[];
+        
+        const loadsWithStatus: MyLoadData[] = safeData.map((load) => {
+          let status: MyLoadData['status'] = 'active';
+          if (load.status) {
+            const lowerStatus = load.status.toLowerCase();
+            if (['active', 'pending', 'draft', 'closed'].includes(lowerStatus)) {
+              status = lowerStatus as MyLoadData['status'];
+            } else if (lowerStatus === 'ready') {
+              status = 'active'; 
+            }
+          }
+          return { 
+            ...load, 
+            status, 
+            bids: (load as any).bids || 0, 
+            views: (load as any).views || 0 
+          };
+        });
+        
+        setLoads(loadsWithStatus);
       } catch (error) {
         console.error("Data fetch error:", error);
         setLoads([]);
@@ -57,7 +76,7 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
 
   const getStatusBadge = (status: string) => {
     const labels: Record<string, string> = { active: 'Active', pending: 'In review', draft: 'Draft', closed: 'Closed' };
-    return <span className={`status-pill ${status}`}>{labels[status] || status}</span>;
+    return <span className={`status-pill ${status}`}>{labels[status] || 'Active'}</span>;
   };
 
   return (
@@ -68,7 +87,7 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
         <header className="create-header" style={{ padding: '16px 48px' }}>
           <div>
             <div className="dash-breadcrumb">
-              <span className="dash-detail-breadcrumb-clickable" onClick={() => onNavigate('dashboard')}>Workspace</span> 
+              <span className="dash-detail-breadcrumb-clickable" onClick={() => onNavigate('dashboard' as any)}>Workspace</span> 
               <span className="dash-detail-breadcrumb-arrow"> › </span> 
               <strong style={{color: '#0E1116'}}>My listings</strong>
             </div>
@@ -76,7 +95,7 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
           </div>
           
           <div className="create-header-actions">
-            <button className="btn-figma-primary" onClick={() => onNavigate('create-load')}>
+            <button className="btn-figma-primary" onClick={() => onNavigate('create-load' as any)}>
               + New listing
             </button>
             <div className="dash-notify">🔔</div>
@@ -104,8 +123,9 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
               </button>
             </div>
             
-            <div className="my-listings-actions-right">
-              <div className="my-listings-search-wrapper">
+            {/* Поиск сдвинут вправо, кнопка Filter удалена */}
+            <div className="my-listings-actions-right" style={{ display: 'flex', justifyContent: 'flex-end', flex: 1 }}>
+              <div className="my-listings-search-wrapper" style={{ width: '300px' }}>
                 <span className="search-icon">🔍</span>
                 <input 
                   type="text" 
@@ -115,17 +135,14 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <button className="btn-figma-secondary">
-                <span style={{ fontSize: '16px' }}>⚙</span> Filter
-              </button>
             </div>
           </div>
 
           <div className="my-listings-table-card">
             {isLoading ? (
-              <div className="dash-loading-container" style={{ padding: '60px' }}>⏳ Loading your listings...</div>
+              <div className="dash-loading-container" style={{ padding: '60px', textAlign: 'center', color: '#5C6470' }}>⏳ Loading your listings...</div>
             ) : filteredLoads.length === 0 ? (
-              <div className="dash-loading-container" style={{ padding: '60px', flexDirection: 'column', gap: '16px' }}>
+              <div className="dash-loading-container" style={{ padding: '60px', display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
                 <div style={{ fontSize: '48px' }}>📦</div>
                 <div style={{ color: '#0E1116', fontWeight: 600 }}>No listings found</div>
               </div>
@@ -149,8 +166,7 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
                     <tr 
                       key={load.id} 
                       style={{ cursor: 'pointer' }} 
-                      /* ФИКС: Используем || '' для безопасной передачи ID */
-                      onClick={() => onNavigate('load-detail', { loadId: load.id || '', fromPage: 'my-listings' })}
+                      onClick={() => onNavigate('load-detail' as any, { loadId: load.id, fromPage: 'my-listings' })}
                     >
                       <td style={{ paddingLeft: '24px' }}>
                         <div className="load-id" style={{ color: '#3D5AFE', fontWeight: 600, fontSize: '14px' }}>{load.id}</div>
@@ -161,11 +177,11 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
                         </div>
                       </td>
                       <td style={{ color: '#5C6470' }}>{load.dateStart}</td>
-                      <td>{load.cargo.split('·')[0]}</td>
+                      <td>{load.cargo}</td>
                       <td style={{ fontWeight: 600 }}>{load.price}</td>
-                      <td>{getStatusBadge(load.status || 'active')}</td>
-                      <td style={{ fontWeight: 500 }}>{load.bids || 0}</td>
-                      <td style={{ color: '#5C6470' }}>{load.views || 0}</td>
+                      <td>{getStatusBadge(load.status)}</td>
+                      <td style={{ fontWeight: 500 }}>{load.bids}</td>
+                      <td style={{ color: '#5C6470' }}>{load.views}</td>
                       <td style={{ textAlign: 'right', paddingRight: '24px' }}>
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
                           <button className="action-dots">⋯</button>
@@ -177,6 +193,7 @@ export const MyListingsPage: React.FC<MyListingsPageProps> = ({ onNavigate }) =>
               </table>
             )}
           </div>
+          
         </div>
       </main>
     </div>

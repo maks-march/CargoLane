@@ -8,6 +8,7 @@ interface Props {
 
 export const DetailHeaderCard: React.FC<Props> = ({ load, routeInfo }) => {
   const getCountryCode = (city: string) => {
+    if (!city) return 'EU';
     const c = city.toLowerCase();
     if (c.includes('rotterdam') || c.includes('amsterdam')) return 'NL';
     if (c.includes('berlin') || c.includes('munich') || c.includes('hamburg')) return 'DE';
@@ -15,15 +16,16 @@ export const DetailHeaderCard: React.FC<Props> = ({ load, routeInfo }) => {
     if (c.includes('paris') || c.includes('lyon')) return 'FR';
     if (c.includes('milan')) return 'IT';
     if (c.includes('madrid')) return 'ES';
-    return 'EU';
+    return 'EU'; // Default
   };
 
   const borderStr = `${getCountryCode(load.from)} → ${getCountryCode(load.to)}`;
 
-  // Парсинг названия груза из ТЗ (разбиваем строку "FMCG · 22 plt")
-  const cargoParts = load.cargo.split('·').map(s => s.trim());
-  const cargoCategory = cargoParts[0] || 'General Cargo';
-  const cargoPallets = cargoParts.length > 1 ? cargoParts.slice(1).join(' · ') : load.mass;
+  // Безопасный парсинг данных груза (избегаем ошибок, если нет "·")
+  const cargoString = load.cargo || 'General Cargo';
+  const cargoParts = cargoString.split('·').map(s => s.trim());
+  const cargoCategory = cargoParts[0];
+  const cargoPallets = cargoParts.length > 1 ? cargoParts.slice(1).join(' · ') : (load.mass || 'N/A');
 
   return (
     <div className="detail-card">
@@ -35,7 +37,6 @@ export const DetailHeaderCard: React.FC<Props> = ({ load, routeInfo }) => {
             <span className="detail-badge time">Posted recently</span>
           </div>
           
-          {/* СЛОЖНОЕ НАЗВАНИЕ КАК В МАКЕТЕ */}
           <h2 className="detail-title">
             {cargoPallets} <span style={{ color: '#E6E8EE', margin: '0 4px' }}>•</span> <span style={{ color: '#5C6470', fontWeight: 500 }}>{cargoCategory}</span>
           </h2>
@@ -43,7 +44,7 @@ export const DetailHeaderCard: React.FC<Props> = ({ load, routeInfo }) => {
           <p className="detail-subtitle">{load.id} · {load.company || 'Unknown'} GmbH</p>
         </div>
         <div className="detail-price">
-          <div className="detail-price-value">{load.price}</div>
+          <div className="detail-price-value">{load.price || 'Request price'}</div>
           <div className="detail-price-note">excl. VAT · negotiable</div>
         </div>
       </div>

@@ -1,58 +1,46 @@
-import React, { useState } from 'react';
-import type { LoadData, PageType, NavigationPayload } from '../../types';
+import React from 'react';
+import type { LoadData } from '../../types';
 import { RoutingMap } from './RoutingMap';
 
-interface Props {
+interface MapPanelProps {
   load: LoadData | null;
-  onNavigate?: (page: PageType, payload?: NavigationPayload) => void;
+  onNavigate: (page: string, payload?: any) => void;
 }
 
-export const MapPanel: React.FC<Props> = ({ load, onNavigate }) => {
-  const [routeInfo, setRouteInfo] = useState({ distance: '-', duration: '-' });
+export const MapPanel: React.FC<MapPanelProps> = ({ load, onNavigate }) => {
+  if (!load) return null;
 
-  if (!load) {
-    return (
-      <div className="dash-map-panel">
-        <div className="dash-empty-state">Select a load to view details</div>
-      </div>
-    );
-  }
-
-  const mapStops = [
-    { address: load.from || '', type: 'start' },
-    ...(load.extraRoute ? [{ address: load.extraRoute.replace('+ ', ''), type: 'stop' }] : []),
-    { address: load.to || '', type: 'end' }
+  // Формируем точки для карты на основе реальных данных из БД
+  const stops = [
+    { id: 'start', type: 'start' as const, address: load.from, datetime: load.dateStart },
+    { id: 'end', type: 'end' as const, address: load.to, datetime: load.dateEnd || '' }
   ];
 
   return (
     <div className="dash-map-panel">
       <div className="dash-map-header">
-        <h3>Load map</h3>
+        <h3>Route Preview</h3>
+        <button className="btn-figma-text" onClick={() => onNavigate('load-detail', { loadId: load.id })}>
+          View details ›
+        </button>
       </div>
-      <div className="dash-map-container" style={{ position: 'relative' }}>
-        <RoutingMap 
-          stops={mapStops} 
-          hideFloatingWidget={true} 
-          onRouteCalculated={(dist, dur) => setRouteInfo({ distance: dist, duration: dur })} 
-        />
+      
+      <div className="dash-map-container" style={{ height: '300px', background: '#F6F7FB', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
+         <RoutingMap stops={stops} />
       </div>
-      <div className="dash-map-footer">
-        <div className="dash-map-footer-label">Route</div>
-        <div className="dash-map-footer-route">{load.from} → {load.to}</div>
-        <div className="dash-map-footer-meta">
-          {routeInfo.distance !== '-' ? `${routeInfo.distance} km` : '-'} · {routeInfo.duration} · {load.cargo.split('·')[0].trim()}
+
+      <div className="dash-map-info">
+        <div className="dash-map-stat">
+          <span>From</span>
+          <strong>{load.from || 'Unknown'}</strong>
         </div>
-        <div className="dash-map-footer-action-row">
-          <div className="dash-map-footer-btn-specs">
-            <span className="cargo-tag">{load.vehicle}</span>
-          </div>
-          <button 
-            className="btn-figma-primary" 
-            style={{ padding: '8px 16px' }}
-            onClick={() => onNavigate && onNavigate('load-detail', { loadId: load.id, fromPage: 'dashboard' })}
-          >
-            View details
-          </button>
+        <div className="dash-map-stat">
+          <span>To</span>
+          <strong>{load.to || 'Unknown'}</strong>
+        </div>
+        <div className="dash-map-stat">
+          <span>Vehicle</span>
+          <strong>{load.vehicle || 'Any'}</strong>
         </div>
       </div>
     </div>

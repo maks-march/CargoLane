@@ -13,7 +13,7 @@ import { CreateLoadPage } from './pages/Dashboard/CreateLoadPage';
 import { MyListingsPage } from './pages/Dashboard/MyListingsPage';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState<PageType>('dashboard');
+  const [currentPage, setCurrentPage] = useState<PageType>('landing');// вместо "dasboard" напиши "landing", и будет открта главная страница
   const [currentPayload, setCurrentPayload] = useState<NavigationPayload | null>(null);
 
   const handleNavigate = (page: PageType, payload?: NavigationPayload) => {

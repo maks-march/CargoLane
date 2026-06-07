@@ -6,92 +6,63 @@ interface Props {
 }
 
 export const DetailRightPanel: React.FC<Props> = ({ load }) => {
-  const avatar = load.company ? load.company.substring(0, 2).toUpperCase() : 'CO';
-  
-  // Инициализируем стейт ставки, очищая символы валюты
-  const initialBid = (load.price || '').replace(/[^\d]/g, '');
-  const [bidAmount, setBidAmount] = useState<string>(initialBid);
+  const [isAccepting, setIsAccepting] = useState(false);
 
-  // Хендлер для ввода только цифр и добавления запятых
-  const handleBidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Убираем всё, кроме цифр
-    const rawValue = e.target.value.replace(/[^\d]/g, '');
-    if (!rawValue) {
-      setBidAmount('');
-      return;
+  const handleAccept = async () => {
+    setIsAccepting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      // Запрос к бэкенду на принятие заказа (бэкендеру нужно сделать этот эндпоинт)
+      const response = await fetch(`http://localhost:8080/api/Order/${load.id}/accept`, {
+        method: 'POST',
+        headers
+      });
+
+      if (!response.ok) {
+        console.error("Failed to accept load");
+        alert("Failed to process request. Please try again.");
+      } else {
+        alert("Load accepted successfully!");
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsAccepting(false);
     }
-    // Добавляем запятые тысячам
-    const formattedValue = Number(rawValue).toLocaleString('en-US');
-    setBidAmount(formattedValue);
   };
-
-  // Парсим дату и время для красивого вывода в точках маршрута
-  const parseDateTime = (dateStr: string, defaultTime: string) => {
-    if (dateStr.includes('•')) return dateStr.split('•').map(s => s.trim());
-    return [dateStr, defaultTime];
-  };
-
-  const [startDate, startTime] = parseDateTime(load.dateStart, '08:00');
-  const [endDate, endTime] = parseDateTime(load.dateEnd || load.dateStart, '16:00');
 
   return (
-    <div className="detail-right">
-      <div className="detail-panel-card">
-        <div className="panel-title">Stops</div>
+    <div className="detail-right-panel" style={{ width: '320px', flexShrink: 0 }}>
+      <div className="detail-card">
+        <h3 style={{ marginBottom: '16px', fontSize: '18px', fontWeight: 600, color: '#0E1116' }}>Actions</h3>
         
-        <div className="stop-item">
-          <div className="stop-dot blue"></div>
-          <div className="stop-info">
-            <div className="stop-date">{startDate} · {startTime}</div>
-            <div className="stop-name">{load.from}</div>
-          </div>
+        <button 
+          className="btn-figma-primary" 
+          style={{ width: '100%', marginBottom: '12px', padding: '12px', justifyContent: 'center' }}
+          onClick={handleAccept}
+          disabled={isAccepting}
+        >
+          {isAccepting ? 'Processing...' : 'Accept Load'}
+        </button>
+
+        <button 
+          className="btn-figma-secondary" 
+          style={{ width: '100%', padding: '12px', justifyContent: 'center' }}
+        >
+          Contact Shipper
+        </button>
+
+        <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #E6E8EE' }}>
+           <p style={{ fontSize: '12px', color: '#5C6470', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Security</p>
+           <p style={{ fontSize: '13px', color: '#0E1116', marginBottom: '4px' }}>Listing ID: <span style={{ fontWeight: 500 }}>{load.id}</span></p>
+           <p style={{ fontSize: '13px', color: '#0E1116' }}>Status: <span style={{ fontWeight: 500 }}>{load.status || 'Active'}</span></p>
         </div>
-        
-        {load.extraRoute && (
-          <div className="stop-item">
-            <div className="stop-dot transit"></div>
-            <div className="stop-info">
-              <div className="stop-date">Transit</div>
-              <div className="stop-name">{load.extraRoute.replace('+ ', '')}</div>
-            </div>
-          </div>
-        )}
-        
-        <div className="stop-item">
-          <div className="stop-dot green"></div>
-          <div className="stop-info">
-            <div className="stop-date">{endDate} · {endTime}</div>
-            <div className="stop-name">{load.to}</div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="detail-panel-card">
-        <div className="panel-title">Shipper</div>
-        <div className="shipper-card">
-          <div className="shipper-avatar">{avatar}</div>
-          <div className="shipper-info">
-            <div className="shipper-name">{load.company}</div>
-            <div className="shipper-meta">Verified partner</div>
-          </div>
-        </div>
-        <button className="chat-btn">💬 Open chat</button>
-      </div>
-      
-      <div className="detail-panel-card">
-        <div className="panel-title">Place a bid</div>
-        <div className="bid-input-wrapper">
-          <span className="bid-currency">€</span>
-          <input 
-            type="text" 
-            className="bid-input" 
-            value={bidAmount}
-            onChange={handleBidChange}
-            placeholder="0"
-          />
-        </div>
-        <div className="bid-suggestion">Suggested: {load.price} based on lane average.</div>
-        <button className="btn-figma-primary" style={{ width: '100%', justifyContent: 'center', padding: '14px' }}>Submit bid</button>
       </div>
     </div>
   );

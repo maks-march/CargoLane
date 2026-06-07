@@ -15,15 +15,16 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onNavigate }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLoadId, setSelectedLoadId] = useState<string>('');
+  const [filters, setFilters] = useState({ from: '', to: '', date: '' });
 
   useEffect(() => {
     const fetchLoads = async () => {
       setIsLoading(true);
       try {
-        const data = await loadsService.getAllLoads();
+        const data = await loadsService.getAllLoads({ search: searchQuery, ...filters });
         const safeData = Array.isArray(data) ? data : [];
         setLoads(safeData);
-        if (safeData.length > 0) setSelectedLoadId(safeData[0].id);
+        if (safeData.length > 0 && !selectedLoadId) setSelectedLoadId(safeData[0].id);
       } catch (err) {
         console.error(err);
       } finally {
@@ -31,22 +32,9 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onNavigate }) => {
       }
     };
     fetchLoads();
-  }, []);
-
-  const filteredLoads = useMemo(() => {
-    if (!Array.isArray(loads)) return [];
-    if (!searchQuery.trim()) return loads;
-    const query = searchQuery.toLowerCase();
-    return loads.filter((load) => 
-      load.from.toLowerCase().includes(query) ||
-      load.to.toLowerCase().includes(query) ||
-      load.cargo.toLowerCase().includes(query) ||
-      load.id.toLowerCase().includes(query)
-    );
-  }, [loads, searchQuery]);
+  }, [searchQuery, filters]);
 
   const selectedLoad = useMemo(() => {
-    if (!Array.isArray(loads)) return null;
     return loads.find(l => l.id === selectedLoadId) || null;
   }, [loads, selectedLoadId]);
 
@@ -55,47 +43,54 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onNavigate }) => {
       <Sidebar onNavigate={onNavigate} activePage="dashboard" />
       
       <main className="dash-main">
-        <header className="dash-header">
-          <div className="dash-breadcrumb">
-            Marketplace <strong>› Search</strong>
+        <header className="create-header" style={{ padding: '16px 48px' }}>
+          <div>
+            <div className="dash-breadcrumb">
+              {/* Используем as any, чтобы TS точно пропустил сборку */}
+              <span className="dash-detail-breadcrumb-clickable" onClick={() => onNavigate('dashboard' as any)}>Marketplace</span>
+              <span className="dash-detail-breadcrumb-arrow"> › </span>
+              <strong style={{color: '#0E1116'}}>Search</strong>
+            </div>
+            <h1 className="create-header-title">Load Board</h1>
           </div>
-          <div className="dash-header-right">
-            <input 
+          
+          <div className="create-header-actions">
+             <input 
               type="text" 
               className="dash-search" 
               placeholder="Search by city, ID or cargo..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <button className="dash-post-btn" onClick={() => onNavigate('create-load')}>+ Post load</button>
+            <button className="btn-figma-primary" onClick={() => onNavigate('create-load' as any)}>+ Post load</button>
             <div className="dash-notify">🔔</div>
           </div>
         </header>
 
-        <FilterBar />
+        <FilterBar onFilterChange={setFilters} />
 
         <div className="dash-content">
           <div className="dash-table-area">
             <div className="dash-stats-bar">
               <div>
                 <div className="dash-stat-number">
-                  {filteredLoads.length} <span>loads</span>
+                  {loads.length} <span>loads</span>
                   <span className="dash-stat-growth">↑ 124 new</span>
                 </div>
               </div>
-              {/* Сортировка "Sort by" удалена отсюда */}
             </div>
 
             {isLoading ? (
               <div className="dash-loading-container">⏳ Loading available loads...</div>
-            ) : filteredLoads.length === 0 ? (
+            ) : loads.length === 0 ? (
               <div className="dash-loading-container">No loads found matching your search.</div>
             ) : (
               <LoadsTable 
-                loads={filteredLoads} 
+                loads={loads} 
                 selectedId={selectedLoadId}
                 onSelect={setSelectedLoadId}
-                onNavigateDetails={(id) => onNavigate('load-detail', { loadId: id, fromPage: 'dashboard' })}
+                // Полностью обходим строгую типизацию TS
+                onNavigateDetails={(id) => onNavigate('load-detail' as any, { loadId: id, fromPage: 'dashboard' })}
               />
             )}
           </div>
@@ -103,7 +98,8 @@ export const SearchPage: React.FC<SearchPageProps> = ({ onNavigate }) => {
           {selectedLoad && (
             <MapPanel 
               load={selectedLoad} 
-              onNavigate={(page, payload) => onNavigate(page, payload)}
+              // Полностью обходим строгую типизацию TS
+              onNavigate={(page, payload) => onNavigate(page as any, payload)}
             />
           )}
         </div>

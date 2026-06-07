@@ -61,7 +61,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [generatedId, setGeneratedId] = useState<string>(''); 
+  const [generatedId, setGeneratedId] = useState<string>('');
   const [errorMsg, setErrorMsg] = useState<string>('');
 
   let activeStep = 1;
@@ -155,29 +155,72 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
   const handleSave = async () => {
     setIsSubmitting(true);
     setErrorMsg('');
+
+    const startDateRaw = formData.stops[0].datetime;
     
-    // Подготовка Payload для бэкенда
-    const payload = {
-      from: formData.stops[0].address,
-      to: formData.stops[formData.stops.length - 1].address,
-      extraRoute: formData.stops.length > 2 ? formData.stops[1].address : '',
-      dateStart: formData.stops[0].datetime,
-      dateEnd: formData.stops[formData.stops.length - 1].datetime,
-      cargo: formData.cargoCategory,
-      mass: totalMass.toFixed(2),
-      volume: totalVolume.toFixed(2),
-      vehicle: formData.vehicle,
-      price: formData.price
+    // Маппинг под бекенд CreateOrderCommand.cs
+    const mappedPayload = {
+      startDate: startDateRaw ? startDateRaw.split('T')[0] : new Date().toISOString().split('T')[0],
+      status: "Ready",
+      about: `Cargo Category: ${formData.cargoCategory}, Insured Value: ${formData.insuredValue}, HS Code: ${formData.hsCode}, Stackability: ${formData.stackability}`,
+      specNumber: 100,
+      payment: {
+        paymentType: "Request", 
+        isTaxedByCard: false,
+        isNotTaxedByCard: false,
+        isByCash: true,
+        taxedByCard: 0,
+        notTaxedByCard: 0,
+        byCash: Number(formData.price.replace(/\D/g, '')) || 0,
+        isVisible: true,
+        paymentAfterDays: 0,
+        prepayment: 0,
+        isPrepaymentByFuel: false
+      },
+      transport: {
+        bodyType: [formData.vehicle],
+        loadType: ["Rear"],
+        unloadType: ["Rear"],
+        vehicles: 1,
+        temperatureFrom: formData.temperature === 'Frozen' ? -20 : (formData.temperature === '+2 to +8 °C' ? 2 : null),
+        temperatureTo: formData.temperature === 'Frozen' ? -10 : (formData.temperature === '+2 to +8 °C' ? 8 : null),
+        isCrewFull: false,
+        adr: formData.adrClass ? 1 : 0, 
+        isHitch: false,
+        isPneumaticVehicle: false,
+        isStakes: false,
+        isTir: false,
+        isT1: false,
+        isCmr: false,
+        isMedicalBook: false
+      },
+      payloads: formData.packages.map(pkg => ({
+        name: pkg.type || "General Cargo",
+        weight: Number(pkg.weight) || 1,
+        volume: (Number(pkg.length) * Number(pkg.width) * Number(pkg.height)) || 1,
+        amount: Number(pkg.qty) || 1,
+        wrap: "None"
+      })),
+      routePoints: formData.stops.map((stop) => {
+        const timePart = stop.datetime ? stop.datetime.split('T')[1] : "08:00";
+        return {
+          city: stop.address.split(',')[0].trim() || "Unknown",
+          address: stop.address || "Unknown",
+          loadTimeStart: `${timePart}:00`,
+          loadTimeEnd: `${timePart}:00`,
+          date: stop.datetime ? stop.datetime.split('T')[0] : new Date().toISOString().split('T')[0],
+          isLoad: stop.type === 'start'
+        };
+      })
     };
 
     try {
-      const returnedId = await loadsService.createLoad(payload);
-      // Если бэкенд не вернул ID (или отключен), генерируем фейковый для UI
+      const returnedId = await loadsService.createLoad(mappedPayload);
       setGeneratedId(returnedId || '#L-' + Math.floor(1000 + Math.random() * 9000));
       setIsSubmitted(true);
       window.scrollTo(0, 0);
-    } catch (error) {
-      setErrorMsg('Server connection failed. Could not create load.');
+    } catch (error: any) {
+      setErrorMsg(`Server error: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -189,6 +232,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
       
       <main className="dash-main" style={{ background: '#F6F7FB' }}>
         
+        {/* HEADER */}
         <header className="create-header">
           <div>
             <div className="dash-breadcrumb">
@@ -211,6 +255,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
 
         <div className="create-layout">
           
+          {/* СЛЕВА: ФИКСИРОВАННАЯ ПАНЕЛЬ ШАГОВ */}
           <aside className="create-steps-sidebar">
             <div className={`create-step-item ${activeStep === 1 ? 'active' : ''} ${isSubmitted ? 'step-disabled' : ''}`}>
               <div className={`step-icon ${activeStep > 1 || isSubmitted ? 'done' : activeStep === 1 ? 'active' : 'pending'}`}>
@@ -273,6 +318,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
             </div>
           </aside>
 
+          {/* ПО ЦЕНТРУ: КОНТЕНТ СО ВСЕМИ КАРТОЧКАМИ */}
           <div className="create-content">
             
             {errorMsg && (
@@ -286,15 +332,15 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
                 <div className="step-main-card success-submission-card">
                   <div className="success-icon-large">✓</div>
                   <h2>Listing is sent to Moderator</h2>
-                  <p>Thank you Elena. Your listing is successfully sent to moderation.<br/>You will be notified once it's approved and published on Marketplace.</p>
+                  <p>Thank you. Your listing is successfully sent to moderation.<br/>You will be notified once it's approved and published on Marketplace.</p>
                   <div className="success-status-box">
                     <div>
                       <div style={{ fontSize: '12px', color: '#5C6470', marginBottom: '4px' }}>Listing ID</div>
                       <div style={{ fontSize: '18px', fontWeight: '600', color: '#0E1116' }}>{generatedId}</div>
                     </div>
-                    <div className="status-badge pending" style={{ background: '#FFFBEB', color: '#D97706', border: '1px solid #FDE68A', padding: '6px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600, textTransform: 'uppercase' }}>Moderation pending</div>
+                    <div className="status-badge pending">Moderation pending</div>
                   </div>
-                  <div className="success-actions" style={{ display: 'flex', justifyContent: 'center', gap: '16px' }}>
+                  <div className="success-actions">
                     <button className="btn-figma-secondary" onClick={() => onNavigate('dashboard')}>Back to Dashboard</button>
                     <button className="btn-figma-primary" onClick={() => onNavigate('dashboard')}>View my listings</button>
                   </div>
@@ -302,14 +348,14 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
               </div>
             )}
 
-            <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`} style={isSubmitted ? { opacity: 0.5, pointerEvents: 'none', filter: 'grayscale(100%)' } : {}}>
+            <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`}>
               <div className="step-main-card">
-                <div className="step-title-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <div className="step-title-row">
                   <div>
-                    <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#0E1116', marginBottom: '6px' }}>Type</h2>
-                    <p style={{ fontSize: '14px', color: '#5C6470' }}>Choose what type of listing you want to publish</p>
+                    <h2>Type</h2>
+                    <p>Choose what type of listing you want to publish</p>
                   </div>
-                  <span className="step-count" style={{ fontSize: '12px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Step 1 of 6</span>
+                  <span className="step-count">Step 1 of 6</span>
                 </div>
                 <div style={{ display: 'flex', gap: '16px' }}>
                   <button className={`btn-figma-secondary ${formData.listingType === 'I have cargo' ? 'active' : ''}`} style={{ flex: 1, padding: '16px' }} onClick={() => setFormData({...formData, listingType: 'I have cargo'})}>📦 I have cargo</button>
@@ -318,33 +364,33 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
               </div>
             </div>
 
-            <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`} style={isSubmitted ? { opacity: 0.5, pointerEvents: 'none', filter: 'grayscale(100%)' } : {}}>
+            <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`}>
               <div className="step-main-card">
-                <div className="step-title-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <div className="step-title-row">
                   <div>
-                    <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#0E1116', marginBottom: '6px' }}>Route details</h2>
-                    <p style={{ fontSize: '14px', color: '#5C6470' }}>Choose starting point and stops of your route</p>
+                    <h2>Route details</h2>
+                    <p>Choose starting point and stops of your route</p>
                   </div>
-                  <span className="step-count" style={{ fontSize: '12px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Step 2 of 6</span>
+                  <span className="step-count">Step 2 of 6</span>
                 </div>
                 
-                <div className="figma-grid-labels route-grid" style={{ display: 'grid', gridTemplateColumns: '80px 1fr 160px 30px', gap: '12px', borderBottom: '1px solid #E6E8EE', paddingBottom: '8px', marginBottom: '12px' }}>
-                  <div className="grid-label" style={{ fontSize: '11px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Stops</div>
-                  <div className="grid-label" style={{ fontSize: '11px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Address</div>
-                  <div className="grid-label" style={{ fontSize: '11px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Date</div>
+                <div className="figma-grid-labels route-grid">
+                  <div className="grid-label">Stops</div>
+                  <div className="grid-label">Address</div>
+                  <div className="grid-label">Date</div>
                   <div></div>
                 </div>
 
                 {formData.stops.map((stop, index) => {
                   const isFilled = stop.address.trim() !== '' && stop.datetime !== '';
                   return (
-                    <div className="grid-row route-grid" key={stop.id} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 160px 30px', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
-                      <div className="stop-indicator" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500, color: '#0E1116' }}>
-                        <div className={`stop-circle ${stop.type}`} style={{ width: '14px', height: '14px', borderRadius: '50%', border: `2px solid ${stop.type === 'start' ? '#3D5AFE' : stop.type === 'end' ? '#00C48C' : '#5C6470'}`, background: isFilled ? (stop.type === 'start' ? '#3D5AFE' : stop.type === 'end' ? '#00C48C' : '#5C6470') : 'white' }}></div>
+                    <div className="grid-row route-grid" key={stop.id}>
+                      <div className="stop-indicator">
+                        <div className={`stop-circle ${stop.type} ${isFilled ? 'filled' : ''}`}></div>
                         {stop.type === 'start' ? 'Start' : stop.type === 'end' ? 'End' : `Stop ${index}`}
                       </div>
                       
-                      <input type="text" className="figma-input" style={{ width: '100%', padding: '10px 12px', border: '1px solid #E6E8EE', borderRadius: '8px', fontSize: '14px', outline: 'none' }} placeholder="e.g. Rotterdam, NL" value={stop.address} onChange={(e) => handleUpdateStop(stop.id, 'address', e.target.value)} />
+                      <input type="text" className="figma-input" placeholder="e.g. Rotterdam, NL" value={stop.address} onChange={(e) => handleUpdateStop(stop.id, 'address', e.target.value)} />
                       
                       <div 
                         style={{ position: 'relative', width: '100%', cursor: 'pointer' }}
@@ -353,145 +399,151 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
                           if (target && target.showPicker) target.showPicker();
                         }}
                       >
-                        <input type="text" className="figma-input" placeholder="Select date" value={formatDisplayDate(stop.datetime)} readOnly style={{ width: '100%', padding: '10px 12px', border: '1px solid #E6E8EE', borderRadius: '8px', fontSize: '14px', pointerEvents: 'none', backgroundColor: 'white' }} />
+                        <input type="text" className="figma-input" placeholder="Select date" value={formatDisplayDate(stop.datetime)} readOnly style={{ pointerEvents: 'none', backgroundColor: 'white' }} />
                         <input type="datetime-local" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} value={stop.datetime} onChange={(e) => handleUpdateStop(stop.id, 'datetime', e.target.value)} />
                       </div>
 
                       <div>
-                        <button className="btn-icon-danger" style={{ background: 'transparent', border: 'none', color: '#5C6470', fontSize: '16px', cursor: 'pointer', padding: '4px' }} onClick={() => handleRemoveOrClearStop(stop.id, stop.type)}>🗑</button>
+                        <button className="btn-icon-danger" onClick={() => handleRemoveOrClearStop(stop.id, stop.type)}>🗑</button>
                       </div>
                     </div>
                   );
                 })}
-                <button className="btn-figma-text" style={{ background: 'transparent', border: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer', color: '#3D5AFE', padding: '12px 0 0 0' }} onClick={handleAddStop}>+ Add stop</button>
+                <button className="btn-figma-text" style={{ color: '#3D5AFE', padding: '12px 0 0 0' }} onClick={handleAddStop}>+ Add stop</button>
               </div>
             </div>
 
-            <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`} style={isSubmitted ? { opacity: 0.5, pointerEvents: 'none', filter: 'grayscale(100%)' } : {}}>
+            <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`}>
               <div className="step-main-card">
-                <div className="step-title-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <div className="step-title-row">
                   <div>
-                    <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#0E1116', marginBottom: '6px' }}>Cargo details</h2>
-                    <p style={{ fontSize: '14px', color: '#5C6470' }}>Add packages by type. We'll calculate total metrics automatically.</p>
+                    <h2>Cargo details</h2>
+                    <p>Add packages by type. We'll calculate total metrics automatically.</p>
                   </div>
-                  <span className="step-count" style={{ fontSize: '12px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Step 3 of 6</span>
+                  <span className="step-count">Step 3 of 6</span>
                 </div>
                 
-                <span className="chip-label" style={{ fontSize: '12px', color: '#5C6470', marginBottom: '8px', display: 'block' }}>Cargo type</span>
-                <div className="chip-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
+                <span className="chip-label">Cargo type</span>
+                <div className="chip-group">
                   {['Pallets', 'Boxes', 'Containers', 'Refrigerated', 'ADR / Hazmat', 'Other'].map(type => (
-                    <div key={type} className="chip" style={{ padding: '8px 16px', borderRadius: '8px', border: `1px solid ${formData.cargoCategory === type ? '#3D5AFE' : '#E6E8EE'}`, background: formData.cargoCategory === type ? '#EEF1FF' : 'white', color: formData.cargoCategory === type ? '#3D5AFE' : '#5C6470', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }} onClick={() => setFormData({...formData, cargoCategory: type})}>{type}</div>
+                    <div key={type} className={`chip ${formData.cargoCategory === type ? 'active' : ''}`} onClick={() => setFormData({...formData, cargoCategory: type})}>{type}</div>
                   ))}
                 </div>
 
-                <div className="figma-grid-labels cargo-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 75px 75px 75px 80px 65px 30px', gap: '12px', marginTop: '24px', borderBottom: '1px solid #E6E8EE', paddingBottom: '8px', marginBottom: '12px' }}>
-                  <div className="grid-label" style={{ fontSize: '11px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Type</div>
-                  <div className="grid-label" style={{ fontSize: '11px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Length (m)</div>
-                  <div className="grid-label" style={{ fontSize: '11px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Width (m)</div>
-                  <div className="grid-label" style={{ fontSize: '11px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Height (m)</div>
-                  <div className="grid-label" style={{ fontSize: '11px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Unit W(kg)</div>
-                  <div className="grid-label" style={{ fontSize: '11px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Qty</div>
+                <div className="figma-grid-labels cargo-grid" style={{marginTop: '24px'}}>
+                  <div className="grid-label">Type</div>
+                  <div className="grid-label">Length (m)</div>
+                  <div className="grid-label">Width (m)</div>
+                  <div className="grid-label">Height (m)</div>
+                  <div className="grid-label">Unit W(kg)</div>
+                  <div className="grid-label">Qty</div>
                   <div></div>
                 </div>
 
                 {formData.packages.map((pkg) => (
-                  <div className="grid-row cargo-grid" key={pkg.id} style={{ display: 'grid', gridTemplateColumns: '1fr 75px 75px 75px 80px 65px 30px', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
-                    <input type="text" className="figma-input" style={{ width: '100%', padding: '10px 12px', border: '1px solid #E6E8EE', borderRadius: '8px', fontSize: '14px', outline: 'none', fontWeight: 500 }} value={pkg.type} onChange={(e) => handleUpdatePackage(pkg.id, 'type', e.target.value)} />
-                    <input type="number" className="figma-input" style={{ width: '100%', padding: '10px 12px', border: '1px solid #E6E8EE', borderRadius: '8px', fontSize: '14px', outline: 'none' }} placeholder="0.0" value={pkg.length} onChange={(e) => handleUpdatePackage(pkg.id, 'length', e.target.value)} />
-                    <input type="number" className="figma-input" style={{ width: '100%', padding: '10px 12px', border: '1px solid #E6E8EE', borderRadius: '8px', fontSize: '14px', outline: 'none' }} placeholder="0.0" value={pkg.width} onChange={(e) => handleUpdatePackage(pkg.id, 'width', e.target.value)} />
-                    <input type="number" className="figma-input" style={{ width: '100%', padding: '10px 12px', border: '1px solid #E6E8EE', borderRadius: '8px', fontSize: '14px', outline: 'none' }} placeholder="0.0" value={pkg.height} onChange={(e) => handleUpdatePackage(pkg.id, 'height', e.target.value)} />
-                    <input type="number" className="figma-input" style={{ width: '100%', padding: '10px 12px', border: '1px solid #E6E8EE', borderRadius: '8px', fontSize: '14px', outline: 'none' }} placeholder="0" value={pkg.weight} onChange={(e) => handleUpdatePackage(pkg.id, 'weight', e.target.value)} />
-                    <input type="number" className="figma-input" style={{ width: '100%', padding: '10px 12px', border: '1px solid #E6E8EE', borderRadius: '8px', fontSize: '14px', outline: 'none' }} placeholder="0" value={pkg.qty} onChange={(e) => handleUpdatePackage(pkg.id, 'qty', e.target.value)} />
-                    <button className="btn-icon-danger" style={{ background: 'transparent', border: 'none', color: '#5C6470', fontSize: '16px', cursor: 'pointer', padding: '4px' }} onClick={() => handleRemovePackage(pkg.id)}>🗑</button>
+                  <div className="grid-row cargo-grid" key={pkg.id}>
+                    <input type="text" className="figma-input" style={{ fontWeight: 500, border: 'none', padding: 0 }} value={pkg.type} onChange={(e) => handleUpdatePackage(pkg.id, 'type', e.target.value)} />
+                    <input type="number" className="figma-input" placeholder="0.0" value={pkg.length} onChange={(e) => handleUpdatePackage(pkg.id, 'length', e.target.value)} />
+                    <input type="number" className="figma-input" placeholder="0.0" value={pkg.width} onChange={(e) => handleUpdatePackage(pkg.id, 'width', e.target.value)} />
+                    <input type="number" className="figma-input" placeholder="0.0" value={pkg.height} onChange={(e) => handleUpdatePackage(pkg.id, 'height', e.target.value)} />
+                    <input type="number" className="figma-input" placeholder="0" value={pkg.weight} onChange={(e) => handleUpdatePackage(pkg.id, 'weight', e.target.value)} />
+                    <input type="number" className="figma-input" placeholder="0" value={pkg.qty} onChange={(e) => handleUpdatePackage(pkg.id, 'qty', e.target.value)} />
+                    <button className="btn-icon-danger" onClick={() => handleRemovePackage(pkg.id)}>🗑</button>
                   </div>
                 ))}
-                <button className="btn-figma-text" style={{ background: 'transparent', border: 'none', fontSize: '14px', fontWeight: 500, cursor: 'pointer', color: '#3D5AFE', padding: '8px 0 24px 0' }} onClick={handleAddPackage}>+ Add package row</button>
+                <button className="btn-figma-text" style={{ color: '#3D5AFE', padding: '8px 0 24px 0' }} onClick={handleAddPackage}>+ Add package row</button>
 
                 <div style={{ display: 'flex', gap: '24px', paddingTop: '24px', borderTop: '1px solid #E6E8EE' }}>
                   <div style={{ flex: 1 }}>
-                    <span className="chip-label" style={{ fontSize: '12px', color: '#5C6470', marginBottom: '8px', display: 'block' }}>Stackability</span>
+                    <span className="chip-label">Stackability</span>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '24px' }}>
                       {['Non-stackable', 'Stackable ×2', 'Stackable ×3'].map(opt => (
-                        <div key={opt} className="chip" style={{ padding: '10px 4px', textAlign: 'center', borderRadius: '8px', border: `1px solid ${formData.stackability === opt ? '#0E1116' : '#E6E8EE'}`, background: formData.stackability === opt ? '#0E1116' : 'white', color: formData.stackability === opt ? 'white' : '#5C6470', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', justifyContent: 'center' }} onClick={() => setFormData({...formData, stackability: opt})}>{opt}</div>
+                        <div key={opt} className={`chip ${formData.stackability === opt ? 'active dark' : ''}`} style={{ justifyContent: 'center', padding: '10px 4px', textAlign: 'center' }} onClick={() => setFormData({...formData, stackability: opt})}>{opt}</div>
                       ))}
                     </div>
-                    <span className="chip-label" style={{ fontSize: '12px', color: '#5C6470', marginBottom: '8px', display: 'block' }}>Insured value</span>
-                    <input type="text" className="figma-input" style={{ width: '100%', padding: '10px 12px', border: '1px solid #E6E8EE', borderRadius: '8px', fontSize: '14px', outline: 'none' }} placeholder="€ 60,000" value={formData.insuredValue ? `€ ${Number(formData.insuredValue.replace(/\D/g, '')).toLocaleString('en-US')}` : ''} onChange={(e) => setFormData({...formData, insuredValue: e.target.value.replace(/\D/g, '')})} />
+                    <span className="chip-label">Insured value</span>
+                    <input type="text" className="figma-input" placeholder="€ 60,000" value={formData.insuredValue ? `€ ${Number(formData.insuredValue.replace(/\D/g, '')).toLocaleString('en-US')}` : ''} onChange={(e) => setFormData({...formData, insuredValue: e.target.value.replace(/\D/g, '')})} />
                   </div>
                   
                   <div style={{ flex: 1 }}>
-                    <span className="chip-label" style={{ fontSize: '12px', color: '#5C6470', marginBottom: '8px', display: 'block' }}>Temperature</span>
+                    <span className="chip-label">Temperature</span>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '24px' }}>
                       {['Ambient', '+2 to +8 °C', 'Frozen'].map(opt => (
-                        <div key={opt} className="chip" style={{ padding: '10px 4px', textAlign: 'center', borderRadius: '8px', border: `1px solid ${formData.temperature === opt ? '#0E1116' : '#E6E8EE'}`, background: formData.temperature === opt ? '#0E1116' : 'white', color: formData.temperature === opt ? 'white' : '#5C6470', fontSize: '13px', fontWeight: 500, cursor: 'pointer', display: 'flex', justifyContent: 'center' }} onClick={() => setFormData({...formData, temperature: opt})}>{opt}</div>
+                        <div key={opt} className={`chip ${formData.temperature === opt ? 'active dark' : ''}`} style={{ justifyContent: 'center', padding: '10px 4px', textAlign: 'center' }} onClick={() => setFormData({...formData, temperature: opt})}>{opt}</div>
                       ))}
                     </div>
                     <div style={{ display: 'flex', gap: '12px' }}>
-                      <div style={{ flex: 1 }}>
-                        <span className="chip-label" style={{ fontSize: '12px', color: '#5C6470', marginBottom: '8px', display: 'block' }}>HS code</span>
-                        <input type="text" className="figma-input" style={{ width: '100%', padding: '10px 12px', border: '1px solid #E6E8EE', borderRadius: '8px', fontSize: '14px', outline: 'none' }} placeholder="3402.20.90" value={formData.hsCode} onChange={(e) => setFormData({...formData, hsCode: e.target.value})}/>
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <span className="chip-label" style={{ fontSize: '12px', color: '#5C6470', marginBottom: '8px', display: 'block' }}>ADR class</span>
-                        <input type="text" className="figma-input" style={{ width: '100%', padding: '10px 12px', border: '1px solid #E6E8EE', borderRadius: '8px', fontSize: '14px', outline: 'none' }} placeholder="Not applicable" value={formData.adrClass} onChange={(e) => setFormData({...formData, adrClass: e.target.value})}/>
-                      </div>
+                      <div style={{ flex: 1 }}><span className="chip-label">HS code</span><input type="text" className="figma-input" placeholder="3402.20.90" value={formData.hsCode} onChange={(e) => setFormData({...formData, hsCode: e.target.value})}/></div>
+                      <div style={{ flex: 1 }}><span className="chip-label">ADR class</span><input type="text" className="figma-input" placeholder="Not applicable" value={formData.adrClass} onChange={(e) => setFormData({...formData, adrClass: e.target.value})}/></div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`} style={isSubmitted ? { opacity: 0.5, pointerEvents: 'none', filter: 'grayscale(100%)' } : {}}>
+            <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`}>
               <div className="step-main-card">
-                <div className="step-title-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                  <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#0E1116', marginBottom: '6px' }}>Vehicle type</h2>
-                  <span className="step-count" style={{ fontSize: '12px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Step 4 of 6</span>
-                </div>
+                <div className="step-title-row"><h2>Vehicle type</h2><span className="step-count">Step 4 of 6</span></div>
                 <p style={{ fontSize: '14px', color: '#5C6470', marginBottom: '16px' }}>Recommended options:</p>
-                <div className="chip-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
+                <div className="chip-group">
                   {['Tautliner trailer', 'Mega trailer'].map(type => (
-                    <div key={type} className="chip" style={{ padding: '8px 16px', borderRadius: '8px', border: `1px solid ${formData.vehicle === type ? '#00C48C' : '#E6E8EE'}`, background: formData.vehicle === type ? 'rgba(0, 196, 140, 0.1)' : 'white', color: formData.vehicle === type ? '#00C48C' : '#5C6470', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }} onClick={() => setFormData({...formData, vehicle: type})}>{type}</div>
+                    <div key={type} className={`chip ${formData.vehicle === type ? 'active success' : ''}`} onClick={() => setFormData({...formData, vehicle: type})}>{type}</div>
                   ))}
                 </div>
                 <p style={{ fontSize: '14px', color: '#5C6470', marginBottom: '16px', marginTop: '16px' }}>Other variants:</p>
-                <div className="chip-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
+                <div className="chip-group">
                   {['Box truck', 'Curtainsider', 'Container', 'Reefer'].map(type => (
-                    <div key={type} className="chip" style={{ padding: '8px 16px', borderRadius: '8px', border: `1px solid ${formData.vehicle === type ? '#3D5AFE' : '#E6E8EE'}`, background: formData.vehicle === type ? '#EEF1FF' : 'white', color: formData.vehicle === type ? '#3D5AFE' : '#5C6470', fontSize: '13px', fontWeight: 500, cursor: 'pointer' }} onClick={() => setFormData({...formData, vehicle: type})}>{type}</div>
+                    <div key={type} className={`chip ${formData.vehicle === type ? 'active' : ''}`} onClick={() => setFormData({...formData, vehicle: type})}>{type}</div>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`} style={isSubmitted ? { opacity: 0.5, pointerEvents: 'none', filter: 'grayscale(100%)' } : {}}>
+            <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`}>
               <div className="step-main-card">
-                <div className="step-title-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                  <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#0E1116', marginBottom: '6px' }}>Pricing</h2>
-                  <span className="step-count" style={{ fontSize: '12px', color: '#5C6470', textTransform: 'uppercase', fontWeight: 600 }}>Step 5 of 6</span>
-                </div>
+                <div className="step-title-row"><h2>Pricing</h2><span className="step-count">Step 5 of 6</span></div>
                 <div className="figma-input-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <span style={{ fontSize: '24px', color: '#5C6470' }}>€</span>
-                  <input type="text" className="figma-input" style={{ width: '100%', padding: '10px 12px', border: '1px solid #E6E8EE', borderRadius: '8px', outline: 'none', fontSize: '20px', fontWeight: 600 }} value={formData.price ? Number(formData.price.replace(/\D/g, '')).toLocaleString('en-US') : ''} placeholder="0" onChange={(e) => setFormData({...formData, price: e.target.value.replace(/\D/g, '')})} />
+                  <input type="text" className="figma-input" style={{ fontSize: '20px', fontWeight: 600 }} value={formData.price ? Number(formData.price.replace(/\D/g, '')).toLocaleString('en-US') : ''} placeholder="0" onChange={(e) => setFormData({...formData, price: e.target.value.replace(/\D/g, '')})} />
                 </div>
               </div>
             </div>
 
+            {!isSubmitted && (
+              <div className="step-row">
+                <div className="step-main-card">
+                  <div className="step-title-row">
+                    <div>
+                      <h2>Review results</h2>
+                      <p>Button will activate only after fully completing steps 1 to 5.</p>
+                    </div>
+                    <span className="step-count">Step 6 of 6</span>
+                  </div>
+                  <button className="btn-figma-primary" style={{ width: '100%', justifyContent: 'center', padding: '16px', fontSize: '16px' }} disabled={!isFormValid || isSubmitting} onClick={handleSave}>
+                    {isSubmitting ? 'Sending...' : 'Send to Moderation'}
+                  </button>
+                </div>
+              </div>
+            )}
+
           </div>
 
-          <aside className="create-right-sidebar" style={{ width: '380px', flexShrink: 0, position: 'sticky', top: '100px', height: 'calc(100vh - 132px)', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div className="figma-map-card" style={{ background: 'white', border: '1px solid #E6E8EE', borderRadius: '12px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 8px rgba(0,0,0,0.02)', flex: 1, width: '100%' }}>
+          {/* СПРАВА: КОЛОНКА С КАРТОЙ (ЧИСТАЯ ИЗ 5 КОНЦЕПТА) */}
+          <aside className="create-right-sidebar">
+            <div className="figma-map-card">
                 <div style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, borderBottom: '1px solid #E6E8EE', background: 'white' }}>Map preview</div>
                 <div style={{ flex: 1, width: '100%', position: 'relative' }}>
                   <RoutingMap stops={formData.stops} />
                 </div>
             </div>
 
-            <div className="calc-widget-dark" style={{ background: '#0E1116', borderRadius: '12px', border: '1px solid #E6E8EE', padding: '24px', color: 'white', flexShrink: 0 }}>
-                <div className="calc-widget-title" style={{ fontSize: '11px', color: '#5C6470', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '20px', fontWeight: 600 }}>Auto Calculation</div>
-                <div className="calc-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'flex-start' }}><span className="calc-label" style={{ fontSize: '13px', color: '#E6E8EE' }}>Total mass</span><div className="calc-value" style={{ textAlign: 'right' }}><div className="calc-val-main" style={{ fontSize: '20px', fontWeight: 600 }}>{totalMass.toFixed(2)} t</div><div className="calc-val-sub" style={{ fontSize: '11px', color: '#5C6470', marginTop: '4px' }}>{totalItems} units</div></div></div>
-                <div className="calc-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'flex-start' }}><span className="calc-label" style={{ fontSize: '13px', color: '#E6E8EE' }}>Total volume</span><div className="calc-value" style={{ textAlign: 'right' }}><div className="calc-val-main" style={{ fontSize: '20px', fontWeight: 600 }}>{totalVolume.toFixed(2)} m³</div></div></div>
-                <div className="calc-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'flex-start' }}><span className="calc-label" style={{ fontSize: '13px', color: '#E6E8EE' }}>Loading metres</span><div className="calc-value" style={{ textAlign: 'right' }}><div className="calc-val-main" style={{ fontSize: '20px', fontWeight: 600 }}>{ldm} LDM</div></div></div>
-                <div className="calc-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', alignItems: 'flex-start' }}><span className="calc-label" style={{ fontSize: '13px', color: '#E6E8EE' }}>Floor footprint</span><div className="calc-value" style={{ textAlign: 'right' }}><div className="calc-val-main" style={{ fontSize: '20px', fontWeight: 600 }}>{floorFootprint.toFixed(2)} m²</div></div></div>
-                <div className="calc-info-box" style={{ background: 'rgba(61, 90, 254, 0.15)', border: '1px solid rgba(61, 90, 254, 0.3)', borderRadius: '8px', padding: '12px', marginTop: '24px', fontSize: '12px', color: '#EEF1FF', lineHeight: 1.5 }}>ℹ Fits standard 13.6 LDM tautliner layout.</div>
+            <div className="calc-widget-dark">
+                <div className="calc-widget-title">Auto Calculation</div>
+                <div className="calc-row"><span className="calc-label">Total mass</span><div className="calc-value"><div className="calc-val-main">{totalMass.toFixed(2)} t</div><div className="calc-val-sub">{totalItems} units</div></div></div>
+                <div className="calc-row"><span className="calc-label">Total volume</span><div className="calc-value"><div className="calc-val-main">{totalVolume.toFixed(2)} m³</div></div></div>
+                <div className="calc-row"><span className="calc-label">Loading metres</span><div className="calc-value"><div className="calc-val-main">{ldm} LDM</div></div></div>
+                <div className="calc-row"><span className="calc-label">Floor footprint</span><div className="calc-value"><div className="calc-val-main">{floorFootprint.toFixed(2)} m²</div></div></div>
+                <div className="calc-info-box">ℹ Fits standard 13.6 LDM tautliner layout.</div>
             </div>
           </aside>
 

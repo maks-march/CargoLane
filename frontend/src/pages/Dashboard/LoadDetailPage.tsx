@@ -10,7 +10,7 @@ import { DetailRightPanel } from '../../components/UI/DetailRightPanel';
 interface LoadDetailPageProps {
   onNavigate: (page: PageType, payload?: NavigationPayload) => void;
   loadId?: string | null;
-  fromPage?: string; 
+  fromPage?: string;
 }
 
 export const LoadDetailPage: React.FC<LoadDetailPageProps> = ({ onNavigate, loadId, fromPage }) => {
@@ -20,14 +20,17 @@ export const LoadDetailPage: React.FC<LoadDetailPageProps> = ({ onNavigate, load
 
   useEffect(() => {
     const fetchLoad = async () => {
-      if (!loadId) { setIsLoading(false); return; }
+      if (!loadId) {
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
       try {
         const found = await loadsService.getLoadById(loadId);
-        // Фикс: если found - undefined, передаем null явно
         setLoad(found || null);
       } catch (error) {
-        console.error(error);
+        console.error("API Error (LoadDetail):", error);
+        setLoad(null);
       } finally {
         setIsLoading(false);
       }
@@ -38,10 +41,10 @@ export const LoadDetailPage: React.FC<LoadDetailPageProps> = ({ onNavigate, load
   if (isLoading) {
     return (
       <div className="load-detail-page active">
-        <Sidebar onNavigate={onNavigate} activePage="dashboard" />
-        <div style={{ flex: 1, marginLeft: '240px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: '#888', fontSize: '18px' }}>⏳ Loading details from server...</div>
-        </div>
+        <Sidebar onNavigate={onNavigate} activePage={fromPage === 'my-listings' ? 'listings' : 'dashboard'} />
+        <main className="detail-main" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#5C6470' }}>
+          ⏳ Loading listing details...
+        </main>
       </div>
     );
   }
@@ -49,12 +52,13 @@ export const LoadDetailPage: React.FC<LoadDetailPageProps> = ({ onNavigate, load
   if (!load) {
     return (
       <div className="load-detail-page active">
-        <Sidebar onNavigate={onNavigate} activePage="dashboard" />
-        <div style={{ flex: 1, marginLeft: '240px', padding: '40px' }}>
-          <h2>Load not found</h2>
-          <p style={{ color: '#888', marginTop: '8px' }}>The requested load does not exist in the database.</p>
-          <button className="btn-figma-primary" onClick={() => onNavigate('dashboard')} style={{ marginTop: '20px' }}>← Back to Search</button>
-        </div>
+        <Sidebar onNavigate={onNavigate} activePage={fromPage === 'my-listings' ? 'listings' : 'dashboard'} />
+        <main className="detail-main" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📦</div>
+          <h2 style={{ color: '#0E1116' }}>Listing not found</h2>
+          <p style={{ color: '#5C6470', marginBottom: '24px' }}>The listing you are looking for does not exist or has been removed.</p>
+          <button className="btn-figma-primary" onClick={() => onNavigate('dashboard')}>Back to Dashboard</button>
+        </main>
       </div>
     );
   }
@@ -66,28 +70,33 @@ export const LoadDetailPage: React.FC<LoadDetailPageProps> = ({ onNavigate, load
       <main className="detail-main">
         <header className="detail-header">
           <div className="detail-breadcrumb">
-            <span className="dash-detail-breadcrumb-clickable" onClick={() => onNavigate('dashboard')}>Marketplace</span>
-            <span className="dash-detail-breadcrumb-arrow"> › </span>
             {fromPage === 'my-listings' ? (
-              <span className="dash-detail-breadcrumb-clickable" onClick={() => onNavigate('my-listings')}>My listings</span>
+              <>
+                <span className="dash-detail-breadcrumb-clickable" onClick={() => onNavigate('dashboard')}>Workspace</span>
+                <span className="dash-detail-breadcrumb-arrow"> › </span>
+                <span className="dash-detail-breadcrumb-clickable" onClick={() => onNavigate('my-listings')}>My listings</span>
+                <span className="dash-detail-breadcrumb-arrow"> › </span>
+              </>
             ) : (
-              <span className="dash-detail-breadcrumb-clickable" onClick={() => onNavigate('dashboard')}>Search</span>
+              <>
+                <span className="dash-detail-breadcrumb-clickable" onClick={() => onNavigate('dashboard')}>Marketplace</span>
+                <span className="dash-detail-breadcrumb-arrow"> › </span>
+              </>
             )}
-            <span className="dash-detail-breadcrumb-arrow"> › </span>
             <strong className="dash-detail-breadcrumb-current">{load.id}</strong>
           </div>
 
           <div className="detail-actions">
-            <button className="detail-action-btn"><span>☆</span> Save</button>
-            <button className="detail-action-btn"><span>↗</span> Share</button>
+            <button className="btn-figma-secondary" style={{ padding: '8px 16px' }}><span>☆</span> Save</button>
+            <button className="btn-figma-secondary" style={{ padding: '8px 16px' }}><span>↗</span> Share</button>
             <div className="dash-notify">🔔</div>
           </div>
         </header>
 
-        <div className="detail-layout-container">
-          <div className="detail-center-column">
+        <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <DetailHeaderCard load={load} routeInfo={routeInfo} />
-            <DetailRouteMap load={load} routeInfo={routeInfo} onRouteCalculated={(dist, dur) => setRouteInfo({ distance: dist, duration: dur })} />
+            <DetailRouteMap load={load} onRouteCalculated={(dist, dur) => setRouteInfo({ distance: dist, duration: dur })} />
             <DetailSpecs load={load} />
           </div>
           <DetailRightPanel load={load} />
