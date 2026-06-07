@@ -1,10 +1,13 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Application.CQRS.AuthCQ;
+using Application.CQRS.AuthCQ.Login;
 using Application.CQRS.AuthCQ.Refresh;
 using Application.CQRS.AuthCQ.Register;
 using Application.DTO.Auth;
 using Application.Interfaces;
 using FluentAssertions;
+using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using WebApi.DTO;
 
@@ -16,8 +19,10 @@ public abstract class BaseIntegrationTest
     private TestWebApplicationFactory<Program> _factory;
     protected HttpClient Client;
     protected IFileService FileService;
+    protected IMediator Mediator;
+    
     protected const string Password = "Password123!";
-    protected string Login = "RequestAuthor";
+    protected string Login = "RequestAuthor@mail.ru";
     protected AuthResponse Tokens;
 
     [OneTimeSetUp]
@@ -25,6 +30,7 @@ public abstract class BaseIntegrationTest
     {
         _factory = new TestWebApplicationFactory<Program>();
         Client = _factory.CreateClient();
+        Mediator =  _factory.Services.GetService<IMediator>() ?? new MediatR.Mediator(_factory.Services);
         FileService = _factory.Services.GetService<IFileService>() 
             ?? throw new NullReferenceException("File service not found in DI");
         
@@ -34,17 +40,28 @@ public abstract class BaseIntegrationTest
             new AuthenticationHeaderValue("Bearer", Tokens.AccessToken);
     }
     
-    protected async Task<AuthResponse?> Register(string login)
+    protected async Task<AuthResponse> Register(string login)
     {
-        var command = new RegisterCommand
+        var registerCommand = new RegisterCommand
         {
             Login = login,
             Password = Password
         };
-        var response = await Client.PostAsJsonAsync("/api/Auth/register", command);
+        var registerResult = await Mediator.Send(registerCommand);
+        var confirmCommand = new ConfirmEmailCommand(registerResult.Id, registerResult.Token);
+        var confirmResult = await Mediator.Send(confirmCommand);
         
+        var loginCommand = new LoginCommand
+        {
+            Login = login,
+            Password = Password
+        };
+        var response = await Client.PostAsJsonAsync("/api/Auth/login", loginCommand);
+        var result = await ExtractFromResponse<AuthResponse>(response);
+
         response.IsSuccessStatusCode.Should().BeTrue();
-        return await response.Content.ReadFromJsonAsync<AuthResponse>();
+        result.Should().NotBeNull();
+        return result;
     }
     
     protected async Task<AuthResponse?> Refresh(AuthResponse? authResponse)

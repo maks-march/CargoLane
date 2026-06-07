@@ -53,9 +53,10 @@ public static class MigrationApplying
         {
             var newAdminUser = new ApplicationUser
             {
+                Email = configuration["Admin:Email"],
                 UserName = adminUserName
             };
-
+            newAdminUser.EmailConfirmed = true;
             var adminPassword = configuration["Admin:Password"]; 
             var result = await userManager.CreateAsync(newAdminUser, adminPassword!);
 

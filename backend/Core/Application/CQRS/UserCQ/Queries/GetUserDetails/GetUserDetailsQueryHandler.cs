@@ -4,6 +4,7 @@ using Application.Interfaces;
 using AutoMapper;
 using Domain.Models;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.CQRS.UserCQ.Queries.GetUserDetails;
 
@@ -13,11 +14,22 @@ public class GetUserDetailsQueryHandler(
 {
     public async Task<UserDetailsVm> Handle(GetUserDetailsQuery request, CancellationToken cancellationToken)
     {
-        var user = await dbContext.BusinessUsers.FindAsync([request.Id], cancellationToken);
-        if (user == null || user.Id != request.Id)
-        {
+        var result = await (from bu in dbContext.BusinessUsers
+                join au in dbContext.Users on bu.Id equals au.Id
+                where bu.Id == request.Id
+                select new 
+                { 
+                    BusinessUser = bu, 
+                    Email = au.Email 
+                })
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (result == null)
             throw new NotFoundException(nameof(User), request.Id);
-        }
-        return mapper.Map<UserDetailsVm>(user);
+
+        var vm = mapper.Map<UserDetailsVm>(result.BusinessUser);
+
+        return vm with { Email = result.Email ?? string.Empty };
     }
 }

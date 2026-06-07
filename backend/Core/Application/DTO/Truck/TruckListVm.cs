@@ -14,7 +14,7 @@ public record TruckListVm : IMapWith<TruckEntity>
     public double MaxPayment { get; set; }
     public double MinPayment { get; set; }
     public string Description {  get; set; } = string.Empty;
-    public Domain.Models.User User { get; set; }
+    public required Domain.Models.User User { get; set; }
     
     /// <summary>
     /// Город отправления (первая точка маршрута)

@@ -1,5 +1,6 @@
 using Application.DTO.Chat;
 using Application.Interfaces;
+using Domain.Models;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,14 +22,11 @@ public class GetChatQueryHandler(IAppDbContext dbContext)
                 ChatName = c.Participants
                     .Where(p => p.Id != request.UserId)
                     .Select(p => p.FirstName + " " + p.LastName)
-                    .FirstOrDefault() ?? "Удаленный пользователь",
+                    .FirstOrDefault() ?? "Deleted user",
                 
-                ChatAvatarUrl = c.Participants
-                    .Where(p => p.Id != request.UserId)
-                    .Select(p => p.Avatar.FilePath) // Предполагаем наличие связи
-                    .FirstOrDefault(),
+                ChatAvatarUrl = null, // надо сделать привязку аватара TODO
 
-                LastMessageText = c.LastMessage != null ? c.LastMessage.Text : "Сообщений нет",
+                LastMessageText = c.LastMessage != null ? c.LastMessage.Text : "No messages",
                 LastMessageTime = c.LastMessage != null ? c.LastMessage.Created : null,
                 
                 // Считаем непрочитанные сообщения, где отправитель не я

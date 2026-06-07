@@ -1,3 +1,4 @@
+using Application.Common.Exceptions;
 using Application.Interfaces;
 using Domain.Models.Chat;
 using MediatR;
@@ -9,6 +10,9 @@ public class StartChatCommandHandler(IAppDbContext dbContext) : IRequestHandler<
 {
     public async Task<Guid> Handle(StartChatCommand request, CancellationToken cancellationToken)
     {
+        if (request.CurrentUserId == request.TargetUserId)
+            throw new InvalidOperationException("Chat with yourself permitted");
+        
         // Ищем чат, где есть оба участника
         var existingChatId = await dbContext.Chats
             .Where(c => c.Participants.Any(p => p.Id == request.CurrentUserId) && 
@@ -20,9 +24,12 @@ public class StartChatCommandHandler(IAppDbContext dbContext) : IRequestHandler<
             return existingChatId;
 
         // Если чата нет — создаем
-        var currentUser = await dbContext.BusinessUsers.FindAsync(request.CurrentUserId);
-        var targetUser = await dbContext.BusinessUsers.FindAsync(request.TargetUserId);
-
+        var currentUser = await dbContext.BusinessUsers.FindAsync([request.CurrentUserId], cancellationToken);
+        var targetUser = await dbContext.BusinessUsers.FindAsync([request.TargetUserId], cancellationToken);
+        
+        if (currentUser == null ||  targetUser == null)
+            throw new NotFoundException("Addressed user not found", request.TargetUserId);
+        
         var newChat = new ChatEntity
         {
             Id = Guid.NewGuid(),

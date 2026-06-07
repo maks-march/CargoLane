@@ -49,6 +49,9 @@ public static class DependencyInjection
     {
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<IIdentityService, IdentityService>();
+        services.AddScoped<IGoogleAuthProvider, GoogleAuthProvider>();
+        services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
+        services.AddScoped<IEmailService, EmailService>();
         
         services.AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
             {
@@ -57,6 +60,9 @@ public static class DependencyInjection
                 options.Password.RequireNonAlphanumeric = false;
                 options.Password.RequireUppercase = false;
                 options.Password.RequireLowercase = false;
+                
+                options.SignIn.RequireConfirmedEmail = true; // Важно!
+                options.User.RequireUniqueEmail = true;
             })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();

@@ -1,93 +1,102 @@
 using System.Net;
-using System.Net.Http.Headers;
-using ApplicationTest.Common;
+using System.Net.Http.Json;
+using Application.DTO.Chat;
 using FluentAssertions;
 
-namespace ApplicationTest.IntegrationTests;
+namespace ApplicationTest.IntegrationTests.Chat;
 
-public class ChatControllerTests : BaseChatTests
+public class ChatTests : ChatTestBase
 {
     [Test]
-    public async Task TwoUsers_CanStartChat_And_ExchangeMessages()
+    public async Task FullCommunicationCycle_Between_UserA_And_UserB()
     {
-        // 1. Arrange: У нас есть Юзер А (автоматически создан в BaseIntegrationTest)
-        // Регистрируем Юзера Б и получаем его данные
-        var userB_Login = "UserB_" + Guid.NewGuid();
-        var userB_Tokens = await Register(userB_Login);
-        
-        // Нам нужно узнать Id Юзера Б. 
-        // В реальном проекте ID обычно возвращается в AuthResponse или есть эндпоинт /me
-        // Для теста предположим, что мы можем его достать из БД через scope или он в Tokens.UserId
-        var userB_Id = userB_Tokens!.UserId; 
-
-        // 2. Act: Юзер А начинает чат с Юзером Б
-        var chatId = await StartChat(userB_Id);
+        // 1. Юзер А начинает чат с Юзером Б
+        SetAuth(AuthA);
+        var chatId = await StartChat(AuthB.UserId);
         chatId.Should().NotBeEmpty();
 
-        // 3. Юзер А отправляет сообщение
-        var textFromA = "Привет, Юзер Б!";
-        await SendMessage(chatId, textFromA);
+        // 2. Юзер А отправляет сообщение
+        var textA = "Привет от Юзера А";
+        await SendMessage(chatId, textA);
 
-        // 4. Переключаемся на Юзера Б (меняем токен в клиенте)
-        Client.DefaultRequestHeaders.Authorization = 
-            new AuthenticationHeaderValue("Bearer", userB_Tokens.AccessToken);
+        // 3. Переключаемся на Юзера Б
+        SetAuth(AuthB);
 
-        // 5. Юзер Б проверяет список чатов
-        var chatsOfB = await GetMyChats();
-        chatsOfB.Should().ContainSingle();
-        chatsOfB[0].LastMessageText.Should().Be(textFromA);
-        chatsOfB[0].Id.Should().Be(chatId);
+        // Юзер Б видит чат и непрочитанное сообщение
+        var chatsB = await GetMyChats();
+        var chatB = chatsB.FirstOrDefault(c => c.Id == chatId);
+        chatB.Should().NotBeNull();
+        chatB.UnreadCount.Should().Be(1);
+        chatB.LastMessageText.Should().Be(textA);
 
-        // 6. Юзер Б отвечает Юзеру А
-        var textFromB = "Привет, Юзер А! Получил сообщение.";
-        await SendMessage(chatId, textFromB);
+        // Юзер Б читает историю
+        var historyB = await GetHistory(chatId);
+        historyB.Should().ContainSingle(m => m.Text == textA && m.SenderId == AuthA.UserId);
 
-        // 7. Юзер Б проверяет историю
-        var history = await GetHistory(chatId);
-        history.Should().HaveCount(2);
-        history[0].Text.Should().Be(textFromB); // Последнее сообщение первым (OrderByDescending)
-        history[1].Text.Should().Be(textFromA);
+        // 4. Юзер Б отвечает
+        var textB = "Ответ от Юзера Б";
+        await SendMessage(chatId, textB);
+
+        // 5. Возвращаемся к Юзеру А
+        SetAuth(AuthA);
+        var chatsA = await GetMyChats();
+        chatsA[0].LastMessageText.Should().Be(textB);
     }
 
     [Test]
-    public async Task ChatHistory_AccessIsForbidden_ForNonParticipant()
+    public async Task Security_UserC_CannotRead_UserA_And_UserB_Chat()
     {
         // 1. Юзер А создает чат с Юзером Б
-        var userB = await Register("UserB_" + Guid.NewGuid());
-        var chatId = await StartChat(userB!.UserId);
+        SetAuth(AuthA);
+        var chatId = await StartChat(AuthB.UserId);
 
-        // 2. Регистрируем Юзера В (Хакер)
-        var userC = await Register("UserC_Hacker");
-        Client.DefaultRequestHeaders.Authorization = 
-            new AuthenticationHeaderValue("Bearer", userC!.AccessToken);
+        // 2. Переключаемся на Юзера В (который не в чате)
+        SetAuth(AuthC);
 
-        // 3. Act: Хакер пытается прочитать историю чужого чата
+        // 3. Пытаемся получить историю чужого чата
         var response = await Client.GetAsync($"{BaseUrl}/{chatId}/messages");
 
-        // Assert
+        // Assert: Должен быть Forbidden (403)
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Test]
-    public async Task StartChat_WithExistingUser_ReturnsSameChatId()
+    public async Task Pagination_ShouldWork_With_MultipleMessages()
     {
-        // Arrange
-        var userB = await Register("UserB_RepeatTest");
-        var userB_Id = userB!.UserId;
+        // 1. Подготовка: Юзер А шлет 10 сообщений Юзеру Б
+        SetAuth(AuthA);
+        var chatId = await StartChat(AuthB.UserId);
+        
+        for (int i = 1; i <= 10; i++)
+        {
+            await SendMessage(chatId, $"Message {i}");
+        }
 
-        // Act
-        var firstId = await StartChat(userB_Id);
-        var secondId = await StartChat(userB_Id);
-
-        // Assert
-        firstId.Should().Be(secondId); // Чат не должен дублироваться
+        // 2. Проверяем пагинацию (Берем 5 последних)
+        var history = await GetHistory(chatId, skip: 0, take: 5);
+        
+        history.Should().HaveCount(5);
+        history[0].Text.Should().Be("Message 10"); // Сортировка по убыванию
+        history[4].Text.Should().Be("Message 6");
     }
 
     [Test]
-    public async Task GetHistory_WithInvalidChatId_ReturnsNotFound()
+    public async Task StartChat_WithSelf_ReturnsBadRequest()
     {
-        // Act
-        var response = await Client.GetAsync($"{BaseUrl}/{Guid.NewGuid()}/messages");
+        // Act: Юзер А пытается начать чат с самим собой
+        SetAuth(AuthA);
+        var response = await Client.PostAsync($"{BaseUrl}/start/{AuthA.UserId}", null);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task SendMessage_To_NonExistentChat_ReturnsNotFound()
+    {
+        // Act: Юзер А шлет сообщение в случайный Guid
+        SetAuth(AuthA);
+        var response = await Client.PostAsJsonAsync($"{BaseUrl}/{Guid.NewGuid()}/messages", "Hello");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);

@@ -4,15 +4,11 @@ using Domain.Models.Abstract;
 
 namespace Application.CQRS.PhotoCQ.Commands;
 
-public class UploadPhotoCommandHandler<TOwner>(IAppDbContext dbContext, IFileService fileService) 
-    // : IRequestHandler<UploadPhotoCommand<TOwner>>
+public class UploadPhotoCommandHandler<TOwner>(IAppDbContext dbContext) 
     where TOwner : Entity
 {
-    // public async Task Handle(UploadPhotoCommand<TOwner> request, CancellationToken cancellationToken)
-    // {
-    //     
-    // }
-    
+    protected readonly IAppDbContext DbContext = dbContext;
+
     protected void UpdateCollection<TFile>(IList<TFile> fileCollection, string[] newList, TOwner owner)
         where TFile : FileEntity<TOwner>, new()
     {
@@ -27,7 +23,7 @@ public class UploadPhotoCommandHandler<TOwner>(IAppDbContext dbContext, IFileSer
             }
             else
             {
-                dbContext.GetDbSet<TFile>().Remove(existing);
+                DbContext.GetDbSet<TFile>().Remove(existing);
             }
         }
         

@@ -9,11 +9,11 @@ namespace Application.CQRS.PhotoCQ.Commands;
 public class UploadOrderPhotoCommandHandler(
     IAppDbContext dbContext,
     IFileService fileService
-) : UploadPhotoCommandHandler<OrderEntity>(dbContext, fileService), IRequestHandler<UploadPhotoCommand<OrderEntity>>
+) : UploadPhotoCommandHandler<OrderEntity>(dbContext), IRequestHandler<UploadPhotoCommand<OrderEntity>>
 {
     public async Task Handle(UploadPhotoCommand<OrderEntity> request, CancellationToken cancellationToken)
     {
-        var order = await dbContext.GetDbSet<OrderEntity>()
+        var order = await DbContext.GetDbSet<OrderEntity>()
             .Include(x => x.Photos)
             .FirstOrDefaultAsync(o => o.Id == request.ItemId, cancellationToken);
         if (order == null)
@@ -25,6 +25,6 @@ public class UploadOrderPhotoCommandHandler(
             .Select(f => f.FilePath)
             .ToArray());
         UpdateCollection(order.Photos, save, order);
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
     }
 }

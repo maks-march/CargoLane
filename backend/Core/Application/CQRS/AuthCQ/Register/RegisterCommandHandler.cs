@@ -8,10 +8,11 @@ namespace Application.CQRS.AuthCQ.Register;
 public class RegisterCommandHandler(
     IIdentityService identityService,
     IJwtProvider jwtProvider,
+    IEmailService emailService,
     UserManager<ApplicationUser> userManager)
-    : IRequestHandler<RegisterCommand, AuthResponse>
+    : IRequestHandler<RegisterCommand, (bool Succeeded, Guid Id, string Token)>
 {
-    public async Task<AuthResponse> Handle(RegisterCommand request, CancellationToken cancellationToken)
+    public async Task<(bool Succeeded, Guid Id, string Token)> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
         // 1. Создаем пользователя через наш сервис
         var (succeeded, errors, userId) = await identityService.CreateUserAsync(
@@ -22,30 +23,39 @@ public class RegisterCommandHandler(
             throw new InvalidOperationException(string.Join("\n", errors));
         }
         
-        // 2. Находим только что созданного пользователя, чтобы получить его данные
-        var userDto = await identityService.FindUserByUsernameAsync(request.Login);
-        if (userDto == null)
-            throw new InvalidOperationException("Failed to find user after creation.");
         
         var appUser = await userManager.FindByIdAsync(userId.ToString());
         if (appUser == null) 
             throw new InvalidOperationException("Failed to find user after creation.");
         
-        // 3. Генерируем токены
-        var accessToken = jwtProvider.GenerateAccessToken(userDto);
-        var refreshToken = jwtProvider.GenerateRefreshToken();
-
-        
-        // 4. Сохраняем Refresh Token в базу
-        appUser.RefreshToken = refreshToken;
-        appUser.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-        await userManager.UpdateAsync(appUser);
-        
-        // 5. Возвращаем ответ
-        return new AuthResponse(
-            accessToken, 
-            refreshToken, 
+        appUser.Email = request.Login;
+        var token = await userManager.GenerateEmailConfirmationTokenAsync(appUser);
+        var sended = await emailService.SendConfirmationEmailAsync(
+            request.Login, 
             userId, 
-            userDto.UserName!);
+            token, 
+            cancellationToken);
+        if (!sended)
+        {
+            await identityService.DeleteUser(userId);
+            throw new InvalidOperationException("Failed to send confirmation email.");
+        }
+        return (true, userId, token);
+        // // 3. Генерируем токены
+        // var accessToken = jwtProvider.GenerateAccessToken(appUser);
+        // var refreshToken = jwtProvider.GenerateRefreshToken();
+        //
+        //
+        // // 4. Сохраняем Refresh Token в базу
+        // appUser.RefreshToken = refreshToken;
+        // appUser.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+        // await userManager.UpdateAsync(appUser);
+        //
+        // // 5. Возвращаем ответ
+        // return new AuthResponse(
+        //     accessToken, 
+        //     refreshToken, 
+        //     userId, 
+        //     appUser.Email);
     }
 }

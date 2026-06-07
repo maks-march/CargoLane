@@ -1,9 +1,8 @@
-using Application.DTO.Auth;
 using MediatR;
 
 namespace Application.CQRS.AuthCQ.Register;
 
-public record RegisterCommand : IRequest<AuthResponse>
+public record RegisterCommand : IRequest<(bool Succeeded, Guid Id, string Token)>
 {
     /// <summary>
     /// Логин пользователя - почта (скорее всего).

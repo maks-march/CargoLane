@@ -42,7 +42,7 @@ public class TruckWriteTests : TruckTestBase
         var truckId = await CreateTestTruck(); // Создал первый юзер
 
         // Переключаемся на другого юзера
-        var secondUser = await Register("OtherUser");
+        var secondUser = await Register("OtherUser@mail.ru ");
         
         secondUser.Should().NotBeNull();
         Client.DefaultRequestHeaders.Authorization = 

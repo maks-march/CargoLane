@@ -13,16 +13,16 @@ public class UpdateOrderCommandHandler(IAppDbContext dbContext, IMapper mapper)
 {
     public async Task<Guid> Handle(UpdateOrderCommand request, CancellationToken cancellationToken)
     {
-        var orderExists = await dbContext.Orders
+        var orderExists = await DbContext.Orders
             .AnyAsync(o => o.Id == request.Id && o.UserId == request.UserId, cancellationToken);
         if (!orderExists)
         {
-            var exists = await dbContext.Orders.AnyAsync(o => o.Id == request.Id, cancellationToken);
+            var exists = await DbContext.Orders.AnyAsync(o => o.Id == request.Id, cancellationToken);
             if (!exists) throw new NotFoundException(nameof(OrderEntity), request.Id);
             throw new ForbiddenException(nameof(OrderEntity), request.UserId);
         }
         
-        var order = await dbContext.Orders
+        var order = await DbContext.Orders
             .Include(order => order.User)
             .Include(order => order.Payment)
             .Include(order => order.Transport)
@@ -32,9 +32,9 @@ public class UpdateOrderCommandHandler(IAppDbContext dbContext, IMapper mapper)
                 .OrderBy(p => p.OrderIndex))
             .FirstAsync(order => order.Id == request.Id, cancellationToken);
         
-        mapper.Map(request, order);
-        mapper.Map(request.Payment, order.Payment);
-        mapper.Map(request.Transport, order.Transport);
+        Mapper.Map(request, order);
+        Mapper.Map(request.Payment, order.Payment);
+        Mapper.Map(request.Transport, order.Transport);
         
         if (request.Payloads != null)
         {
@@ -47,7 +47,7 @@ public class UpdateOrderCommandHandler(IAppDbContext dbContext, IMapper mapper)
         }
         
         order.Updated = DateTime.UtcNow;
-        await dbContext.SaveChangesAsync(cancellationToken);
+        await DbContext.SaveChangesAsync(cancellationToken);
         return order.Id;
     }
 }

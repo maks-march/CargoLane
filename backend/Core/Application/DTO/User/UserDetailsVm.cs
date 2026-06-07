@@ -6,6 +6,9 @@ namespace Application.DTO.User;
 public record UserDetailsVm : IMapWith<Domain.Models.User>
 {
     public required Guid Id { get; init; }
+    
+    public required string Email { get; init; }
+    
     public required string Name { get; init; }
     public required string Surname { get; init; }
     public string NickName { get; init; } = string.Empty;
@@ -35,6 +38,8 @@ public record UserDetailsVm : IMapWith<Domain.Models.User>
     public void Mapping(Profile profile)
     {
         profile.CreateMap<Domain.Models.User, UserDetailsVm>()
+            .ForMember(vm => vm.Email, opt => 
+                opt.Ignore())
             .ForMember(vm => vm.Id,
                 opt => opt.MapFrom(src => src.Id))
             .ForMember(vm => vm.Name,

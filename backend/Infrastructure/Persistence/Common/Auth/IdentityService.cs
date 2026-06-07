@@ -61,4 +61,24 @@ public class IdentityService(UserManager<ApplicationUser> userManager, AppDbCont
         
         return appUser;
     }
+    
+    public async Task<(bool Succeeded, string[] Errors)> ConfirmEmailAsync(Guid userId, string token)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user == null) 
+            return (false, ["User not found"]);
+
+        var result = await userManager.ConfirmEmailAsync(user, token);
+        return (result.Succeeded, result.Errors.Select(e => e.Description).ToArray());
+    }
+
+    public async Task<(bool Succeeded, string[] Errors)> DeleteUser(Guid userId)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user == null) 
+            return (false, ["User not found"]);
+        
+        var result = await userManager.DeleteAsync(user);
+        return (result.Succeeded, result.Errors.Select(e => e.Description).ToArray());
+    }
 }

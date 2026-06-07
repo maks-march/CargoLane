@@ -1,3 +1,4 @@
+using Application.CQRS.AuthCQ;
 using Application.CQRS.AuthCQ.Login;
 using Application.CQRS.AuthCQ.Refresh;
 using Application.CQRS.AuthCQ.Register;
@@ -11,7 +12,7 @@ namespace WebApi.Common.Controllers;
 /// <summary>
 /// Контроллер для аутентификации и регистрации пользователей.
 /// </summary>
-public class AuthController(IMediator mediator) 
+public class AuthController(IMediator mediator, IConfiguration configuration) 
     : BaseController(mediator)
 {
     /// <summary>
@@ -26,12 +27,12 @@ public class AuthController(IMediator mediator)
     /// <response code="200">Успешная регистрация.</response>
     /// <response code="400">Ошибка валидации или неверные данные.</response>
     [HttpPost("register")]
-    [ProducesResponseType(typeof(AuthResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register([FromBody] RegisterCommand command)
     {
         var response = await Mediator.Send(command);
-        return Ok(response);
+        return Ok(response.Succeeded);
     }
 
     /// <summary>
@@ -68,5 +69,22 @@ public class AuthController(IMediator mediator)
     {
         var response = await Mediator.Send(command);
         return Ok(response);
+    }
+    
+    [HttpGet("confirm")]
+    public async Task<IActionResult> ConfirmEmail([FromQuery] Guid userId, [FromQuery] string token)
+    {
+        var result = await Mediator.Send(new ConfirmEmailCommand(userId, token));
+        if (!result.Succeeded)
+        {
+            Console.WriteLine(string.Join("\n", result.Errors));
+            return BadRequest("Wrong Email or User");
+        }
+
+        if (configuration["AppBaseUrl"] == null)
+        {
+            return Ok("Account confirmed");
+        }
+        return Redirect(configuration["AppBaseUrl"]);
     }
 }

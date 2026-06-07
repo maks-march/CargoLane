@@ -3,7 +3,6 @@ using Application.DTO.Chat;
 using Application.Interfaces;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using Domain.Models;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,15 +14,19 @@ public class GetChatHistoryQueryHandler(IAppDbContext dbContext, IMapper mapper)
     public async Task<MessageVm[]> Handle(GetChatHistoryQuery request, CancellationToken cancellationToken)
     {
         // 1. Проверяем, существует ли чат и является ли юзер его участником
+        var exist = await dbContext.Chats.AnyAsync(x => x.Id == request.ChatId);
+        if (!exist)
+            throw new NotFoundException("Chat not found", request.ChatId);
+        
         var isParticipant = await dbContext.Chats
             .AnyAsync(c => c.Id == request.ChatId && 
-                           Enumerable.Any<User>(c.Participants, p => p.Id == request.UserId), 
+                           Enumerable.Any(c.Participants, p => p.Id == request.UserId), 
                 cancellationToken);
 
         if (!isParticipant)
         {
             // Бросаем Forbidden, чтобы Middleware превратил его в 403 ошибку
-            throw new ForbiddenException("У вас нет доступа к этому чату", request.UserId);
+            throw new ForbiddenException("Access denied", request.UserId);
         }
         
         var unreadMessages = await dbContext.Messages

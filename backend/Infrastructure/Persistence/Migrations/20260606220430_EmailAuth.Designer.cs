@@ -12,7 +12,7 @@ using Persistence.Common.DbContexts;
 namespace Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260606210334_EmailAuth")]
+    [Migration("20260606220430_EmailAuth")]
     partial class EmailAuth
     {
         /// <inheritdoc />

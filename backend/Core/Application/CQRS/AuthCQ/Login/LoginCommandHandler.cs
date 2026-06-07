@@ -25,6 +25,10 @@ public class LoginCommandHandler(
         var appUser = await userManager.FindByIdAsync(userDto.Id.ToString());
         if (appUser == null) 
             throw new InvalidOperationException("User not found after login.");
+        if (!appUser.EmailConfirmed)
+        {
+            throw new InvalidOperationException("Email not confirmed.");
+        }
         
         // 2. Генерируем токены
         var accessToken = jwtProvider.GenerateAccessToken(userDto);

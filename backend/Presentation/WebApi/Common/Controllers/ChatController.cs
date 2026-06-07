@@ -53,11 +53,21 @@ public class ChatController(IMediator mediator) : BaseController(mediator)
     }
 
     /// <summary>
-    /// Список моих чатов
+    /// Список чатов пользователя
     /// </summary>
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ChatVm[]>> GetChats(Guid id)
     {
         return Ok(await Mediator.Send(new GetChatQuery { UserId = id }));
+    }
+    
+    
+    /// <summary>
+    /// Список моих чатов
+    /// </summary>
+    [HttpGet("me")]
+    public async Task<ActionResult<ChatVm[]>> GetMyChats()
+    {
+        return Ok(await Mediator.Send(new GetChatQuery { UserId = UserId }));
     }
 }

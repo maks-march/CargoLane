@@ -39,6 +39,6 @@ public class RefreshCommandHandler(UserManager<ApplicationUser> userManager, IJw
         await userManager.UpdateAsync(user);
 
         // 6. Возвращаем новую пару токенов клиенту
-        return new AuthResponse(newAccessToken, newRefreshToken, user.Id, user.UserName!);
+        return new AuthResponse(newAccessToken, newRefreshToken, user.Id, user.UserName);
     }
 }

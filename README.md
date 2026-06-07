@@ -1,4 +1,6 @@
-# MarketplaceCreator
+# CargoLane
+**CargoLane** — это высокопроизводительная логистическая платформа на базе .NET 8, построенная по принципам Clean Architecture и CQRS. Система предназначена для управления грузоперевозками, мониторинга заказов и коммуникации в реальном времени.
+
 # ИНСТРУКЦИЯ как запустить наш проект
 
 1. Скачай docker engine в любом виде ( м.б. docker desktop )
@@ -7,12 +9,11 @@
 4. В консоли передите в директурию docker-compose.yaml, например PS D:\progs\EuroRoute> ( можно в консоли docker desktop)
 5. Выполните docker compose up -d
 6. Ждите когда скачаются images (nginx, postgres, asp.net)
-![alt text](readme_image.png)
 7. Готово!
 
 # Что дальше?
-Можно перейти по http://localhost:80 и откроется главная страница фронтенда, 
-можно перейти на https://localhost/swagger чтобы увидеть API
+Можно перейти по http://localhost:8080 и откроется главная страница фронтенда, 
+можно перейти на https://localhost:8080/swagger чтобы увидеть API
 
 ИЛИ запуск backend без docker
 Перейдите в папку backend:

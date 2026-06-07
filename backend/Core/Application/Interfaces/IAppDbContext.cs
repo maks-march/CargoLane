@@ -1,3 +1,4 @@
+using Application.DTO.Auth;
 using Domain.Models;
 using Domain.Models.Abstract;
 using Domain.Models.Chat;
@@ -10,6 +11,8 @@ namespace Application.Interfaces;
 
 public interface IAppDbContext
 {
+    
+    public DbSet<ApplicationUser> Users { get; set; }
     public DbSet<User> BusinessUsers { get; set; }
     public DbSet<TruckEntity> Trucks { get; set; }
     public DbSet<OrderEntity> Orders { get; set; }

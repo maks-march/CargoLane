@@ -12,35 +12,15 @@ public class AuthControllerTests : BaseIntegrationTest
     [Test]
     public async Task Register_WithInvalidData_ShouldBeValidationError()
     {
-        var login = string.Concat(
-            Enumerable.Repeat("Register_WithInvalidData_ShouldBeValidationError", 20)
-            );
-        var authResponse = await Register(login);
-        
-        authResponse.Should().NotBeNull();
-        authResponse.AccessToken.Should().NotBeNullOrEmpty();
-        authResponse.RefreshToken.Should().NotBeNullOrEmpty();
-        authResponse.UserName.Should().Be(login);
-        Refresh(authResponse).Result.Should().NotBeNull();
-    }
-    
-    [Test]
-    public async Task Register_WithValidData_ShouldReturnAuthResponse()
-    {
-        var login = "Register_WithValidData_ShouldReturnAuthResponse";
-        var authResponse = await Register(login);
-        
-        authResponse.Should().NotBeNull();
-        authResponse.AccessToken.Should().NotBeNullOrEmpty();
-        authResponse.RefreshToken.Should().NotBeNullOrEmpty();
-        authResponse.UserName.Should().Be(login);
-        Refresh(authResponse).Result.Should().NotBeNull();
+        var login = "Register_WithInvalidData_ShouldBeValidationError";
+        var act = async () => await Register(login);
+        await act.Should().ThrowAsync();
     }
     
     [Test]
     public async Task Login_WithValidCredentials_ShouldReturnAuthResponse()
     {
-        var login = "Login_WithValidCredentials_ShouldReturnAuthResponse";
+        var login = "Login_WithValidCredentials_ShouldReturnAuthResponse@gmail.com";
         await Register(login);
         
         var loginCommand = new LoginCommand
@@ -76,7 +56,7 @@ public class AuthControllerTests : BaseIntegrationTest
     [Test]
     public async Task Login_WithInvalidPassword_ShouldReturnUnauthorized()
     {
-        var login = "Login_WithInvalidPassword_ShouldReturnUnauthorized";
+        var login = "Login_WithInvalidPassword_ShouldReturnUnauthorized@gmail.com";
         await Register(login);
         
         var loginCommand = new LoginCommand
@@ -92,7 +72,7 @@ public class AuthControllerTests : BaseIntegrationTest
     [Test]
     public async Task Refresh_WithValidCredentials_ShouldReturnAuthResponse()
     {
-        var login = "Refresh_WithValidCredentials_ShouldReturnAuthResponse";
+        var login = "Refresh_WithValidCredentials_ShouldReturnAuthResponse@gmail.com";
         var authResponse = await Register(login);
         
         var response = await Refresh(authResponse);
@@ -107,7 +87,7 @@ public class AuthControllerTests : BaseIntegrationTest
     [Test]
     public async Task Refresh_WithInvalidCredentials_ShouldReturnUnauthorized()
     {
-        var login = "Refresh_WithInvalidAccessToken_ShouldReturnUnauthorized";
+        var login = "Refresh_WithInvalidAccessToken_ShouldReturnUnauthorized@gmail.com";
         var authResponse = await Register(login);
         
         var refreshCommandInvalidAccess = new RefreshCommand
@@ -133,9 +113,9 @@ public class AuthControllerTests : BaseIntegrationTest
     [Test]
     public async Task Refresh_WithOthersTokens_ShouldReturnUnauthorized()
     {
-        var login = "Refresh_WithOthersTokens_ShouldReturnUnauthorized";
+        var login = "Refresh_WithOthersTokens_ShouldReturnUnauthorized@gmail.com";
         var authResponse = await Register(login);
-        var authResponse2 = await Register(login + "2");
+        var authResponse2 = await Register("2" + login);
         
         var refreshCommand = new RefreshCommand
         {

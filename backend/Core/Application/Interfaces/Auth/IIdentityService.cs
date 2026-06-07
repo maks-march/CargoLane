@@ -13,4 +13,8 @@ public interface IIdentityService
     Task<ApplicationUser?> FindUserByUsernameAsync(string userName);
     
     Task<(bool Succeeded, ApplicationUser? User)> CheckPasswordAsync(string userName, string password);
+
+    Task<(bool Succeeded, string[] Errors)> ConfirmEmailAsync(Guid userId, string token);
+
+    Task<(bool Succeeded, string[] Errors)> DeleteUser(Guid userId);
 }
