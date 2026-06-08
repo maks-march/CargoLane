@@ -1,31 +1,15 @@
-// src/pages/Auth/SignInPage.tsx
 import React, { useState } from 'react';
-import type { PageType } from '../../types';
-import { authService } from '../../services/authService';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
-interface SignInPageProps {
-  onNavigate: (page: PageType) => void;
-}
-
-export const SignInPage: React.FC<SignInPageProps> = ({ onNavigate }) => {
+const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { handleLogin, error, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      const data = await authService.login(email, password);
-      localStorage.setItem('token', data.accessToken);
-      onNavigate('dashboard');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    await handleLogin({ login: email, password });
   };
 
   return (
@@ -39,24 +23,48 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onNavigate }) => {
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-subtitle">Enter your details to sign in to your account</p>
           
-          {error && <div style={{ color: '#EF4444', background: '#FEF2F2', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid #EF4444' }}>{error}</div>}
+          {error && (
+            <div style={{ 
+              color: '#EF4444', 
+              background: '#FEF2F2', 
+              padding: '12px', 
+              borderRadius: '8px', 
+              marginBottom: '16px', 
+              fontSize: '14px', 
+              border: '1px solid #EF4444' 
+            }}>
+              {error}
+            </div>
+          )}
           
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <div className="form-label">
                 <label>Email</label>
               </div>
-              <input className="form-input" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+              <input 
+                className="form-input" 
+                type="email" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                required 
+              />
             </div>
             <div className="form-group">
               <div className="form-label">
                 <label>Password</label>
-                <span className="link" onClick={() => onNavigate('recovery')}>Forgot password?</span>
+                <Link to="/recovery" className="link">Forgot password?</Link>
               </div>
-              <input className="form-input" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+              <input 
+                className="form-input" 
+                type="password" 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                required 
+              />
             </div>
-            <button className="form-submit" type="submit" disabled={loading}>
-              {loading ? 'Signing in...' : 'Sign in'}
+            <button className="form-submit" type="submit" disabled={isLoading}>
+              {isLoading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
           
@@ -66,7 +74,9 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onNavigate }) => {
             Sign in with Google
           </button>
           
-          <p className="auth-footer-text">Don't have an account? <span className="link" onClick={() => onNavigate('signup')}>Sign up</span></p>
+          <p className="auth-footer-text">
+            Don't have an account? <Link to="/register" className="link">Sign up</Link>
+          </p>
         </div>
         
         <div className="auth-bottom">
@@ -87,3 +97,5 @@ export const SignInPage: React.FC<SignInPageProps> = ({ onNavigate }) => {
     </div>
   );
 };
+
+export default LoginPage;

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LoadData, PageType, NavigationPayload } from '../../types';
+import type { LoadData, PageType, NavigationPayload } from '../../utils/types';
 
 interface LoadsTableProps {
   loads: LoadData[];

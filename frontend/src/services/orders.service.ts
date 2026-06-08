@@ -1,28 +1,24 @@
 import apiClient from '../api/api-client';
 import type { OrderListVm, CreateOrderCommand, OrderDetailsVm } from '../api/types';
 
-export const loadsService = {
-  async getAllLoads(params?: any): Promise<OrderListVm[]> {
+export const ordersService = {
+  async getOrders(params?: any): Promise<OrderListVm[]> {
     const response = await apiClient.get<OrderListVm[]>('/api/order', { params });
     return response.data;
   },
 
-  async getLoadById(id: string): Promise<OrderDetailsVm> {
+  async getOrderById(id: string): Promise<OrderDetailsVm> {
     const response = await apiClient.get<OrderDetailsVm>(`/api/order/${id}`);
     return response.data;
   },
 
-  async createLoad(data: CreateOrderCommand): Promise<string> {
+  async createOrder(data: CreateOrderCommand): Promise<string> {
     const response = await apiClient.post<string>('/api/order', data);
     return response.data;
   },
 
-  async getUserLoads(): Promise<OrderListVm[]> {
+  async getMyOrders(): Promise<OrderListVm[]> {
     const response = await apiClient.get<OrderListVm[]>('/api/order/user/me');
     return response.data;
-  },
-
-  async getCities(_query?: string): Promise<string[]> {
-    return ['Rotterdam', 'Berlin', 'Warsaw', 'Paris', 'Madrid'];
   }
 };

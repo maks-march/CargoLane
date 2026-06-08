@@ -1,29 +1,15 @@
-// src/pages/Auth/SignUpPage.tsx
 import React, { useState } from 'react';
-import type { PageType } from '../../types';
-import { authService } from '../../services/authService';
+import { Link } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 
-interface SignUpPageProps {
-  onNavigate: (page: PageType) => void;
-}
-
-export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigate }) => {
+const RegisterPage: React.FC = () => {
   const [formData, setFormData] = useState({ email: '', password: '', name: '' });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { handleRegister, error, isLoading } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-    try {
-      await authService.register(formData);
-      onNavigate('signin');
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    // For now we only have login and password in the API
+    await handleRegister({ login: formData.email, password: formData.password });
   };
 
   return (
@@ -37,23 +23,53 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigate }) => {
           <h1 className="auth-title">Create account</h1>
           <p className="auth-subtitle">Join us and start managing your shipments</p>
           
-          {error && <div style={{ color: '#EF4444', background: '#FEF2F2', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid #EF4444' }}>{error}</div>}
+          {error && (
+            <div style={{ 
+              color: '#EF4444', 
+              background: '#FEF2F2', 
+              padding: '12px', 
+              borderRadius: '8px', 
+              marginBottom: '16px', 
+              fontSize: '14px', 
+              border: '1px solid #EF4444' 
+            }}>
+              {error}
+            </div>
+          )}
           
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <div className="form-label"><label>Full Name</label></div>
-              <input className="form-input" type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
+              <input 
+                className="form-input" 
+                type="text" 
+                value={formData.name} 
+                onChange={e => setFormData({...formData, name: e.target.value})} 
+                required 
+              />
             </div>
             <div className="form-group">
               <div className="form-label"><label>Email</label></div>
-              <input className="form-input" type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
+              <input 
+                className="form-input" 
+                type="email" 
+                value={formData.email} 
+                onChange={e => setFormData({...formData, email: e.target.value})} 
+                required 
+              />
             </div>
             <div className="form-group">
               <div className="form-label"><label>Password</label></div>
-              <input className="form-input" type="password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
+              <input 
+                className="form-input" 
+                type="password" 
+                value={formData.password} 
+                onChange={e => setFormData({...formData, password: e.target.value})} 
+                required 
+              />
             </div>
-            <button className="form-submit" type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Sign up'}
+            <button className="form-submit" type="submit" disabled={isLoading}>
+              {isLoading ? 'Creating...' : 'Sign up'}
             </button>
           </form>
           
@@ -63,7 +79,9 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigate }) => {
             Sign up with Google
           </button>
           
-          <p className="auth-footer-text">Already have an account? <span className="link" onClick={() => onNavigate('signin')}>Sign in</span></p>
+          <p className="auth-footer-text">
+            Already have an account? <Link to="/login" className="link">Sign in</Link>
+          </p>
         </div>
         
         <div className="auth-bottom">
@@ -84,3 +102,5 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigate }) => {
     </div>
   );
 };
+
+export default RegisterPage;

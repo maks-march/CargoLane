@@ -18,11 +18,5 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
-    rules: {
-      // Отключаем назойливое предупреждение Vite про экспорт компонентов
-      'react-refresh/only-export-components': 'off',
-      // Игнорируем ошибку неиспользованного импорта React
-      '@typescript-eslint/no-unused-vars': ['warn', { 'varsIgnorePattern': '^React$' }]
-    }
   },
 ])

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { LoadData } from '../../types';
+import type { LoadData } from '../../utils/types';
 import { RoutingMap } from './RoutingMap';
 
 interface MapPanelProps {
