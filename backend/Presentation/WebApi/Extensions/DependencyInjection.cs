@@ -39,20 +39,19 @@ public static class DependencyInjection
             options.SwaggerDoc("v1", new OpenApiInfo
             {
                 Version = "v1",
-                Title = "EuroRoute API",
+                Title = "CargoLane API",
                 Description = "API для управления логистикой и грузоперевозками. " +
                               "Позволяет регистрировать пользователей, создавать заказы и управлять транспортными средствами.",
-                TermsOfService = new Uri("https://example.com/terms"), // Ссылка на условия использования
-                Contact = new OpenApiContact
-                {
-                    Name = "Support Team",
-                    Email = "support@euroroute.com"
-                },
-                License = new OpenApiLicense
-                {
-                    Name = "Use under MIT License",
-                    Url = new Uri("https://example.com/license")
-                }
+                // Contact = new OpenApiContact
+                // {
+                //     Name = "Support Team",
+                //     Email = "support@euroroute.com"
+                // },
+                // License = new OpenApiLicense
+                // {
+                //     Name = "Use under MIT License",
+                //     Url = new Uri("https://example.com/license")
+                // }
             });
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {

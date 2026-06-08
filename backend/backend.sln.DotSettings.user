@@ -51,9 +51,5 @@
   &lt;Project Location="D:\progs\C#\EuroRoute\backend\Tests\ApplicationTest" Presentation="&amp;lt;ApplicationTest&amp;gt;" /&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
 	
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=ed1d396a_002Da428_002D4931_002D9186_002D52338ebb8169/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="Register_WithValidData_ShouldReturnAuthResponse" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;TestAncestor&gt;&#xD;
-    &lt;TestId&gt;NUnit3x::6AE9BC3A-B82C-4EF0-9451-6E944AB44983::net10.0::ApplicationTest.IntegrationTests.AuthControllerTests.Register_WithValidData_ShouldReturnAuthResponse&lt;/TestId&gt;&#xD;
-  &lt;/TestAncestor&gt;&#xD;
-&lt;/SessionState&gt;</s:String>
+	
 	</wpf:ResourceDictionary>
