@@ -1,6 +1,7 @@
 using Domain.Models.Abstract;
 using Domain.Models.Truck;
-using Domain.Models.Chat; // Добавили ссылку на пространство имен чатов
+using Domain.Models.Chat;
+using Domain.Models.Load; // Добавили ссылку на пространство имен чатов
 
 namespace Domain.Models;
 
@@ -30,6 +31,8 @@ public class User : Entity
     
     public ICollection<TruckEntity> Trucks { get; set; } = new List<TruckEntity>();
     
+    public ICollection<LoadEntity> Loads { get; set; } = new List<LoadEntity>();
+    public ICollection<LoadDraft> LoadsDrafts { get; set; } = new List<LoadDraft>();
     public ICollection<Order.OrderEntity> Orders { get; set; } = new List<Order.OrderEntity>();
 
     public virtual ICollection<ChatEntity> Chats { get; set; } = new List<ChatEntity>();

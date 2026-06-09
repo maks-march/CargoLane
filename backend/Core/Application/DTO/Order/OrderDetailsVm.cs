@@ -57,7 +57,7 @@ public record OrderDetailsVm : CreateOrderCommand, IMapWith<OrderEntity>
         
         profile.CreateMap<Transport, TransportCreateCommand>();
 
-       profile.CreateMap<Payload, PayloadCreateCommand>()
+       profile.CreateMap<PayloadOrder, PayloadCreateCommand>()
            .ForMember(dest => 
                dest.Wrap,opt => 
                opt.MapFrom(src => src.Wrap.ToString()));

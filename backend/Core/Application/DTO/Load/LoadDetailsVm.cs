@@ -1,0 +1,33 @@
+using Application.Common.Mappings;
+using Domain.Models.Load;
+using AutoMapper;
+
+namespace Application.DTO.Load;
+
+public record LoadDetailsVm : IMapWith<LoadEntity>
+{
+    public Guid Id { get; init; }
+    public double Payment { get; init; }
+    public double Insurance { get; init; }
+    public string HScode { get; init; } = string.Empty;
+    public int Adr { get; init; }
+    public string[] SuitableCargos { get; init; } = [];
+    public string About { get; init; } = string.Empty;
+    public string Status { get; init; } = string.Empty;
+    public bool IsReviewed { get; init; }
+    
+    public Guid UserId { get; init; }
+    
+    // Вложенные коллекции
+    public IList<PayloadVm> Payloads { get; init; } = [];
+    public IList<LoadRoutePointVm> RoutePoints { get; init; } = [];
+    public IList<string> Photos { get; init; } = [];
+
+    public void Mapping(Profile profile)
+    {
+        profile.CreateMap<LoadEntity, LoadDetailsVm>()
+            .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()))
+            .ForMember(d => d.Photos, opt => opt.MapFrom(s => s.Photos.Select(p => p.FilePath)))
+            .ForMember(d => d.RoutePoints, opt => opt.MapFrom(s => s.RoutePoints.OrderBy(rp => rp.OrderIndex)));
+    }
+}

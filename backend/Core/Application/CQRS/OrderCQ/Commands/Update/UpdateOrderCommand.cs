@@ -128,7 +128,7 @@ public record UpdateOrderCommand : IRequest<Guid>, IMapWith<OrderEntity>
                 opts.Condition((src, dest, srcMember) => 
                     srcMember != null && src != null));
         
-        profile.CreateMap<PayloadUpdateCommand, Payload>()
+        profile.CreateMap<PayloadUpdateCommand, PayloadOrder>()
             .ForMember(dest => dest.Wrap, opt =>
             {
                 opt.Condition(src => src.Wrap != null);

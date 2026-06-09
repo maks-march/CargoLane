@@ -52,7 +52,7 @@ public class OrderController(IMediator mediator) : BaseController(mediator)
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<OrderListVm[]>> Get([FromQuery] GetOrderListQuery query)
+    public async Task<ActionResult<OrderListVm[]>> GetList([FromQuery] GetOrderListQuery query)
     {
         return Ok(await Mediator.Send(query));
     }

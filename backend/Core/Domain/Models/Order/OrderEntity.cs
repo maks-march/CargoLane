@@ -15,15 +15,6 @@ public class OrderEntity : HasAuthor, IManyFiles<OrderFile>
     public required Payment Payment { get; set; }
     public required Transport Transport { get; set; }
 
-    public IList<Payload> Payloads { get; set; } = [];
+    public IList<PayloadOrder> Payloads { get; set; } = [];
     public IList<RoutePoint<OrderEntity>> RoutePoints { get; set; } = [];
-}
-
-public class NewOrder : HasAuthor, IManyFiles<OrderFile>
-{
-    public required DateOnly StartDate { get; set; }
-    
-    public int SpecNumber { get; set; }
-    public string About { get; set; } = string.Empty;
-    public IList<OrderFile> Photos { get; set; } = [];
 }

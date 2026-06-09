@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Domain.Models.Abstract;
+using Domain.Models.Load;
 using Domain.Models.Truck;
 
 namespace Domain.Models;
@@ -23,6 +24,15 @@ public class OrderFile : FileEntity<Order.OrderEntity>
 {
     [SetsRequiredMembers]
     public OrderFile()
+    {
+    }
+}
+
+
+public class LoadFile : FileEntity<LoadEntity>
+{
+    [SetsRequiredMembers]
+    public LoadFile()
     {
     }
 }

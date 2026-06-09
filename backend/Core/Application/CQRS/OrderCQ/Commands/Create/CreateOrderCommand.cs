@@ -109,7 +109,7 @@ public record CreateOrderCommand : IRequest<Guid>, IMapWith<OrderEntity>
             .ForMember(dest => dest.Id, opt => opt.Ignore())
             .ForMember(dest => dest.EntityId, opt => opt.Ignore());
 
-       profile.CreateMap<PayloadCreateCommand, Payload>()
+       profile.CreateMap<PayloadCreateCommand, PayloadOrder>()
            .ForMember(dest => dest.Id, opt => opt.Ignore())
            .ForMember(dest => dest.OrderIndex, opt => opt.Ignore())
            .ForMember(dest => 

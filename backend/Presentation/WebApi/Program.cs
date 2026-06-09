@@ -27,7 +27,6 @@ var app = builder.Build();
 app.UseCustomExceptionHandler();
 app.UseStaticAssets(builder.Environment);
 app.UseCors("AllowFrontend");
-app.UseHttpsRedirection(); 
 app.UseRouting();
 
 app.MapHub<ChatHub>("/chathub");
