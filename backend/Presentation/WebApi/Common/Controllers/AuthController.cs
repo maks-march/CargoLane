@@ -80,11 +80,6 @@ public class AuthController(IMediator mediator, IConfiguration configuration)
             Console.WriteLine(string.Join("\n", result.Errors));
             return BadRequest("Wrong Email or User");
         }
-
-        if (configuration["AppBaseUrl"] == null)
-        {
-            return Ok("Account confirmed");
-        }
-        return Redirect(configuration["AppBaseUrl"]);
+        return Ok("Account confirmed");
     }
 }

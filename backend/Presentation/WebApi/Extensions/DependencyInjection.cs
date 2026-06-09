@@ -24,7 +24,21 @@ public static class DependencyInjection
             .AddConfiguredAutoMapper()
             .AddConfiguredControllers()
             .AddEndpointsApiExplorer()
-            .AddConfiguredSwaggerGen();
+            .AddConfiguredSwaggerGen()
+            .AddCors(options =>
+            {
+                options.AddPolicy("AllowFrontend", policy =>
+                {
+                    policy.WithOrigins("http://localhost:5173")  // URL вашего Vite фронта
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();  // если используете cookies/авторизацию
+                    policy.WithOrigins("http://localhost:8080")  // URL вашего Vite фронта
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();  // если используете cookies/авторизацию
+                });
+            });
     }
 
     private static IServiceCollection AddServices(this IServiceCollection services)

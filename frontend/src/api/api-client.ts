@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import type { AuthResponse, RefreshCommand } from './types';
 
-const API_BASE_URL = 'http://localhost:8080'; // Replace with your actual API base URL
+const API_BASE_URL = 'http://localhost:5024'; // Replace with your actual API base URL :8080 для контенера, :5024 для приложения
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

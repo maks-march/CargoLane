@@ -80,6 +80,7 @@ public class CustomExceptionHandler(RequestDelegate next)
         {
             details = exception.GetType().Name;
         }
+        Console.WriteLine($"{error} \n {details}");
         return context.Response.WriteAsync(JsonSerializer.Serialize(new ErrorResponse()
         {
             Error = error, Details = details

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ordersService } from '../services/orders.service';
 import { mapOrderToLoad } from '../utils/mappers';
-import { LoadData } from '../utils/types';
+import type { LoadData } from '../utils/types';
 import { DetailHeaderCard } from '../components/UI/DetailHeaderCard';
 import { DetailRouteMap } from '../components/UI/DetailRouteMap';
 import { DetailSpecs } from '../components/UI/DetailSpecs';

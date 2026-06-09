@@ -7,6 +7,7 @@ import type { LoginCommand, RegisterCommand } from '../api/types';
 export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
   const loginStore = useAuthStore((state) => state.login);
   const logoutStore = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
@@ -28,12 +29,14 @@ export const useAuth = () => {
   const handleRegister = async (data: RegisterCommand) => {
     setIsLoading(true);
     setError(null);
+    setIsSuccess(false);
     try {
       await authService.register(data);
-      // Usually redirect to a "Verify your email" page
-      navigate('/confirm-email');
+      setIsSuccess(true);
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed');
+      // Correctly handle ErrorResponse based on backend structure
+      console.log(err);
+      setError(err.response.data.Error || 'Registration failed');
     } finally {
       setIsLoading(false);
     }
@@ -50,5 +53,6 @@ export const useAuth = () => {
     handleLogout,
     error,
     isLoading,
+    isSuccess,
   };
 };

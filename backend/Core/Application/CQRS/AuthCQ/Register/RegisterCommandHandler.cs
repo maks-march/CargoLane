@@ -14,6 +14,10 @@ public class RegisterCommandHandler(
 {
     public async Task<(bool Succeeded, Guid Id, string Token)> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
+        var existingAppUser = await userManager.FindByEmailAsync(request.Login);
+        if (existingAppUser != null)
+            await identityService.DeleteUser(existingAppUser.Id);
+        
         // 1. Создаем пользователя через наш сервис
         var (succeeded, errors, userId) = await identityService.CreateUserAsync(
             request.Login, request.Password, "", "");
