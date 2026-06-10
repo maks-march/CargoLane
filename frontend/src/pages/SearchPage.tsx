@@ -4,9 +4,8 @@ import { LoadsTable } from '../components/UI/LoadsTable';
 import { MapPanel } from '../components/UI/MapPanel';
 import { FilterBar } from '../components/UI/FilterBar';
 import { loadsService } from '../services/loadsService';
-import { mapOrderToLoad } from '../utils/mappers';
 import type { LoadData } from '../utils/types';
-// import type { OrderListVm } from '../api/types';
+import type { LoadListVm } from '../api/types';
 
 const SearchPage: React.FC = () => {
   const [loads, setLoads] = useState<LoadData[]>([]);
@@ -20,13 +19,25 @@ const SearchPage: React.FC = () => {
     const fetchLoads = async () => {
       setIsLoading(true);
       try {
-        const orders = await loadsService.getAllLoads({ 
+        const loadList: LoadListVm[] = await loadsService.getAllLoads({ 
           SearchWord: searchQuery,
           StartCity: filters.from,
           EndCity: filters.to,
           MinStartDate: filters.date || undefined
         });
-        const mappedLoads = orders.map(mapOrderToLoad);
+        
+        const mappedLoads: LoadData[] = loadList.map(l => ({
+          id: l.id,
+          from: l.startCity || '',
+          to: l.endCity || '',
+          dateStart: l.startDate || '',
+          dateEnd: '',
+          vehicle: '',
+          weight: l.totalWeight,
+          price: l.payment,
+          status: 'active'
+        }));
+        
         setLoads(mappedLoads);
         if (mappedLoads.length > 0 && !selectedLoadId) {
           setSelectedLoadId(mappedLoads[0].id);

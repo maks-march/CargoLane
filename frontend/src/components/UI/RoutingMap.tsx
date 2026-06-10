@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
+import React, { useEffect, useState, useRef } from 'react';
+import { MapContainer, TileLayer, Marker, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -7,6 +7,7 @@ interface RoutingMapProps {
   stops: { address: string; type: string }[];
   hideFloatingWidget?: boolean;
   onRouteCalculated?: (distance: string, duration: string) => void;
+  onMapClick?: (lat: number, lng: number, address: string) => void;
 }
 
 const GEO_CACHE: Record<string, [number, number]> = {
@@ -48,7 +49,28 @@ const MapAutoFitter = ({ positions }: { positions: [number, number][] }) => {
   return null;
 };
 
-export const RoutingMap: React.FC<RoutingMapProps> = ({ stops, hideFloatingWidget, onRouteCalculated }) => {
+// Click handler component
+const MapClickHandler = ({ onMapClick }: { onMapClick?: (lat: number, lng: number, address: string) => void }) => {
+  const map = useMapEvents({
+    async click(e) {
+      if (!onMapClick) return;
+      const { lat, lng } = e.latlng;
+      
+      // Reverse geocode
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
+        const data = await res.json();
+        const address = data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        onMapClick(lat, lng, address);
+      } catch {
+        onMapClick(lat, lng, `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+      }
+    }
+  });
+  return null;
+};
+
+export const RoutingMap: React.FC<RoutingMapProps> = ({ stops, hideFloatingWidget, onRouteCalculated, onMapClick }) => {
   const [routeData, setRouteData] = useState<{
     markers: { pos: [number, number], type: string }[];
     coordinates: [number, number][];
@@ -148,6 +170,7 @@ export const RoutingMap: React.FC<RoutingMapProps> = ({ stops, hideFloatingWidge
           <Polyline positions={routeData.coordinates} color="#3D5AFE" weight={5} />
         )}
         <MapAutoFitter positions={routeData.markers.map(m => m.pos)} />
+        <MapClickHandler onMapClick={onMapClick} />
       </MapContainer>
     </div>
   );

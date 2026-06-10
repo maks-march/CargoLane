@@ -17,7 +17,8 @@ const MainLayout: React.FC = () => {
         flexDirection: 'column',
         position: 'fixed',
         height: '100vh',
-        overflowY: 'auto'
+        overflowY: 'auto',
+        zIndex: 100
       }}>
         <div 
           onClick={() => navigate('/')} 
@@ -141,6 +142,7 @@ const MainLayout: React.FC = () => {
         background: '#F8F9FC',
         minHeight: '100vh'
       }}>
+        {/* Mobile menu toggle can be added later */}
         <Outlet />
       </main>
     </div>

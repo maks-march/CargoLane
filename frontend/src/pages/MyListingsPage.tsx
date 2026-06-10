@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loadsService } from '../services/loadsService';
-import { mapOrderToLoad } from '../utils/mappers';
 import type { LoadData } from '../utils/types';
-// import type { OrderListVm } from '../api/types';
+import type { LoadListVm } from '../api/types';
 
 interface MyLoadData extends LoadData {
   status: 'active' | 'pending' | 'draft' | 'closed';
@@ -22,26 +21,22 @@ const MyListingsPage: React.FC = () => {
     const fetchMyLoads = async () => {
       setIsLoading(true);
       try {
-        const orders = await loadsService.getUserLoads();
+        const loadList: LoadListVm[] = await loadsService.getUserLoads();
         
-        const loadsWithStatus: MyLoadData[] = orders.map((order) => {
-          const load = mapOrderToLoad(order);
-          let status: MyLoadData['status'] = 'active';
-          if (order.status) {
-            const lowerStatus = order.status.toLowerCase();
-            if (['active', 'pending', 'draft', 'closed'].includes(lowerStatus)) {
-              status = lowerStatus as MyLoadData['status'];
-            } else if (lowerStatus === 'ready') {
-              status = 'active'; 
-            }
-          }
-          return { 
-            ...load, 
-            status, 
-            bids: 0, 
-            views: 0 
-          };
-        });
+        const loadsWithStatus: MyLoadData[] = loadList.map((l) => ({
+          id: l.id,
+          from: l.startCity || '',
+          to: l.endCity || '',
+          dateStart: l.startDate || '',
+          dateEnd: '',
+          vehicle: '',
+          weight: l.totalWeight,
+          price: l.payment,
+          cargo: `${l.payloadCount} items`,
+          status: 'active',
+          bids: 0,
+          views: 0
+        }));
         
         setLoads(loadsWithStatus);
       } catch (error) {

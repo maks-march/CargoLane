@@ -4,7 +4,6 @@ import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import MainLayout from '../components/Layout/MainLayout';
 import SearchPage from '../pages/SearchPage';
-import OrderDetailPage from '../pages/OrderDetailPage';
 import MyListingsPage from '../pages/MyListingsPage';
 import ConfirmEmailPage from '../pages/ConfirmEmailPage';
 import CreateLoadPage from '../pages/CreateLoadPage';
@@ -38,7 +37,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/orders/:id',
-            element: <OrderDetailPage />,
+            element: <div>Load Detail Page (coming soon)</div>,
           },
           {
             path: '/orders/create',
