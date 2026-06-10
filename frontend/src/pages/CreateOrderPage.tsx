@@ -2,121 +2,99 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loadsService } from '../services/loadsService';
 import { RoutingMap } from '../components/UI/RoutingMap';
-import type { CreateOrderCommand } from '../api/types';
+import type { CreateLoadCommand, CreateLoadDraftCommand, RoutePointInputDto, PayloadInputDto } from '../api/types';
 
 interface RouteStop {
   id: string;
   type: 'start' | 'stop' | 'end';
+  city: string;
   address: string;
-  datetime: string; 
+  datetime: string;
+  isLoad: boolean;
 }
 
-interface PackageItem {
+interface PayloadItem {
   id: string;
   type: string;
   length: number | '';
   width: number | '';
   height: number | '';
   weight: number | '';
-  qty: number | '';
+  volume: number | '';
+  amount: number | '';
 }
 
 interface LoadFormData {
-  listingType: string;
+  startDate: string;
+  payment: number | '';
+  insurance: number | '';
+  hScode: string;
+  adr: number | '';
+  suitableCargos: string[];
+  about: string;
   stops: RouteStop[];
-  cargoCategory: string;
-  packages: PackageItem[];
-  stackability: string;
-  temperature: string;
-  insuredValue: string; 
-  hsCode: string;
-  adrClass: string;
-  vehicle: string;
-  price: string; 
+  payloads: PayloadItem[];
 }
 
 const CreateOrderPage: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState<LoadFormData>({
-    listingType: '',
+    startDate: new Date().toISOString().split('T')[0],
+    payment: '',
+    insurance: '',
+    hScode: '',
+    adr: '',
+    suitableCargos: [],
+    about: '',
     stops: [
-      { id: '1', type: 'start', address: '', datetime: '' },
-      { id: '2', type: 'end', address: '', datetime: '' }
+      { id: '1', type: 'start', city: '', address: '', datetime: '', isLoad: true },
+      { id: '2', type: 'end', city: '', address: '', datetime: '', isLoad: false }
     ],
-    cargoCategory: '',
-    packages: [
-      { id: '1', type: 'EUR pallet', length: '', width: '', height: '', weight: '', qty: '' }
-    ],
-    stackability: 'Non-stackable',
-    temperature: 'Ambient',
-    insuredValue: '',
-    hsCode: '',
-    adrClass: '',
-    vehicle: '',
-    price: ''
+    payloads: [
+      { id: '1', type: 'General', length: '', width: '', height: '', weight: '', volume: '', amount: '' }
+    ]
   });
 
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [generatedId, setGeneratedId] = useState<string>('');
-  const [errorMsg, setErrorMsg] = useState<string>('');
-
-  let activeStep = 1;
-  if (formData.listingType) activeStep = 2;
-  if (formData.stops[0].address && formData.stops[formData.stops.length - 1].address) activeStep = 3;
-  if (formData.packages.some(p => Number(p.qty) > 0)) activeStep = 4;
-  if (formData.vehicle) activeStep = 5;
-  if (formData.price) activeStep = 6;
-  if (isSubmitted) activeStep = 6;
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [draftId, setDraftId] = useState<string | null>(null);
 
   const isFormValid = useMemo(() => {
-    const hasType = formData.listingType !== '';
     const hasRoute = formData.stops.every(s => s.address.trim() !== '' && s.datetime !== '');
-    const hasCargoCategory = formData.cargoCategory !== '';
-    const hasPackages = formData.packages.some(p => Number(p.qty) > 0 && Number(p.weight) > 0);
-    const hasVehicle = formData.vehicle !== '';
-    const hasPrice = formData.price !== '';
-
-    return hasType && hasRoute && hasCargoCategory && hasPackages && hasVehicle && hasPrice;
+    const hasPayloads = formData.payloads.some(p => Number(p.weight) > 0 && Number(p.amount) > 0);
+    const hasPayment = formData.payment !== '';
+    return hasRoute && hasPayloads && hasPayment;
   }, [formData]);
-
-  const stats = useMemo(() => {
-    let totalMass = 0;
-    let totalVolume = 0;
-    let floorFootprint = 0;
-    let totalItems = 0;
-
-    formData.packages.forEach(pkg => {
-      const q = Number(pkg.qty) || 0;
-      const w = Number(pkg.weight) || 0;
-      const l = Number(pkg.length) || 0;
-      const wid = Number(pkg.width) || 0;
-      const h = Number(pkg.height) || 0;
-
-      totalItems += q;
-      totalMass += (w * q) / 1000;
-      totalVolume += (l * wid * h * q);
-      floorFootprint += (l * wid * q);
-    });
-
-    return { totalMass, totalVolume, floorFootprint, totalItems, ldm: (floorFootprint / 2.4).toFixed(1) };
-  }, [formData.packages]);
 
   const handleAddStop = () => {
     const newStops = [...formData.stops];
-    const newStop: RouteStop = { id: Date.now().toString(), type: 'stop', address: '', datetime: '' };
+    const newStop: RouteStop = { 
+      id: Date.now().toString(), 
+      type: 'stop', 
+      city: '', 
+      address: '', 
+      datetime: '', 
+      isLoad: false 
+    };
     newStops.splice(newStops.length - 1, 0, newStop);
     setFormData({ ...formData, stops: newStops });
   };
 
-  const handleUpdateStop = (id: string, field: keyof RouteStop, value: string) => {
-    const newStops = formData.stops.map(s => s.id === id ? { ...s, [field]: value } : s);
+  const handleUpdateStop = (id: string, field: keyof RouteStop, value: any) => {
+    const newStops = formData.stops.map(s => 
+      s.id === id ? { ...s, [field]: value } : s
+    );
     setFormData({ ...formData, stops: newStops });
   };
 
-  const handleRemoveOrClearStop = (id: string, type: string) => {
-    if (type === 'start' || type === 'end') {
-      const newStops = formData.stops.map(s => s.id === id ? { ...s, address: '', datetime: '' } : s);
+  const handleRemoveStop = (id: string) => {
+    const stop = formData.stops.find(s => s.id === id);
+    if (stop && (stop.type === 'start' || stop.type === 'end')) {
+      // Clear instead of remove
+      const newStops = formData.stops.map(s => 
+        s.id === id ? { ...s, city: '', address: '', datetime: '' } : s
+      );
       setFormData({ ...formData, stops: newStops });
     } else {
       const newStops = formData.stops.filter(s => s.id !== id);
@@ -124,287 +102,405 @@ const CreateOrderPage: React.FC = () => {
     }
   };
 
-  const handleAddPackage = () => {
-    const newPkg: PackageItem = { id: Date.now().toString(), type: 'Custom', length: '', width: '', height: '', weight: '', qty: '' };
-    setFormData({ ...formData, packages: [...formData.packages, newPkg] });
+  const handleAddPayload = () => {
+    const newPayload: PayloadItem = { 
+      id: Date.now().toString(), 
+      type: 'General', 
+      length: '', width: '', height: '', weight: '', volume: '', amount: '' 
+    };
+    setFormData({ ...formData, payloads: [...formData.payloads, newPayload] });
   };
 
-  const handleUpdatePackage = (id: string, field: keyof PackageItem, value: string) => {
-    const newPackages = formData.packages.map(p => {
+  const handleUpdatePayload = (id: string, field: keyof PayloadItem, value: any) => {
+    const newPayloads = formData.payloads.map(p => {
       if (p.id === id) {
-        return { ...p, [field]: field === 'type' ? value : (value === '' ? '' : Number(value)) };
+        const numValue = field !== 'type' ? (value === '' ? '' : Number(value)) : value;
+        return { ...p, [field]: numValue };
       }
       return p;
     });
-    setFormData({ ...formData, packages: newPackages });
+    setFormData({ ...formData, payloads: newPayloads });
   };
 
-  const handleRemovePackage = (id: string) => {
-    setFormData({ ...formData, packages: formData.packages.filter(p => p.id !== id) });
+  const handleRemovePayload = (id: string) => {
+    if (formData.payloads.length > 1) {
+      setFormData({ 
+        ...formData, 
+        payloads: formData.payloads.filter(p => p.id !== id) 
+      });
+    }
   };
 
-  const handleSave = async () => {
+  const handleAddCargoTag = (tag: string) => {
+    if (!formData.suitableCargos.includes(tag)) {
+      setFormData({ 
+        ...formData, 
+        suitableCargos: [...formData.suitableCargos, tag] 
+      });
+    }
+  };
+
+  const handleRemoveCargoTag = (tag: string) => {
+    setFormData({ 
+      ...formData, 
+      suitableCargos: formData.suitableCargos.filter(t => t !== tag) 
+    });
+  };
+
+  const mapStopsToRoutePoints = (): RoutePointInputDto[] => {
+    return formData.stops
+      .filter(s => s.address.trim() !== '')
+      .map((stop, index) => ({
+        city: stop.city || stop.address.split(',')[0].trim() || 'Unknown',
+        address: stop.address,
+        arrivalTime: stop.datetime ? `${stop.datetime}T00:00:00` : null,
+        orderIndex: index
+      }));
+  };
+
+  const mapPayloadsToInput = (): PayloadInputDto[] => {
+    return formData.payloads
+      .filter(p => Number(p.weight) > 0)
+      .map(p => ({
+        length: Number(p.length) || 0,
+        width: Number(p.width) || 0,
+        height: Number(p.height) || 0,
+        weight: Number(p.weight) || 0,
+        volume: Number(p.volume) || (Number(p.length) * Number(p.width) * Number(p.height)) || 0,
+        amount: Number(p.amount) || 1,
+        type: p.type || null
+      }));
+  };
+
+  const saveDraft = async () => {
     setIsSubmitting(true);
     setErrorMsg('');
+    setSuccessMsg('');
 
-    const mappedPayload: CreateOrderCommand = {
-      userId: "", // Typically handled by the backend
-      startDate: formData.stops[0].datetime.split('T')[0] || new Date().toISOString().split('T')[0],
-      status: "Ready",
-      about: `Cargo: ${formData.cargoCategory}. HS: ${formData.hsCode}. Insured: ${formData.insuredValue}.`,
-      specNumber: 100,
-      payment: {
-        paymentType: "NoNegotiable",
-        isTaxedByCard: false,
-        isNotTaxedByCard: false,
-        isByCash: true,
-        taxedByCard: 0,
-        notTaxedByCard: 0,
-        byCash: Number(formData.price.replace(/\D/g, '')) || 0,
-        isVisible: true,
-        paymentAfterDays: 0,
-        prepayment: 0,
-        isPrepaymentByFuel: false
-      },
-      transport: {
-        bodyType: [formData.vehicle],
-        loadType: ["Rear"],
-        unloadType: ["Rear"],
-        vehicles: 1,
-        temperatureFrom: formData.temperature === 'Frozen' ? -20 : (formData.temperature === '+2 to +8 °C' ? 2 : null),
-        temperatureTo: formData.temperature === 'Frozen' ? -10 : (formData.temperature === '+2 to +8 °C' ? 8 : null),
-        isCrewFull: false,
-        adr: formData.adrClass ? 1 : 0,
-        isHitch: false,
-        isPneumaticVehicle: false,
-        isStakes: false,
-        isTir: false,
-        isT1: false,
-        isCmr: false,
-        isMedicalBook: false
-      },
-      payloads: formData.packages.map(pkg => ({
-        name: pkg.type || "General Cargo",
-        weight: Number(pkg.weight) || 0,
-        volume: (Number(pkg.length) * Number(pkg.width) * Number(pkg.height)) || 0,
-        amount: Number(pkg.qty) || 1,
-        wrap: "None"
-      })),
-      routePoints: formData.stops.map((stop) => ({
-        city: stop.address.split(',')[0].trim() || "Unknown",
-        address: stop.address || "Unknown",
-        loadTimeStart: (stop.datetime.split('T')[1] || "08:00") + ":00",
-        loadTimeEnd: (stop.datetime.split('T')[1] || "17:00") + ":00",
-        date: stop.datetime.split('T')[0] || new Date().toISOString().split('T')[0],
-        isLoad: stop.type === 'start'
-      }))
+    const draftData: CreateLoadDraftCommand = {
+      userId: '', // handled by auth
+      startDate: formData.startDate || null,
+      payment: formData.payment !== '' ? Number(formData.payment) : null,
+      insurance: formData.insurance !== '' ? Number(formData.insurance) : null,
+      hScode: formData.hScode || null,
+      adr: formData.adr !== '' ? Number(formData.adr) : null,
+      suitableCargos: formData.suitableCargos.length > 0 ? formData.suitableCargos : null,
+      about: formData.about || null
     };
 
     try {
-      const returnedId = await loadsService.createLoad(mappedPayload);
-      setGeneratedId(returnedId);
-      setIsSubmitted(true);
-      window.scrollTo(0, 0);
+      const id = await loadsService.createLoadDraft(draftData);
+      setDraftId(id);
+      setSuccessMsg(`Draft saved! ID: ${id}. You can continue editing or publish.`);
     } catch (error: any) {
-      setErrorMsg(`Submission failed: ${error.message}`);
+      setErrorMsg(`Failed to save draft: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const publishLoad = async () => {
+    if (!isFormValid) {
+      setErrorMsg('Please fill required fields: route points, at least one payload with weight, payment.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setErrorMsg('');
+    setSuccessMsg('');
+
+    const loadData: CreateLoadCommand = {
+      userId: '',
+      startDate: formData.startDate,
+      payment: Number(formData.payment) || 0,
+      insurance: Number(formData.insurance) || 0,
+      hScode: formData.hScode || null,
+      adr: formData.adr !== '' ? Number(formData.adr) : 0,
+      suitableCargos: formData.suitableCargos.length > 0 ? formData.suitableCargos : null,
+      about: formData.about || null,
+      payloads: mapPayloadsToInput(),
+      routePoints: mapStopsToRoutePoints()
+    };
+
+    try {
+      const returnedId = await loadsService.createLoad(loadData);
+      setSuccessMsg(`Load published successfully! ID: ${returnedId}`);
+      setTimeout(() => navigate('/my-listings'), 1500);
+    } catch (error: any) {
+      setErrorMsg(`Failed to publish: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Prepare stops for map
+  const mapStopsForRouting = formData.stops.map(s => ({
+    address: s.address,
+    type: s.type
+  }));
+
   return (
-    <>
-      <header className="create-header">
-        <div>
-          <div className="dash-breadcrumb">
-            <span className="dash-detail-breadcrumb-clickable" onClick={() => navigate('/')}>Workspace</span> 
-            <span className="dash-detail-breadcrumb-arrow"> › </span> 
-            <span className="dash-detail-breadcrumb-clickable" onClick={() => navigate('/my-listings')}>My listings</span>
-            <span className="dash-detail-breadcrumb-arrow"> › </span> 
-            <strong style={{color: '#0E1116'}}>{isSubmitted ? generatedId : 'New'}</strong>
-          </div>
-          <h1 className="create-header-title">{isSubmitted ? 'Listing details' : 'New listing'}</h1>
+    <div style={{ padding: '16px', maxWidth: '1400px', margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <h1 style={{ margin: 0, fontSize: '24px', fontWeight: 600 }}>Create Load</h1>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button 
+            onClick={saveDraft} 
+            disabled={isSubmitting}
+            style={{ 
+              padding: '8px 16px', 
+              background: '#6B7280', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '6px',
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            {isSubmitting ? 'Saving...' : 'Save as Draft'}
+          </button>
+          <button 
+            onClick={publishLoad} 
+            disabled={isSubmitting || !isFormValid}
+            style={{ 
+              padding: '8px 16px', 
+              background: isFormValid ? '#3D5AFE' : '#9CA3AF', 
+              color: 'white', 
+              border: 'none', 
+              borderRadius: '6px',
+              cursor: (isSubmitting || !isFormValid) ? 'not-allowed' : 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            {isSubmitting ? 'Publishing...' : 'Publish Load'}
+          </button>
         </div>
-        
-        <div className="create-header-actions">
-          {!isSubmitted && <button className="btn-figma-text">Save draft</button>}
-          <button className="btn-figma-secondary" onClick={() => navigate('/orders')}>{isSubmitted ? 'Close' : 'Cancel'}</button>
-          {!isSubmitted && (
-            <button 
-              className="btn-figma-primary" 
-              disabled={!isFormValid || isSubmitting} 
-              onClick={handleSave}
-            >
-              {isSubmitting ? 'Sending...' : 'Continue ›'}
-            </button>
-          )}
-          <div className="dash-notify">🔔</div>
-        </div>
-      </header>
-
-      <div className="create-layout">
-        <aside className="create-steps-sidebar">
-          {[
-            { n: 1, title: 'Type', sub: formData.listingType || 'In progress' },
-            { n: 2, title: 'Route', sub: formData.stops[0].address ? `${formData.stops.length} stops` : 'In progress' },
-            { n: 3, title: 'Cargo', sub: formData.cargoCategory || 'In progress' },
-            { n: 4, title: 'Vehicle', sub: formData.vehicle || 'In progress' },
-            { n: 5, title: 'Pricing', sub: formData.price ? `€ ${formData.price}` : 'In progress' },
-            { n: 6, title: 'Publish', sub: isSubmitted ? 'Published' : 'Pending' }
-          ].map((s) => (
-            <div key={s.n} className={`create-step-item ${activeStep === s.n ? 'active' : ''} ${isSubmitted && s.n < 6 ? 'step-disabled' : ''}`}>
-              <div className={`step-icon ${activeStep > s.n || (isSubmitted && s.n === 6) ? 'done' : activeStep === s.n ? 'active' : 'pending'}`}>
-                {activeStep > s.n || (isSubmitted && s.n === 6) ? '✓' : s.n}
-              </div>
-              <div>
-                <div className="step-info-title">{s.title}</div>
-                <div className="step-info-sub">{s.sub}</div>
-              </div>
-            </div>
-          ))}
-        </aside>
-
-        <div className="create-content">
-          {errorMsg && (
-            <div style={{ padding: '16px', background: '#FEF2F2', border: '1px solid #EF4444', borderRadius: '12px', color: '#EF4444', marginBottom: '24px' }}>
-              {errorMsg}
-            </div>
-          )}
-
-          {isSubmitted ? (
-            <div className="step-row">
-              <div className="step-main-card success-submission-card">
-                <div className="success-icon-large">✓</div>
-                <h2>Listing Published</h2>
-                <p>Your listing was successfully created and is now visible in the marketplace.</p>
-                <div className="success-status-box">
-                  <div>
-                    <div style={{ fontSize: '12px', color: '#5C6470' }}>Listing ID</div>
-                    <div style={{ fontSize: '18px', fontWeight: '600' }}>{generatedId}</div>
-                  </div>
-                  <div className="status-badge pending">Active</div>
-                </div>
-                <div className="success-actions">
-                  <button className="btn-figma-secondary" onClick={() => navigate('/orders')}>Dashboard</button>
-                  <button className="btn-figma-primary" onClick={() => navigate('/my-listings')}>View my listings</button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Step 1: Type */}
-              <div className="step-main-card" style={{ marginBottom: '24px' }}>
-                <div className="step-title-row">
-                  <div><h2>Listing Type</h2><p>Select what you are offering</p></div>
-                  <span className="step-count">Step 1 of 5</span>
-                </div>
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  <button className={`btn-figma-secondary ${formData.listingType === 'I have cargo' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setFormData({...formData, listingType: 'I have cargo'})}>📦 I have cargo</button>
-                  <button className={`btn-figma-secondary ${formData.listingType === 'I have vehicle' ? 'active' : ''}`} style={{ flex: 1 }} onClick={() => setFormData({...formData, listingType: 'I have vehicle'})}>🚛 I have vehicle</button>
-                </div>
-              </div>
-
-              {/* Step 2: Route */}
-              <div className="step-main-card" style={{ marginBottom: '24px' }}>
-                <div className="step-title-row">
-                  <div><h2>Route Details</h2><p>Add loading and unloading points</p></div>
-                  <span className="step-count">Step 2 of 5</span>
-                </div>
-                <div className="figma-grid-labels route-grid">
-                  <div className="grid-label">Stop</div>
-                  <div className="grid-label">Address</div>
-                  <div className="grid-label">DateTime</div>
-                  <div></div>
-                </div>
-                {formData.stops.map((stop) => (
-                  <div className="grid-row route-grid" key={stop.id}>
-                    <div className="stop-indicator"><div className={`stop-circle ${stop.type}`}></div>{stop.type.charAt(0).toUpperCase() + stop.type.slice(1)}</div>
-                    <input className="figma-input" placeholder="City, Country" value={stop.address} onChange={(e) => handleUpdateStop(stop.id, 'address', e.target.value)} />
-                    <input className="figma-input" type="datetime-local" value={stop.datetime} onChange={(e) => handleUpdateStop(stop.id, 'datetime', e.target.value)} />
-                    <button className="btn-icon-danger" onClick={() => handleRemoveOrClearStop(stop.id, stop.type)}>🗑</button>
-                  </div>
-                ))}
-                <button className="btn-figma-text" style={{ color: '#3D5AFE' }} onClick={handleAddStop}>+ Add stop</button>
-              </div>
-
-              {/* Step 3: Cargo */}
-              <div className="step-main-card" style={{ marginBottom: '24px' }}>
-                <div className="step-title-row">
-                  <div><h2>Cargo details</h2><p>Define cargo parameters</p></div>
-                  <span className="step-count">Step 3 of 5</span>
-                </div>
-                <div className="chip-group">
-                  {['Pallets', 'Boxes', 'Containers', 'Reefer', 'ADR', 'Other'].map(t => (
-                    <button key={t} className={`chip ${formData.cargoCategory === t ? 'active' : ''}`} onClick={() => setFormData({...formData, cargoCategory: t})}>{t}</button>
-                  ))}
-                </div>
-                <div className="figma-grid-labels cargo-grid" style={{ marginTop: '20px' }}>
-                  <div className="grid-label">Type</div>
-                  <div className="grid-label">L (m)</div>
-                  <div className="grid-label">W (m)</div>
-                  <div className="grid-label">H (m)</div>
-                  <div className="grid-label">W (kg)</div>
-                  <div className="grid-label">Qty</div>
-                  <div></div>
-                </div>
-                {formData.packages.map(p => (
-                  <div className="grid-row cargo-grid" key={p.id}>
-                    <input className="figma-input" value={p.type} onChange={(e) => handleUpdatePackage(p.id, 'type', e.target.value)} />
-                    <input className="figma-input" type="number" value={p.length} onChange={(e) => handleUpdatePackage(p.id, 'length', e.target.value)} />
-                    <input className="figma-input" type="number" value={p.width} onChange={(e) => handleUpdatePackage(p.id, 'width', e.target.value)} />
-                    <input className="figma-input" type="number" value={p.height} onChange={(e) => handleUpdatePackage(p.id, 'height', e.target.value)} />
-                    <input className="figma-input" type="number" value={p.weight} onChange={(e) => handleUpdatePackage(p.id, 'weight', e.target.value)} />
-                    <input className="figma-input" type="number" value={p.qty} onChange={(e) => handleUpdatePackage(p.id, 'qty', e.target.value)} />
-                    <button className="btn-icon-danger" onClick={() => handleRemovePackage(p.id)}>🗑</button>
-                  </div>
-                ))}
-                <button className="btn-figma-text" style={{ color: '#3D5AFE' }} onClick={handleAddPackage}>+ Add package row</button>
-              </div>
-
-              {/* Step 4: Vehicle */}
-              <div className="step-main-card" style={{ marginBottom: '24px' }}>
-                <div className="step-title-row"><h2>Vehicle Type</h2><span className="step-count">Step 4 of 5</span></div>
-                <div className="chip-group">
-                  {['Tautliner', 'Mega', 'Box truck', 'Frigo', 'Flatbed'].map(v => (
-                    <button key={v} className={`chip ${formData.vehicle === v ? 'active' : ''}`} onClick={() => setFormData({...formData, vehicle: v})}>{v}</button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Step 5: Pricing */}
-              <div className="step-main-card">
-                <div className="step-title-row"><h2>Pricing</h2><span className="step-count">Step 5 of 5</span></div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '24px', color: '#5C6470' }}>€</span>
-                  <input className="figma-input" style={{ fontSize: '20px', fontWeight: 600 }} placeholder="0.00" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} />
-                </div>
-                <button 
-                  className="btn-figma-primary" 
-                  style={{ width: '100%', marginTop: '32px', padding: '16px' }} 
-                  disabled={!isFormValid || isSubmitting} 
-                  onClick={handleSave}
-                >
-                  {isSubmitting ? 'Publishing...' : 'Publish Listing'}
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-
-        <aside className="create-right-sidebar">
-          <div className="figma-map-card">
-            <div style={{ padding: '12px 16px', fontWeight: 600 }}>Map Preview</div>
-            <div style={{ flex: 1, position: 'relative' }}><RoutingMap stops={formData.stops} /></div>
-          </div>
-          <div className="calc-widget-dark">
-            <div className="calc-widget-title">Calculation</div>
-            <div className="calc-row"><span>Mass</span><span>{stats.totalMass.toFixed(2)} t</span></div>
-            <div className="calc-row"><span>Volume</span><span>{stats.totalVolume.toFixed(2)} m³</span></div>
-            <div className="calc-row"><span>LDM</span><span>{stats.ldm}</span></div>
-          </div>
-        </aside>
       </div>
-    </>
+
+      {errorMsg && (
+        <div style={{ background: '#FEE2E2', color: '#DC2626', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+          {errorMsg}
+        </div>
+      )}
+      {successMsg && (
+        <div style={{ background: '#D1FAE5', color: '#059669', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+          {successMsg}
+          {draftId && <div>Draft ID: {draftId} (use this to continue later)</div>}
+        </div>
+      )}
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 420px', gap: '24px' }}>
+        {/* Form Section - Dense Layout */}
+        <div style={{ background: 'white', borderRadius: '12px', padding: '20px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          {/* Route Points - Compact */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Route Points</h3>
+              <button 
+                onClick={handleAddStop}
+                style={{ padding: '4px 12px', fontSize: '13px', background: '#F3F4F6', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+              >
+                + Add Stop
+              </button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {formData.stops.map((stop, index) => (
+                <div key={stop.id} style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '60px 1fr 1fr 140px 80px 40px', 
+                  gap: '8px', 
+                  alignItems: 'center',
+                  background: '#F9FAFB',
+                  padding: '8px',
+                  borderRadius: '8px'
+                }}>
+                  <div style={{ fontSize: '12px', color: '#6B7280', fontWeight: 500 }}>
+                    {stop.type.toUpperCase()}
+                  </div>
+                  <input 
+                    placeholder="City" 
+                    value={stop.city} 
+                    onChange={(e) => handleUpdateStop(stop.id, 'city', e.target.value)}
+                    style={{ padding: '6px 8px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
+                  />
+                  <input 
+                    placeholder="Full address" 
+                    value={stop.address} 
+                    onChange={(e) => handleUpdateStop(stop.id, 'address', e.target.value)}
+                    style={{ padding: '6px 8px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
+                  />
+                  <input 
+                    type="datetime-local" 
+                    value={stop.datetime} 
+                    onChange={(e) => handleUpdateStop(stop.id, 'datetime', e.target.value)}
+                    style={{ padding: '6px 8px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
+                  />
+                  <select 
+                    value={stop.isLoad ? 'load' : 'unload'} 
+                    onChange={(e) => handleUpdateStop(stop.id, 'isLoad', e.target.value === 'load')}
+                    style={{ padding: '6px 8px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
+                  >
+                    <option value="load">Load</option>
+                    <option value="unload">Unload</option>
+                  </select>
+                  <button 
+                    onClick={() => handleRemoveStop(stop.id)}
+                    style={{ padding: '4px', background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '16px' }}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Payloads - Dense Grid */}
+          <div style={{ marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>Payloads</h3>
+              <button 
+                onClick={handleAddPayload}
+                style={{ padding: '4px 12px', fontSize: '13px', background: '#F3F4F6', border: 'none', borderRadius: '6px', cursor: 'pointer' }}
+              >
+                + Add Payload
+              </button>
+            </div>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+              {formData.payloads.map((payload) => (
+                <div key={payload.id} style={{ 
+                  background: '#F9FAFB', 
+                  padding: '12px', 
+                  borderRadius: '8px',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '8px'
+                }}>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <input 
+                      placeholder="Type (e.g. Pallet)" 
+                      value={payload.type} 
+                      onChange={(e) => handleUpdatePayload(payload.id, 'type', e.target.value)}
+                      style={{ width: '100%', padding: '6px 8px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
+                    />
+                  </div>
+                  <input type="number" placeholder="L (m)" value={payload.length} onChange={(e) => handleUpdatePayload(payload.id, 'length', e.target.value)} style={{ padding: '6px 8px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px' }} />
+                  <input type="number" placeholder="W (m)" value={payload.width} onChange={(e) => handleUpdatePayload(payload.id, 'width', e.target.value)} style={{ padding: '6px 8px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px' }} />
+                  <input type="number" placeholder="H (m)" value={payload.height} onChange={(e) => handleUpdatePayload(payload.id, 'height', e.target.value)} style={{ padding: '6px 8px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px' }} />
+                  <input type="number" placeholder="Weight (kg)" value={payload.weight} onChange={(e) => handleUpdatePayload(payload.id, 'weight', e.target.value)} style={{ padding: '6px 8px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px' }} />
+                  <input type="number" placeholder="Volume (m³)" value={payload.volume} onChange={(e) => handleUpdatePayload(payload.id, 'volume', e.target.value)} style={{ padding: '6px 8px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px' }} />
+                  <input type="number" placeholder="Amount" value={payload.amount} onChange={(e) => handleUpdatePayload(payload.id, 'amount', e.target.value)} style={{ padding: '6px 8px', fontSize: '13px', border: '1px solid #E5E7EB', borderRadius: '6px' }} />
+                  {formData.payloads.length > 1 && (
+                    <button onClick={() => handleRemovePayload(payload.id)} style={{ gridColumn: '1 / -1', padding: '4px', background: '#FEE2E2', color: '#DC2626', border: 'none', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Other Fields - Dense */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
+            <div>
+              <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>Start Date</label>
+              <input 
+                type="date" 
+                value={formData.startDate} 
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                style={{ width: '100%', padding: '8px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>Payment (€)</label>
+              <input 
+                type="number" 
+                placeholder="Payment amount" 
+                value={formData.payment} 
+                onChange={(e) => setFormData({ ...formData, payment: e.target.value === '' ? '' : Number(e.target.value) })}
+                style={{ width: '100%', padding: '8px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>Insurance (€)</label>
+              <input 
+                type="number" 
+                placeholder="Insurance" 
+                value={formData.insurance} 
+                onChange={(e) => setFormData({ ...formData, insurance: e.target.value === '' ? '' : Number(e.target.value) })}
+                style={{ width: '100%', padding: '8px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>HS Code</label>
+              <input 
+                placeholder="HS Code" 
+                value={formData.hScode} 
+                onChange={(e) => setFormData({ ...formData, hScode: e.target.value })}
+                style={{ width: '100%', padding: '8px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>ADR Class</label>
+              <input 
+                type="number" 
+                placeholder="0-9" 
+                value={formData.adr} 
+                onChange={(e) => setFormData({ ...formData, adr: e.target.value === '' ? '' : Number(e.target.value) })}
+                style={{ width: '100%', padding: '8px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px' }}
+              />
+            </div>
+            <div>
+              <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>Suitable Cargos</label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '4px' }}>
+                {formData.suitableCargos.map(tag => (
+                  <span key={tag} style={{ background: '#DBEAFE', padding: '2px 8px', borderRadius: '4px', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    {tag} <button onClick={() => handleRemoveCargoTag(tag)} style={{ background: 'none', border: 'none', color: '#3B82F6', cursor: 'pointer' }}>×</button>
+                  </span>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                {['ADR', 'Reefer', 'Oversized', 'Hazardous', 'Fragile'].map(tag => (
+                  <button 
+                    key={tag} 
+                    onClick={() => handleAddCargoTag(tag)}
+                    style={{ padding: '2px 8px', fontSize: '12px', background: '#F3F4F6', border: '1px solid #E5E7EB', borderRadius: '4px', cursor: 'pointer' }}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* About - Full width */}
+          <div style={{ marginTop: '16px' }}>
+            <label style={{ fontSize: '12px', color: '#6B7280', display: 'block', marginBottom: '4px' }}>Additional Info</label>
+            <textarea 
+              placeholder="Additional details about the load..." 
+              value={formData.about} 
+              onChange={(e) => setFormData({ ...formData, about: e.target.value })}
+              style={{ width: '100%', padding: '8px', fontSize: '14px', border: '1px solid #E5E7EB', borderRadius: '6px', minHeight: '60px', resize: 'vertical' }}
+            />
+          </div>
+        </div>
+
+        {/* Side Map */}
+        <div style={{ background: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', height: 'fit-content' }}>
+          <h3 style={{ margin: '0 0 12px 0', fontSize: '16px', fontWeight: 600 }}>Route Preview</h3>
+          <div style={{ height: '420px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #E5E7EB' }}>
+            <RoutingMap 
+              stops={mapStopsForRouting} 
+              hideFloatingWidget={false}
+            />
+          </div>
+          <div style={{ marginTop: '12px', fontSize: '12px', color: '#6B7280' }}>
+            Enter addresses above to see the route on the map. The map will auto-update as you type.
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -5,6 +5,8 @@ using Domain.Models.Load;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
+namespace Application.CQRS.LoadCQ.Commands;
+
 public class UpdateLoadDraftCommand : IRequest<Guid>
 {
     public Guid Id { get; set; }

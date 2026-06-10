@@ -3,6 +3,8 @@ using Application.Interfaces;
 using Domain.Models.Load;
 using MediatR;
 
+namespace Application.CQRS.LoadCQ.Commands;
+
 public record DeleteLoadDraftCommand(Guid Id, Guid UserId) : IRequest;
 
 public class DeleteLoadDraftCommandHandler(IAppDbContext dbContext) : IRequestHandler<DeleteLoadDraftCommand>

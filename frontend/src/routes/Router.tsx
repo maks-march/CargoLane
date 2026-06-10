@@ -7,7 +7,7 @@ import SearchPage from '../pages/SearchPage';
 import OrderDetailPage from '../pages/OrderDetailPage';
 import MyListingsPage from '../pages/MyListingsPage';
 import ConfirmEmailPage from '../pages/ConfirmEmailPage';
-import CreateOrderPage from '../pages/CreateOrderPage';
+import CreateLoadPage from '../pages/CreateLoadPage';
 
 export const router = createBrowserRouter([
   {
@@ -42,7 +42,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/orders/create',
-            element: <CreateOrderPage />,
+            element: <CreateLoadPage />,
           },
           {
             path: '/my-listings',

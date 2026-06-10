@@ -3,6 +3,8 @@ using AutoMapper;
 using Domain.Models.Load;
 using MediatR;
 
+namespace Application.CQRS.LoadCQ.Commands;
+
 public class CreateLoadDraftCommand : IRequest<Guid>
 {
     public Guid UserId { get; set; }

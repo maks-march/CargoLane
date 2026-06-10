@@ -1,4 +1,6 @@
 using Application.CQRS.LoadCQ.Commands;
+using Application.CQRS.LoadCQ.Commands.CreateLoad;
+using Application.CQRS.LoadCQ.Commands.DeleteLoad;
 using Application.CQRS.LoadCQ.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
