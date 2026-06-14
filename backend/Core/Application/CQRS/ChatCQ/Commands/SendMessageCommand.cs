@@ -7,4 +7,5 @@ public class SendMessageCommand : IRequest<Guid>
     public Guid ChatId { get; set; }
     public Guid SenderId { get; set; }
     public string Text { get; set; } = string.Empty;
+    public bool IsSystem { get; set; } = false;   // Добавлено по контракту md
 }

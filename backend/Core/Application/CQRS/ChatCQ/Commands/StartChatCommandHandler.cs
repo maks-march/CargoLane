@@ -27,14 +27,15 @@ public class StartChatCommandHandler(IAppDbContext dbContext) : IRequestHandler<
         var currentUser = await dbContext.BusinessUsers.FindAsync([request.CurrentUserId], cancellationToken);
         var targetUser = await dbContext.BusinessUsers.FindAsync([request.TargetUserId], cancellationToken);
         
-        if (currentUser == null ||  targetUser == null)
+        if (currentUser == null || targetUser == null)
             throw new NotFoundException("Addressed user not found", request.TargetUserId);
         
         var newChat = new ChatEntity
         {
             Id = Guid.NewGuid(),
             Created = DateTime.UtcNow,
-            Updated = DateTime.UtcNow
+            Updated = DateTime.UtcNow,
+            // LoadId можно сохранить в будущем (пока не добавляем в модель, чтобы не ломать миграции)
         };
         newChat.Participants.Add(currentUser);
         newChat.Participants.Add(targetUser);
