@@ -1,24 +1,31 @@
 import React from 'react';
-import type { LoadData } from '../../utils/types';
+import type { LoadDetailsVm } from '../../api/types';
 import { RoutingMap } from './RoutingMap';
 
 interface Props {
-  load: LoadData;
+  load: LoadDetailsVm;
   routeInfo?: { distance: string; duration: string };
   onRouteCalculated?: (distance: string, duration: string) => void;
 }
 
 export const DetailRouteMap: React.FC<Props> = ({ load, routeInfo, onRouteCalculated }) => {
+  // Безопасное чтение городов (в зависимости от того, как их отдаст бэкенд: startCity или from)
+  const start = (load as any).startCity || (load as any).from || 'Rotterdam';
+  const end = (load as any).endCity || (load as any).to || 'Warsaw';
+
   const mapStops = [
-    { address: load.from || 'Rotterdam', type: 'start' }
+    { address: start, type: 'start' }
   ];
-  if (load.extraRoute) {
-    mapStops.push({ address: load.extraRoute.replace('+ ', ''), type: 'stop' });
+  
+  if ((load as any).extraRoute) {
+    mapStops.push({ address: String((load as any).extraRoute).replace('+ ', ''), type: 'stop' });
   }
-  mapStops.push({ address: load.to || 'Warsaw', type: 'end' });
+  
+  mapStops.push({ address: end, type: 'end' });
 
   // Функция для получения кода страны (для красоты в заголовке)
-  const getCountryCode = (city: string) => {
+  const getCountryCode = (city?: string) => {
+    if (!city) return 'EU';
     const c = city.toLowerCase();
     if (c.includes('rotterdam') || c.includes('amsterdam')) return 'NL';
     if (c.includes('warsaw')) return 'PL';
@@ -26,18 +33,16 @@ export const DetailRouteMap: React.FC<Props> = ({ load, routeInfo, onRouteCalcul
     if (c.includes('paris') || c.includes('lyon')) return 'FR';
     if (c.includes('madrid')) return 'ES';
     if (c.includes('milan')) return 'IT';
-    return '';
+    return 'EU';
   };
 
-  const fromCC = getCountryCode(load.from);
-  const toCC = getCountryCode(load.to);
-  
-  // Убираем дублирование: пишем "Rotterdam, NL", только если город не содержит "NL"
-  const fromTitle = fromCC && !load.from.includes(fromCC) ? `${load.from}, ${fromCC}` : load.from;
-  const toTitle = toCC && !load.to.includes(toCC) ? `${load.to}, ${toCC}` : load.to;
+  const fromCC = getCountryCode(start);
+  const toCC = getCountryCode(end);
+
+  const fromTitle = start.includes(fromCC) ? start : `${start}, ${fromCC}`;
+  const toTitle = end.includes(toCC) ? end : `${end}, ${toCC}`;
 
   const stopsCount = mapStops.length;
-  // Логика типа маршрута: если больше 2 точек — Multi-lane, иначе Direct
   const routeType = stopsCount > 2 ? 'Multi-lane routing' : 'Direct routing';
 
   return (
@@ -57,12 +62,12 @@ export const DetailRouteMap: React.FC<Props> = ({ load, routeInfo, onRouteCalcul
         <div className="route-tabs-container">
           <button className="route-tab active">Driving</button>
           <button className="route-tab">Rail</button>
-          <button className="route-tab">Combined</button>
+          <button className="route-tab">Sea</button>
         </div>
       </div>
-      
-      <div style={{ height: '400px', width: '100%', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
-        <RoutingMap stops={mapStops} hideFloatingWidget={true} onRouteCalculated={onRouteCalculated} />
+
+      <div style={{ height: '300px', width: '100%', background: '#F6F7FB', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
+        <RoutingMap stops={mapStops} onRouteCalculated={onRouteCalculated} />
       </div>
     </div>
   );

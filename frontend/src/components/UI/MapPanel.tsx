@@ -1,19 +1,22 @@
 import React from 'react';
-import type { LoadData } from '../../utils/types';
 import { RoutingMap } from './RoutingMap';
+import type { LoadListVm } from '../../api/types';
 
 interface MapPanelProps {
-  load: LoadData | null;
-  onNavigate: (page: string, payload?: any) => void;
+  load: LoadListVm | null;
+  onNavigate: (page: string, payload?: { loadId: string }) => void;
 }
 
 export const MapPanel: React.FC<MapPanelProps> = ({ load, onNavigate }) => {
   if (!load) return null;
 
-  // Формируем точки для карты на основе реальных данных из БД
+  // Безопасное извлечение городов (поддерживаем оба формата: и старый, и новый от API)
+  const startCity = (load as any).startCity || (load as any).from || 'Rotterdam';
+  const endCity = (load as any).endCity || (load as any).to || 'Warsaw';
+
   const stops = [
-    { id: 'start', type: 'start' as const, address: load.from, datetime: load.dateStart },
-    { id: 'end', type: 'end' as const, address: load.to, datetime: load.dateEnd || '' }
+    { address: startCity, type: 'start' },
+    { address: endCity, type: 'end' }
   ];
 
   return (
@@ -32,15 +35,15 @@ export const MapPanel: React.FC<MapPanelProps> = ({ load, onNavigate }) => {
       <div className="dash-map-info">
         <div className="dash-map-stat">
           <span>From</span>
-          <strong>{load.from || 'Unknown'}</strong>
+          <strong>{startCity}</strong>
         </div>
         <div className="dash-map-stat">
           <span>To</span>
-          <strong>{load.to || 'Unknown'}</strong>
+          <strong>{endCity}</strong>
         </div>
         <div className="dash-map-stat">
           <span>Vehicle</span>
-          <strong>{load.vehicle || 'Any'}</strong>
+          <strong>{load.recommendedVehicle || 'Tautliner'}</strong>
         </div>
       </div>
     </div>

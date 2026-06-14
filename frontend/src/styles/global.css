@@ -994,7 +994,7 @@ h1 .highlight {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 48px; /* ВЫРОВНЕНО ПО 48PX */
+    padding: 16px 48px;
     background: white;
     border-bottom: 1px solid #eee;
     position: sticky;
@@ -1054,7 +1054,6 @@ h1 .highlight {
     background: white;
 }
 
-/* === ОБНОВЛЕННЫЕ СТИЛИ БЛОКА ФИЛЬТРОВ (Dash-Filters-Card) === */
 .dash-filters-card {
     display: flex;
     flex-wrap: wrap; 
@@ -1074,7 +1073,7 @@ h1 .highlight {
     align-items: center;
     background: #F6F7FB;
     border: 1px solid #E6E8EE;
-    border-radius: 6px; /* Прямоугольные скругления */
+    border-radius: 6px;
     padding: 0 12px;
     height: 36px;
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -1149,7 +1148,6 @@ h1 .highlight {
     opacity: 0.8;
 }
 
-/* Content Area Layout */
 .dash-content {
     display: flex;
     flex: 1;
@@ -1203,7 +1201,6 @@ h1 .highlight {
     background: white;
 }
 
-/* Tables component styles */
 .loads-table {
     width: 100%;
     border-collapse: collapse;
@@ -1233,7 +1230,7 @@ h1 .highlight {
 }
 
 .loads-table tr.selected td {
-    background: #EEF1FF !important; /* Мягкий фон выбранной строки */
+    background: #EEF1FF !important; 
 }
 
 .load-id {
@@ -1360,7 +1357,6 @@ h1 .highlight {
     background: none;
 }
 
-/* === ИЗМЕНЕНИЯ ШИРИНЫ КАРТЫ: БЫЛО 540px, СТАЛО 720px === */
 .dash-map-panel {
     width: 720px; 
     background: white;
@@ -1501,7 +1497,6 @@ h1 .highlight {
     gap: 12px;
 }
 
-/* ФИКС СТИЛЯ КНОПОК ИЗ ФИГМЫ */
 .detail-action-btn {
     background: white;
     color: #0E1116;
@@ -1618,7 +1613,6 @@ h1 .highlight {
     font-weight: 600;
 }
 
-/* === НОВЫЕ СТИЛИ ДЛЯ ВЫБОРА РЕЖИМА МАРШРУТА === */
 .route-tabs-container {
     display: inline-flex;
     background: #F6F7FB;
@@ -1669,7 +1663,6 @@ h1 .highlight {
     gap: 4px;
 }
 
-/* НОВАЯ СЕТКА ХАРАКТЕРИСТИК (ФОТО 9 ИЗ FIGMA) */
 .figma-specs-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -1830,7 +1823,6 @@ h1 .highlight {
     gap: 8px;
 }
 
-/* === ИСПРАВЛЕННЫЙ ИНПУТ ДЛЯ СТАВОК (BID) === */
 .bid-input-wrapper {
     display: flex;
     align-items: center;
@@ -2054,7 +2046,7 @@ h1 .highlight {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 48px; /* ВЫРОВНЕНО ПО 48PX */
+    padding: 16px 48px;
     background: white;
     border-bottom: 1px solid #E6E8EE;
     position: sticky;
@@ -2126,26 +2118,22 @@ h1 .highlight {
   
 .btn-figma-text:hover { color: #0E1116; }
   
-/* ТРЕХКОЛОНОЧНАЯ СЕТКА С ОТСТУПОМ СПРАВА */
 .create-layout {
     display: flex;
     gap: 40px;
-    padding: 32px 48px; /* ВОЗВРАЩЕН ОТСТУП СПРАВА 48px КАК У КОЛОКОЛЬЧИКА */
+    padding: 32px 48px;
     width: 100%;
     align-items: flex-start;
 }
   
-/* Левая колонка (Шаги) - ТЕПЕРЬ КАК КАРТОЧКА ИЗ ФИГМЫ */
 .create-steps-sidebar {
-    width: 250px; /* Немного шире, чтобы вместить отступы карточки */
+    width: 250px;
     position: sticky;
     top: 100px;
     display: flex;
     flex-direction: column;
     gap: 4px;
     flex-shrink: 0;
-    
-    /* СТИЛИ БЕЛОГО БЛОКА С ГРАНИЦАМИ */
     background: white;
     border: 1px solid #E6E8EE;
     border-radius: 16px;
@@ -2186,9 +2174,8 @@ h1 .highlight {
 .create-step-item.active .step-info-title,
 .create-step-item.active .step-info-sub { color: #3D5AFE; }
   
-/* Центральная колонка (Форма) */
 .create-content {
-    width: 640px; /* СТРОГО ФИКСИРОВАННАЯ ШИРИНА ДЛЯ КАРТОЧЕК */
+    width: 640px; 
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -2209,12 +2196,11 @@ h1 .highlight {
     box-shadow: 0 2px 8px rgba(0,0,0,0.02);
 }
 
-/* Правая колонка (Карта и Калькулятор) - Снова как карточки! */
 .create-right-sidebar {
-    flex: 1; /* Занимает всё свободное место до правого края (с учетом отступа 48px) */
+    flex: 1; 
     position: sticky;
     top: 100px;
-    height: calc(100vh - 132px); /* Растягивается вертикально до самого низа */
+    height: calc(100vh - 132px); 
     display: flex;
     flex-direction: column;
     gap: 24px;
@@ -2223,12 +2209,12 @@ h1 .highlight {
 .figma-map-card {
     background: white;
     border: 1px solid #E6E8EE;
-    border-radius: 12px; /* ВОЗВРАЩЕНО СКРУГЛЕНИЕ СО ВСЕХ СТОРОН */
+    border-radius: 12px; 
     overflow: hidden;
     display: flex;
     flex-direction: column;
     box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-    flex: 1; /* Карта тянется вниз */
+    flex: 1; 
     width: 100%;
 }
 
@@ -2258,7 +2244,6 @@ h1 .highlight {
     flex-shrink: 0;      
 }
   
-/* Custom Grids & Tables */
 .figma-grid-labels {
     display: grid;
     gap: 12px;
@@ -2358,9 +2343,9 @@ h1 .highlight {
   
 .calc-widget-dark {
     background: #0E1116;
-    border-radius: 12px; /* ВОЗВРАЩЕНО СКРУГЛЕНИЕ СО ВСЕХ СТОРОН */
+    border-radius: 12px; 
     border: 1px solid #E6E8EE;
-    padding: 24px; /* ВЕРНУЛ СИММЕТРИЧНЫЙ ОТСТУП */
+    padding: 24px; 
     color: white;
     flex-shrink: 0;
 }
@@ -2448,7 +2433,7 @@ h1 .highlight {
     gap: 16px;
 }
 
-/* ===== MY LISTINGS PAGE (ОБНОВЛЕННАЯ АДАПТИВНАЯ СЕТКА ПО FIGMA) ===== */
+/* ===== MY LISTINGS PAGE ===== */
 .my-listings-layout {
     padding: 32px 48px;
     width: 100%;
@@ -2457,7 +2442,6 @@ h1 .highlight {
     gap: 24px; 
 }
 
-/* Блок 1: Отдельная карточка для фильтров и вкладок */
 .my-listings-toolbar-card {
     background: white;
     border: 1px solid #E6E8EE;
@@ -2470,7 +2454,6 @@ h1 .highlight {
     width: 100%;
 }
 
-/* Блок 2: Отдельная карточка для таблицы */
 .my-listings-table-card {
     background: white;
     border: 1px solid #E6E8EE;
@@ -2485,7 +2468,6 @@ h1 .highlight {
     gap: 8px; 
 }
 
-/* Прямоугольные вкладки со скруглениями 8px как в Figma */
 .my-listings-tab {
     background: transparent;
     border: none;
@@ -2506,7 +2488,6 @@ h1 .highlight {
     color: #0E1116;
 }
 
-/* Активная вкладка - Черный прямоугольник */
 .my-listings-tab.active {
     background: #0E1116;
     color: white;
@@ -2521,7 +2502,6 @@ h1 .highlight {
     font-weight: 600;
 }
 
-/* Инверсия цвета счетчика в активной вкладке */
 .my-listings-tab.active .tab-count {
     background: rgba(255, 255, 255, 0.15);
     color: white;
@@ -2616,7 +2596,6 @@ h1 .highlight {
     font-size: 16px;
 }
 
-/* Статусные бейджи */
 .status-pill {
     padding: 4px 10px;
     border-radius: 100px;
@@ -2655,3 +2634,438 @@ h1 .highlight {
     color: #5C6470;
     border: 1px solid #E6E8EE;
 }
+
+
+
+
+
+/* SETTINGS STYLES */
+.settings-tabs-row {
+    display: flex;
+    gap: 32px;
+    border-bottom: 1px solid #E6E8EE;
+    margin-bottom: 32px;
+}
+
+.settings-tab {
+    background: none;
+    border: none;
+    padding: 12px 4px;
+    font-size: 15px;
+    font-weight: 500;
+    color: #5C6470;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.settings-tab.active {
+    color: #3D5AFE;
+}
+
+.settings-tab.active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #3D5AFE;
+}
+
+.settings-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #E6E8EE;
+    padding: 32px;
+    max-width: 900px;
+    margin-bottom: 24px;
+}
+
+.settings-section-head h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: #0E1116;
+    margin-bottom: 4px;
+}
+
+.settings-section-head p {
+    font-size: 14px;
+    color: #5C6470;
+    margin-bottom: 24px;
+}
+
+.profile-photo-row {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.avatar-large {
+    width: 80px;
+    height: 80px;
+    background: #D0D5FF;
+    color: #3D5AFE;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: 600;
+    border-radius: 50%;
+}
+
+.avatar-title {
+    font-weight: 600;
+    font-size: 15px;
+    color: #0E1116;
+}
+
+.avatar-hint {
+    font-size: 13px;
+    color: #5C6470;
+    margin-top: 4px;
+}
+
+.input-hint {
+    font-size: 12px;
+    color: #A0AAB9;
+    margin-top: 6px;
+    display: block;
+}
+
+.badge-verified-inline {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #059669;
+    background: #ECFDF5;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-weight: 600;
+}
+
+.settings-divider {
+    border: none;
+    border-top: 1px solid #E6E8EE;
+    margin: 32px 0;
+}
+
+.figma-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+}
+
+.settings-footer-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-top: 32px;
+    padding-bottom: 60px;
+}
+
+/* DANGER ZONE */
+.danger-zone {
+    margin-top: 40px;
+    border: 1px solid #FEE2E2;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.danger-head {
+    background: #FFF5F5;
+    padding: 12px 20px;
+    color: #DC2626;
+    font-weight: 600;
+    font-size: 14px;
+    border-bottom: 1px solid #FEE2E2;
+}
+
+.danger-item {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: white;
+}
+
+.danger-item:not(:last-child) {
+    border-bottom: 1px solid #FEE2E2;
+}
+
+.danger-title {
+    font-weight: 600;
+    font-size: 15px;
+    color: #0E1116;
+}
+
+.danger-desc {
+    font-size: 13px;
+    color: #5C6470;
+    margin-top: 2px;
+}
+
+.btn-figma-secondary-small {
+    background: white;
+    border: 1px solid #E6E8EE;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.btn-figma-text-danger {
+    background: none;
+    border: none;
+    color: #DC2626;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+
+
+
+/* ==================== MESSAGES PAGE ==================== */
+.messages-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+    height: calc(100vh - 85px); /* Высота минус Header */
+}
+
+/* 1. Левая панель: Список чатов */
+.msg-list-sidebar {
+    width: 340px;
+    background: white;
+    border-right: 1px solid #E6E8EE;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.msg-search-box {
+    padding: 16px;
+    border-bottom: 1px solid #E6E8EE;
+}
+
+.msg-search-input {
+    width: 100%;
+    padding: 10px 16px;
+    background: #F6F7FB;
+    border: 1px solid #E6E8EE;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    color: #0E1116;
+}
+
+.msg-search-input:focus { border-color: #3D5AFE; }
+
+.msg-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.msg-item {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    border-bottom: 1px solid #E6E8EE;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.msg-item:hover { background: #FAFAFA; }
+.msg-item.active { background: #EEF1FF; }
+
+.msg-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.msg-avatar.blue { background: #D0D5FF; color: #3D5AFE; }
+.msg-avatar.green { background: #D1FAE5; color: #059669; }
+
+.msg-item-content { flex: 1; min-width: 0; }
+.msg-item-header { display: flex; justify-content: space-between; margin-bottom: 2px; }
+.msg-item-name { font-weight: 600; font-size: 14px; color: #0E1116; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.msg-item-time { font-size: 12px; color: #A0AAB9; }
+.msg-item-company { font-size: 12px; color: #A0AAB9; margin-bottom: 6px; }
+.msg-item-preview { font-size: 13px; color: #0E1116; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.msg-unread-dot {
+    width: 8px; height: 8px; background: #3D5AFE; border-radius: 50%; margin-top: 4px; float: right;
+}
+
+/* 2. Центральная панель: Чат */
+.msg-chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: #F6F7FB;
+    min-width: 0;
+}
+
+.msg-chat-header {
+    background: white;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #E6E8EE;
+}
+
+.msg-chat-user { display: flex; align-items: center; gap: 12px; }
+.msg-status-dot { width: 6px; height: 6px; background: #00C48C; border-radius: 50%; display: inline-block; margin-right: 6px;}
+
+.msg-chat-actions { display: flex; align-items: center; gap: 12px; }
+
+.msg-history {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.msg-shared-load {
+    text-align: center; font-size: 12px; color: #A0AAB9; margin-bottom: 16px; font-weight: 500;
+}
+
+.msg-bubble-row { display: flex; width: 100%; }
+.msg-bubble-row.them { justify-content: flex-start; }
+.msg-bubble-row.me { justify-content: flex-end; }
+
+.msg-bubble {
+    max-width: 65%;
+    padding: 12px 16px;
+    font-size: 14px;
+    line-height: 1.5;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.msg-bubble.them {
+    background: white;
+    border: 1px solid #E6E8EE;
+    border-radius: 12px 12px 12px 0;
+    color: #0E1116;
+}
+
+.msg-bubble.me {
+    background: #3D5AFE;
+    color: white;
+    border-radius: 12px 12px 0 12px;
+}
+
+.msg-system-badge {
+    align-self: center;
+    background: #ECFDF5;
+    color: #059669;
+    padding: 6px 12px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #A7F3D0;
+}
+
+.msg-input-area {
+    padding: 24px;
+    background: #F6F7FB;
+}
+
+.msg-input-wrapper {
+    background: white;
+    border: 1px solid #E6E8EE;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    padding: 8px 8px 8px 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+}
+
+.msg-input-field {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 14px;
+    background: transparent;
+    color: #0E1116;
+}
+
+.msg-send-btn {
+    background: #3D5AFE;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: opacity 0.2s;
+}
+
+.msg-send-btn:hover { opacity: 0.9; }
+
+/* 3. Правая панель: Сделка и Таймлайн */
+.msg-deal-sidebar {
+    width: 320px;
+    background: white;
+    border-left: 1px solid #E6E8EE;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.deal-section-title {
+    font-size: 11px; color: #A0AAB9; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 16px;
+}
+
+.deal-summary-card {
+    border: 1px solid #E6E8EE; border-radius: 12px; padding: 16px; margin-bottom: 40px;
+}
+
+.deal-timeline {
+    display: flex; flex-direction: column; gap: 0;
+}
+
+.timeline-item {
+    display: flex; gap: 16px; position: relative; padding-bottom: 24px;
+}
+.timeline-item:last-child { padding-bottom: 0; }
+
+.timeline-line {
+    position: absolute; left: 5px; top: 20px; bottom: -4px; width: 2px; background: #E6E8EE;
+}
+.timeline-item:last-child .timeline-line { display: none; }
+
+.timeline-dot {
+    width: 12px; height: 12px; border-radius: 50%; position: relative; z-index: 2; margin-top: 4px;
+}
+.timeline-dot.green { background: #00C48C; }
+.timeline-dot.blue { background: #3D5AFE; box-shadow: 0 0 0 4px #EEF1FF; }
+.timeline-dot.gray { background: #E6E8EE; }
+
+.timeline-content { flex: 1; }
+.timeline-title { font-size: 14px; font-weight: 500; color: #0E1116; margin-bottom: 2px; }
+.timeline-time { font-size: 12px; color: #888; }

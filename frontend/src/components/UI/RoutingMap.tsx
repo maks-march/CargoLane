@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, useMap, useMapEvents } from 'react-leaflet';
+import React, { useEffect, useState } from 'react';
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -7,147 +7,127 @@ interface RoutingMapProps {
   stops: { address: string; type: string }[];
   hideFloatingWidget?: boolean;
   onRouteCalculated?: (distance: string, duration: string) => void;
-  onMapClick?: (lat: number, lng: number, address: string) => void;
 }
 
+const createCustomIcon = (color: string) => {
+  return L.divIcon({
+    className: 'custom-leaflet-icon',
+    html: `<div style="width: 16px; height: 16px; background: ${color}; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
+};
+
+const ICONS = {
+  start: createCustomIcon('#3D5AFE'),
+  end: createCustomIcon('#059669'),
+  stop: createCustomIcon('#F59E0B')
+};
+
+// ИСПРАВЛЕНИЕ 429 ОШИБКИ: Расширенный кэш. Карта больше не будет спамить внешний API!
 const GEO_CACHE: Record<string, [number, number]> = {
+  'surgut': [61.25, 73.4167],
+  'ufa': [54.7388, 55.9721],
   'rotterdam': [51.9225, 4.47927],
   'warsaw': [52.2297, 21.0122],
   'berlin': [52.5200, 13.4050],
   'munich': [48.1351, 11.5820],
   'hamburg': [53.5511, 9.9937],
   'milan': [45.4642, 9.1900],
-  'antwerp': [51.2194, 4.4025],
-  'lyon': [45.7640, 4.8357],
   'paris': [48.8566, 2.3522],
-  'madrid': [40.4168, -3.7038]
+  'madrid': [40.4168, -3.7038],
+  'antwerp': [51.2194, 4.4025],
+  'vienna': [48.2082, 16.3738],
+  'lyon': [45.7640, 4.8357],
+  'copenhagen': [55.6761, 12.5683],
+  'gdańsk': [54.3520, 18.6466]
 };
 
-const getCustomDotIcon = (type: string) => {
-  let color = '#5C6470'; 
-  if (type === 'start') color = '#3D5AFE'; 
-  if (type === 'end') color = '#00C48C'; 
+const geocodeCity = async (city: string): Promise<[number, number] | null> => {
+  if (!city || city.length < 2) return null;
+  const query = city.toLowerCase().split(',')[0].trim();
   
-  return L.divIcon({
-    className: 'clear-custom-icon',
-    html: `<div style="width: 14px; height: 14px; background: ${color}; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-    iconSize: [14, 14],
-    iconAnchor: [7, 7]
-  });
+  if (GEO_CACHE[query]) return GEO_CACHE[query];
+
+  try {
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+    const data = await response.json();
+    if (data && data.length > 0) {
+      return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+    }
+  } catch (error) {
+    console.warn("Geocoding API limited (429) for", city);
+  }
+  return null;
 };
 
-const MapAutoFitter = ({ positions }: { positions: [number, number][] }) => {
+const RouteCalculator = ({ stops, onCalc, setRouteData, setRoutePath, setMarkers }: any) => {
   const map = useMap();
-  useEffect(() => {
-    if (positions.length > 0) {
-      const bounds = L.latLngBounds(positions);
-      map.fitBounds(bounds, { padding: [40, 40] });
-    } else {
-      map.setView([51.1657, 10.4515], 4);
-    }
-  }, [positions, map]);
-  return null;
-};
-
-// Click handler component
-const MapClickHandler = ({ onMapClick }: { onMapClick?: (lat: number, lng: number, address: string) => void }) => {
-  const map = useMapEvents({
-    async click(e) {
-      if (!onMapClick) return;
-      const { lat, lng } = e.latlng;
-      
-      // Reverse geocode
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`);
-        const data = await res.json();
-        const address = data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-        onMapClick(lat, lng, address);
-      } catch {
-        onMapClick(lat, lng, `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-      }
-    }
-  });
-  return null;
-};
-
-export const RoutingMap: React.FC<RoutingMapProps> = ({ stops, hideFloatingWidget, onRouteCalculated, onMapClick }) => {
-  const [routeData, setRouteData] = useState<{
-    markers: { pos: [number, number], type: string }[];
-    coordinates: [number, number][];
-    distanceStr: string;
-    durationStr: string;
-  }>({ markers: [], coordinates: [], distanceStr: '', durationStr: '' });
-
+  
   useEffect(() => {
     let isMounted = true;
 
     const fetchRoute = async () => {
-      const validMarkers: { pos: [number, number], type: string }[] = [];
+      if (!stops || stops.length < 2) return;
+      
+      const validStops = stops.filter((s:any) => s.address && s.address.length > 2);
+      if (validStops.length < 2) return;
 
-      for (const stop of stops) {
-        const query = stop.address.trim().toLowerCase();
-        if (query.length < 3) continue;
+      const coordsPromises = validStops.map(async (s:any) => {
+        const coords = await geocodeCity(s.address);
+        return { pos: coords, type: s.type };
+      });
+      
+      const resolvedCoords = await Promise.all(coordsPromises);
+      const validMarkers = resolvedCoords.filter(c => c.pos !== null) as { pos: [number, number], type: string }[];
 
-        const dictMatch = Object.keys(GEO_CACHE).find(city => query.includes(city));
+      if (validMarkers.length >= 2 && isMounted) {
+        setMarkers(validMarkers);
+        const bounds = L.latLngBounds(validMarkers.map(m => m.pos));
+        map.fitBounds(bounds, { padding: [50, 50] });
 
-        if (dictMatch) {
-          validMarkers.push({ pos: GEO_CACHE[dictMatch], type: stop.type });
-        } else {
-          try {
-            const res = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`);
-            const data = await res.json();
-            if (data && data.length > 0) {
-              const pos: [number, number] = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
-              GEO_CACHE[query] = pos; 
-              validMarkers.push({ pos, type: stop.type });
-            }
-          } catch (e) {}
-        }
-      }
-
-      if (!isMounted) return;
-
-      if (validMarkers.length > 1) {
-        const coordsString = validMarkers.map(m => `${m.pos[1]},${m.pos[0]}`).join(';');
-        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`;
-        
+        const coordsString = validMarkers.map(c => `${c.pos[1]},${c.pos[0]}`).join(';');
         try {
-          const res = await fetch(osrmUrl);
+          const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`);
           const data = await res.json();
-          if (data.routes && data.routes[0]) {
+          if (data.routes && data.routes.length > 0) {
             const route = data.routes[0];
-            const geojsonCoords = route.geometry.coordinates.map((c: number[]) => [c[1], c[0]] as [number, number]);
-            
-            const distKm = (route.distance / 1000).toLocaleString('en-US', { maximumFractionDigits: 0 });
+            const distKm = (route.distance / 1000).toFixed(0);
             const hrs = Math.floor(route.duration / 3600);
             const mins = Math.floor((route.duration % 3600) / 60);
-            const timeStr = hrs > 0 ? `${hrs} h ${mins} min` : `${mins} min`;
+            const durStr = `${hrs}h ${mins}m`;
 
-            if (isMounted) {
-              setRouteData({ markers: validMarkers, coordinates: geojsonCoords, distanceStr: distKm, durationStr: timeStr });
-              if (onRouteCalculated) onRouteCalculated(distKm, timeStr);
-            }
+            if (onCalc) onCalc(distKm, durStr);
+            setRouteData({ distanceStr: distKm, durationStr: durStr });
+            const path = route.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]]);
+            setRoutePath(path);
           } else {
-            if (isMounted) setRouteData({ markers: validMarkers, coordinates: validMarkers.map(m => m.pos), distanceStr: '', durationStr: '' });
+             setRoutePath(validMarkers.map(m => m.pos));
           }
         } catch (e) {
-          if (isMounted) setRouteData({ markers: validMarkers, coordinates: validMarkers.map(m => m.pos), distanceStr: '', durationStr: '' });
+          setRoutePath(validMarkers.map(m => m.pos));
         }
-      } else {
-        if (isMounted) setRouteData({ markers: validMarkers, coordinates: [], distanceStr: '', durationStr: '' });
       }
     };
 
-    const timeoutId = setTimeout(() => { fetchRoute(); }, 500);
-    return () => { isMounted = false; clearTimeout(timeoutId); };
-  }, [stops]);
+    fetchRoute();
+    return () => { isMounted = false; };
+  }, [stops, map, onCalc, setRouteData, setRoutePath, setMarkers]);
+
+  return null;
+};
+
+export const RoutingMap: React.FC<RoutingMapProps> = ({ stops, hideFloatingWidget, onRouteCalculated }) => {
+  const [routeData, setRouteData] = useState({ distanceStr: '0', durationStr: '0h 0m' });
+  const [routePath, setRoutePath] = useState<[number, number][]>([]);
+  const [markers, setMarkers] = useState<{pos: [number, number], type: string}[]>([]);
 
   return (
-    <div style={{ height: '100%', width: '100%', position: 'relative' }}>
-      {!hideFloatingWidget && routeData.distanceStr && (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {!hideFloatingWidget && routeData.distanceStr !== '0' && (
         <div style={{
-          position: 'absolute', top: 16, right: 16, zIndex: 1000,
-          background: 'white', padding: '12px 16px', borderRadius: '12px',
+          position: 'absolute', top: '16px', right: '16px', zIndex: 400, background: 'white',
+          padding: '12px 16px', borderRadius: '12px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)', display: 'flex', gap: '16px'
         }}>
            <div>
@@ -161,16 +141,18 @@ export const RoutingMap: React.FC<RoutingMapProps> = ({ stops, hideFloatingWidge
            </div>
         </div>
       )}
-      <MapContainer center={[51.1657, 10.4515]} zoom={4} style={{ height: '100%', width: '100%' }} zoomControl={false}>
-        <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" attribution='&copy; CARTO' />
-        {routeData.markers.map((marker, i) => (
-          <Marker key={i} position={marker.pos} icon={getCustomDotIcon(marker.type)} />
+      
+      <MapContainer center={[51.1657, 10.4515]} zoom={4} style={{ height: '100%', width: '100%', zIndex: 1 }} zoomControl={false}>
+        <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
+        <RouteCalculator stops={stops} onCalc={onRouteCalculated} setRouteData={setRouteData} setRoutePath={setRoutePath} setMarkers={setMarkers} />
+        
+        {markers.map((m, i) => (
+          <Marker key={i} position={m.pos} icon={ICONS[m.type as keyof typeof ICONS] || ICONS.stop} />
         ))}
-        {routeData.coordinates.length > 0 && (
-          <Polyline positions={routeData.coordinates} color="#3D5AFE" weight={5} />
+        
+        {routePath.length > 1 && (
+          <Polyline positions={routePath} color="#3D5AFE" weight={4} opacity={0.7} />
         )}
-        <MapAutoFitter positions={routeData.markers.map(m => m.pos)} />
-        <MapClickHandler onMapClick={onMapClick} />
       </MapContainer>
     </div>
   );

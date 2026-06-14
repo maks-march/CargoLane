@@ -1,55 +1,167 @@
 import apiClient from '../api/api-client';
-import type { 
-  CreateLoadCommand, 
-  CreateLoadDraftCommand, 
-  UpdateLoadDraftCommand, 
-  LoadDraftVm, 
-  LoadListVm, 
-  LoadDetailsVm 
-} from '../api/types';
+
+// ==========================================
+// DTOs (Data Transfer Objects)
+// ==========================================
+
+export interface RoutePointInputDto {
+  city: string;
+  address: string;
+  arrivalTime: string | null;
+  orderIndex: number;
+}
+
+export interface PayloadInputDto {
+  length: number;
+  width: number;
+  height: number;
+  weight: number;
+  volume: number;
+  amount: number;
+  type: string;
+}
+
+export interface CreateLoadCommand {
+  userId: string;
+  startDate: string;
+  payment: number;
+  insurance: number;
+  hScode: string | null;
+  adr: number;
+  suitableCargos: string[] | null;
+  about: string;
+  payloads: PayloadInputDto[];
+  routePoints: RoutePointInputDto[];
+}
+
+export interface CreateLoadDraftCommand extends Partial<CreateLoadCommand> {}
+
+export interface LoadListVm {
+  id: string;
+  from: string;
+  to: string;
+  dateStart: string;
+  price: number;
+  cargo: string;
+  weight: number;
+  recommendedVehicle: string;
+  status: string;
+}
+
+export interface LoadDetailsVm {
+  id: string;
+  from: string;
+  to: string;
+  dateStart: string;
+  price: number;
+  cargo: string;
+  weight: number;
+  volume: number;
+  recommendedVehicle: string;
+  about: string;
+  adr: number;
+  hScode: string;
+  insurance: number;
+  status: string;
+  companyName: string;
+  payloads: PayloadInputDto[];
+  routePoints: RoutePointInputDto[];
+}
+
+// ==========================================
+// API SERVICE
+// ==========================================
 
 export const loadsService = {
-  async getAllLoads(params?: any): Promise<LoadListVm[]> {
-    const response = await apiClient.get<LoadListVm[]>('/api/load', { params });
+  /**
+   * Получение списка всех грузов (Marketplace)
+   */
+  getAllLoads: async (params?: any): Promise<LoadListVm[]> => {
+    try {
+      const response = await apiClient.get('/Load', { params });
+      return response.data;
+    } catch {
+      return [];
+    }
+  },
+  
+  /**
+   * Получение грузов текущего пользователя (My Listings)
+   */
+  getUserLoads: async (): Promise<LoadListVm[]> => {
+    try {
+      const response = await apiClient.get('/Load/user');
+      return response.data;
+    } catch {
+      return [];
+    }
+  },
+  
+  /**
+   * Получение деталей конкретного опубликованного груза
+   */
+  getLoadById: async (id: string): Promise<LoadDetailsVm> => {
+    const response = await apiClient.get(`/Load/${id}`);
     return response.data;
   },
 
-  async getLoadById(id: string): Promise<LoadDetailsVm> {
-    const response = await apiClient.get<LoadDetailsVm>(`/api/load/${id}`);
+  /**
+   * Получение деталей конкретного черновика груза
+   */
+  getLoadDraft: async (id: string): Promise<any> => {
+    const response = await apiClient.get(`/Load/draft/${id}`);
+    return response.data;
+  },
+  
+  /**
+   * Создание нового груза (публикация на доску)
+   */
+  createLoad: async (data: CreateLoadCommand): Promise<string> => {
+    const response = await apiClient.post('/Load', data);
+    return response.data;
+  },
+  
+  /**
+   * Создание черновика груза (сохранение без публикации)
+   */
+  createLoadDraft: async (data: CreateLoadDraftCommand): Promise<string> => {
+    const response = await apiClient.post('/Load/draft', data);
     return response.data;
   },
 
-  async createLoad(data: CreateLoadCommand): Promise<string> {
-    const response = await apiClient.post<string>('/api/load', data);
+  /**
+   * Обновление существующего черновика груза
+   */
+  updateLoadDraft: async (id: string, data: CreateLoadDraftCommand): Promise<void> => {
+    const response = await apiClient.put(`/Load/draft/${id}`, data);
+    return response.data;
+  },
+  
+  /**
+   * Удаление опубликованного груза
+   */
+  deleteLoad: async (id: string): Promise<void> => {
+    const response = await apiClient.delete(`/Load/${id}`);
     return response.data;
   },
 
-  async getUserLoads(): Promise<LoadListVm[]> {
-    const response = await apiClient.get<LoadListVm[]>('/api/load/me');
+  /**
+   * Удаление черновика груза
+   */
+  deleteLoadDraft: async (id: string): Promise<void> => {
+    const response = await apiClient.delete(`/Load/draft/${id}`);
     return response.data;
   },
 
-  async getCities(_query?: string): Promise<string[]> {
-    return ['Rotterdam', 'Berlin', 'Warsaw', 'Paris', 'Madrid'];
-  },
-
-  // Draft methods
-  async createLoadDraft(data: CreateLoadDraftCommand): Promise<string> {
-    const response = await apiClient.post<string>('/api/load/draft', data);
-    return response.data;
-  },
-
-  async getLoadDraft(id: string): Promise<LoadDraftVm> {
-    const response = await apiClient.get<LoadDraftVm>(`/api/load/draft/${id}`);
-    return response.data;
-  },
-
-  async updateLoadDraft(id: string, data: UpdateLoadDraftCommand): Promise<string> {
-    const response = await apiClient.put<string>(`/api/load/draft/${id}`, data);
-    return response.data;
-  },
-
-  async deleteLoadDraft(id: string): Promise<void> {
-    await apiClient.delete(`/api/load/draft/${id}`);
+  /**
+   * === ДОБАВЛЕНО: Для предотвращения краша компонента FilterBar ===
+   */
+  getCities: async (query: string): Promise<string[]> => {
+    try {
+      const response = await apiClient.get('/Cities', { params: { query } });
+      return response.data;
+    } catch {
+      return [];
+    }
   }
 };

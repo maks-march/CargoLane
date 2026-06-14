@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import type { LoadData } from '../../utils/types';
+import type { LoadDetailsVm } from '../../api/types';
 
 interface Props {
-  load: LoadData;
+  load: LoadDetailsVm;
 }
 
 export const DetailRightPanel: React.FC<Props> = ({ load }) => {
@@ -18,7 +18,6 @@ export const DetailRightPanel: React.FC<Props> = ({ load }) => {
       };
       if (token) headers['Authorization'] = `Bearer ${token}`;
 
-      // Запрос к бэкенду на принятие заказа (бэкендеру нужно сделать этот эндпоинт)
       const response = await fetch(`http://localhost:8080/api/Order/${load.id}/accept`, {
         method: 'POST',
         headers
@@ -59,9 +58,26 @@ export const DetailRightPanel: React.FC<Props> = ({ load }) => {
         </button>
 
         <div style={{ marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #E6E8EE' }}>
-           <p style={{ fontSize: '12px', color: '#5C6470', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Security</p>
-           <p style={{ fontSize: '13px', color: '#0E1116', marginBottom: '4px' }}>Listing ID: <span style={{ fontWeight: 500 }}>{load.id}</span></p>
-           <p style={{ fontSize: '13px', color: '#0E1116' }}>Status: <span style={{ fontWeight: 500 }}>{load.status || 'Active'}</span></p>
+           <p style={{ fontSize: '12px', color: '#5C6470', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Shipper Info</p>
+           
+           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#F6F7FB', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 600, color: '#0E1116' }}>
+                V
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, color: '#0E1116', fontSize: '14px' }}>Verified Shipper</div>
+                <div style={{ color: '#5C6470', fontSize: '13px' }}>Member since 2024</div>
+              </div>
+           </div>
+           
+           <div style={{ fontSize: '13px', color: '#5C6470', display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+             <span>Rating</span>
+             <strong style={{ color: '#0E1116' }}>★ 4.9 (124)</strong>
+           </div>
+           <div style={{ fontSize: '13px', color: '#5C6470', display: 'flex', justifyContent: 'space-between' }}>
+             <span>Payment speed</span>
+             <strong style={{ color: '#059669' }}>14 days avg.</strong>
+           </div>
         </div>
       </div>
     </div>

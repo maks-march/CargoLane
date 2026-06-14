@@ -1,13 +1,13 @@
 import React from 'react';
-import type { LoadData } from '../../utils/types';
+import type { LoadDetailsVm } from '../../api/types';
 
 interface Props {
-  load: LoadData;
+  load: LoadDetailsVm;
   routeInfo?: { distance: string; duration: string };
 }
 
 export const DetailHeaderCard: React.FC<Props> = ({ load, routeInfo }) => {
-  const getCountryCode = (city: string) => {
+  const getCountryCode = (city?: string) => {
     if (!city) return 'EU';
     const c = city.toLowerCase();
     if (c.includes('rotterdam') || c.includes('amsterdam')) return 'NL';
@@ -16,35 +16,32 @@ export const DetailHeaderCard: React.FC<Props> = ({ load, routeInfo }) => {
     if (c.includes('paris') || c.includes('lyon')) return 'FR';
     if (c.includes('milan')) return 'IT';
     if (c.includes('madrid')) return 'ES';
-    return 'EU'; // Default
+    return 'EU'; 
   };
 
-  const borderStr = `${getCountryCode(load.from)} → ${getCountryCode(load.to)}`;
+  const borderStr = `${getCountryCode(load.startCity)} → ${getCountryCode(load.endCity)}`;
 
-  // Безопасный парсинг данных груза (избегаем ошибок, если нет "·")
-  const cargoString = load.cargo || 'General Cargo';
-  const cargoParts = cargoString.split('·').map(s => s.trim());
-  const cargoCategory = cargoParts[0];
-  const cargoPallets = cargoParts.length > 1 ? cargoParts.slice(1).join(' · ') : (load.mass || 'N/A');
+  // Безопасный доступ к массиву payloads (грузов)
+  const cargoCategory = load.payloads && load.payloads.length > 0 ? load.payloads[0].type : 'General Cargo';
+  const cargoPallets = load.payloads && load.payloads.length > 0 ? `${load.payloads[0].amount} items` : 'Full Truckload';
 
   return (
     <div className="detail-card">
-      <div className="detail-card-header">
+      <div className="detail-header-top">
         <div>
           <div className="detail-badges">
             <span className="detail-badge verified">✓ Verified shipper</span>
-            <span className="detail-badge match">Match · {load.match}%</span>
-            <span className="detail-badge time">Posted recently</span>
+            <span className="detail-badge document">Document attached</span>
           </div>
           
           <h2 className="detail-title">
             {cargoPallets} <span style={{ color: '#E6E8EE', margin: '0 4px' }}>•</span> <span style={{ color: '#5C6470', fontWeight: 500 }}>{cargoCategory}</span>
           </h2>
           
-          <p className="detail-subtitle">{load.id} · {load.company || 'Unknown'} GmbH</p>
+          <p className="detail-subtitle">{load.id.substring(0, 8).toUpperCase()} · Verified Company</p>
         </div>
         <div className="detail-price">
-          <div className="detail-price-value">{load.price || 'Request price'}</div>
+          <div className="detail-price-value">€{load.payment || 'Request price'}</div>
           <div className="detail-price-note">excl. VAT · negotiable</div>
         </div>
       </div>
@@ -60,10 +57,10 @@ export const DetailHeaderCard: React.FC<Props> = ({ load, routeInfo }) => {
         </div>
         <div className="detail-stat">
           <div className="detail-stat-label">Stops</div>
-          <div className="detail-stat-value">{load.extraRoute ? '2 + final' : '1 + final'}</div>
+          <div className="detail-stat-value">1 + final</div>
         </div>
         <div className="detail-stat">
-          <div className="detail-stat-label">Border</div>
+          <div className="detail-stat-label">Border crossing</div>
           <div className="detail-stat-value">{borderStr}</div>
         </div>
       </div>

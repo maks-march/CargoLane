@@ -1,21 +1,41 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
-import LoginPage from '../pages/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
 import MainLayout from '../components/Layout/MainLayout';
-import SearchPage from '../pages/SearchPage';
-import MyListingsPage from '../pages/MyListingsPage';
-import ConfirmEmailPage from '../pages/ConfirmEmailPage';
-import CreateLoadPage from '../pages/CreateLoadPage';
+
+// --- LANDING ---
+import LandingPage from '../pages/Landing/LandingPage';
+
+// --- AUTH ---
+import SignInPage from '../pages/Auth/SignInPage';
+import SignUpPage from '../pages/Auth/SignUpPage';
+import RecoveryPage from '../pages/Auth/RecoveryPage';
+import ConfirmEmailPage from '../pages/Auth/ConfirmEmailPage';
+
+// --- DASHBOARD ---
+import SearchPage from '../pages/Dashboard/SearchPage';
+import MyListingsPage from '../pages/Dashboard/MyListingsPage';
+import CreateLoadPage from '../pages/Dashboard/CreateLoadPage';
+import LoadDetailPage from '../pages/Dashboard/LoadDetailPage';
+import SavedPage from '../pages/Dashboard/SavedPage';
+import { SettingsPage } from '../pages/Dashboard/SettingsPage';
+import MessagesPage from '../pages/Dashboard/MessagesPage';
 
 export const router = createBrowserRouter([
   {
+    path: '/',
+    element: <LandingPage />,
+  },
+  {
     path: '/login',
-    element: <LoginPage />,
+    element: <SignInPage />,
   },
   {
     path: '/register',
-    element: <RegisterPage />,
+    element: <SignUpPage />,
+  },
+  {
+    path: '/recovery',
+    element: <RecoveryPage />,
   },
   {
     path: '/confirm-email',
@@ -28,16 +48,12 @@ export const router = createBrowserRouter([
         element: <MainLayout />,
         children: [
           {
-            path: '/',
-            element: <Navigate to="/orders" replace />,
-          },
-          {
             path: '/orders',
             element: <SearchPage />,
           },
           {
             path: '/orders/:id',
-            element: <div>Load Detail Page (coming soon)</div>,
+            element: <LoadDetailPage />,
           },
           {
             path: '/orders/create',
@@ -49,19 +65,20 @@ export const router = createBrowserRouter([
           },
           {
             path: '/saved',
-            element: <div>Saved Searches</div>,
+            element: <SavedPage />,
           },
+          // Заглушки для ссылок из бокового меню, чтобы сайт не падал
           {
             path: '/chat',
-            element: <div>Chat Page</div>,
+            element: <MessagesPage />,
           },
           {
             path: '/profile',
-            element: <div>Profile Page</div>,
+            element: <div style={{ padding: '48px' }}>Profile Page (in progress)</div>,
           },
           {
             path: '/settings',
-            element: <div>Settings Page</div>,
+            element: <SettingsPage />,
           },
         ],
       },

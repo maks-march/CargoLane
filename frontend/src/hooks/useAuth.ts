@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { authService } from '../services/auth.service';
-import { useAuthStore } from '../store/auth.store';
-import type { LoginCommand, RegisterCommand } from '../api/types';
+import useAuthStore from '../store/auth.store'; // Исправлен импорт
+import type { LoginCommand, RegisterCommand } from '../services/auth.service';
 
 export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  
+  // Получаем функцию login из стора
   const loginStore = useAuthStore((state) => state.login);
   const logoutStore = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
@@ -16,11 +19,16 @@ export const useAuth = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await authService.login(data);
-      loginStore(response);
+      // loginStore сам вызывает authService.login внутри себя
+      await loginStore(data);
       navigate('/orders');
-    } catch (err: any) {
-      setError(err.response?.data?.error || 'Failed to login');
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data) {
+        const data = err.response.data as { error?: string, message?: string };
+        setError(data.error || data.message || 'Failed to login');
+      } else {
+        setError('Failed to login');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -33,10 +41,13 @@ export const useAuth = () => {
     try {
       await authService.register(data);
       setIsSuccess(true);
-    } catch (err: any) {
-      // Correctly handle ErrorResponse based on backend structure
-      console.log(err);
-      setError(err.response.data.Error || 'Registration failed');
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data) {
+        const data = err.response.data as { Error?: string, message?: string };
+        setError(data.Error || data.message || 'Registration failed');
+      } else {
+        setError('Registration failed');
+      }
     } finally {
       setIsLoading(false);
     }

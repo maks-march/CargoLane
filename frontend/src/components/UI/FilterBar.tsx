@@ -15,8 +15,16 @@ export const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange }) => {
     if (onFilterChange) onFilterChange(newFilters);
 
     if (value.length > 0) {
-      const cities = await loadsService.getCities(value);
-      setSuggestions(prev => ({ ...prev, [type]: cities }));
+      try {
+        // Чтобы TypeScript не ругался, мы приводим loadsService к типу, включающему getCities
+        const service = loadsService as typeof loadsService & { getCities: (q: string) => Promise<string[]> };
+        if (typeof service.getCities === 'function') {
+           const cities = await service.getCities(value);
+           setSuggestions(prev => ({ ...prev, [type]: cities }));
+        }
+      } catch (err: unknown) {
+        console.error("Failed to fetch cities:", err);
+      }
     } else {
       setSuggestions(prev => ({ ...prev, [type]: [] }));
     }
@@ -30,7 +38,6 @@ export const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange }) => {
   };
 
   return (
-    // Обертка с классом от MyListingsPage для белого фона и теней
     <div className="my-listings-toolbar-card" style={{ margin: '0 48px 24px 48px' }}>
       <div className="filter-bar" style={{ display: 'flex', gap: '10px' }}>
         
@@ -43,7 +50,11 @@ export const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange }) => {
             style={{ width: '140px' }}
           />
           {suggestions.from.length > 0 && (
-            <div className="autocomplete-dropdown">{suggestions.from.map(c => <div key={c} onClick={() => selectCity('from', c)}>{c}</div>)}</div>
+            <div className="autocomplete-dropdown">
+              {suggestions.from.map(c => (
+                <div key={c} onClick={() => selectCity('from', c)} style={{ cursor: 'pointer', padding: '8px' }}>{c}</div>
+              ))}
+            </div>
           )}
         </div>
 
@@ -56,16 +67,23 @@ export const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange }) => {
             style={{ width: '140px' }}
           />
           {suggestions.to.length > 0 && (
-            <div className="autocomplete-dropdown">{suggestions.to.map(c => <div key={c} onClick={() => selectCity('to', c)}>{c}</div>)}</div>
+            <div className="autocomplete-dropdown">
+              {suggestions.to.map(c => (
+                <div key={c} onClick={() => selectCity('to', c)} style={{ cursor: 'pointer', padding: '8px' }}>{c}</div>
+              ))}
+            </div>
           )}
         </div>
 
-        {/* Дата с принудительным английским плейсхолдером (через стили или фокус) */}
         <input 
             className="figma-input" 
             placeholder="Date" 
             type="date" 
-            onChange={(e) => { const f = {...filters, date: e.target.value}; setFilters(f); if(onFilterChange) onFilterChange(f); }} 
+            onChange={(e) => { 
+                const f = {...filters, date: e.target.value}; 
+                setFilters(f); 
+                if(onFilterChange) onFilterChange(f); 
+            }} 
             style={{ width: '120px' }} 
         />
         
@@ -75,3 +93,5 @@ export const FilterBar: React.FC<FilterBarProps> = ({ onFilterChange }) => {
     </div>
   );
 };
+
+export default FilterBar;

@@ -1,12 +1,11 @@
 import React from 'react';
-import type { LoadData, PageType, NavigationPayload } from '../../utils/types';
+import type { LoadListVm } from '../../api/types';
 
 interface LoadsTableProps {
-  loads: LoadData[];
+  loads: LoadListVm[];
   selectedId: string;
   onSelect: (id: string) => void;
   onNavigateDetails: (id: string) => void;
-  onNavigate?: (page: PageType, payload?: NavigationPayload) => void;
 }
 
 export const LoadsTable: React.FC<LoadsTableProps> = ({ 
@@ -16,60 +15,74 @@ export const LoadsTable: React.FC<LoadsTableProps> = ({
   onNavigateDetails 
 }) => {
   return (
-    <table className="loads-table">
+    <table className="loads-table figma-table">
       <thead>
         <tr>
-          <th>ID</th>
+          <th style={{ paddingLeft: '24px' }}>ID</th>
           <th>Lane</th>
           <th>Date</th>
           <th>Cargo</th>
           <th>Vehicle</th>
           <th>Price</th>
           <th>Match</th>
-          <th></th>
+          <th style={{ paddingRight: '24px' }}></th>
         </tr>
       </thead>
       <tbody>
-        {loads.map((load) => (
-          <tr 
-            key={load.id} 
-            onClick={() => onSelect(load.id)}
-            onDoubleClick={() => onNavigateDetails(load.id)}
-            className={selectedId === load.id ? 'selected' : ''}
-            style={{ cursor: 'pointer' }}
-          >
-            <td>
-              <span className="load-id">{load.id}</span>
-              <div className="load-company">{load.company}</div>
-            </td>
-            <td>
-              <div className="route-info">
-                <div className="route-from">
-                  <div className="route-dot-blue"></div> {load.from}
+        {loads.map((load) => {
+          // Безопасное чтение данных в зависимости от того, как отдает бэкенд
+          const startCity = (load as any).startCity || (load as any).from || 'Origin';
+          const endCity = (load as any).endCity || (load as any).to || 'Destination';
+          const company = (load as any).company || (load as any).companyName || 'Verified Shipper';
+          
+          return (
+            <tr 
+              key={load.id} 
+              onClick={() => onSelect(load.id)}
+              onDoubleClick={() => onNavigateDetails(load.id)}
+              className={selectedId === load.id ? 'selected' : ''}
+              style={{ cursor: 'pointer' }}
+            >
+              <td style={{ paddingLeft: '24px' }}>
+                <span className="load-id">{load.id.substring(0, 8).toUpperCase()}</span>
+                <div className="load-company" style={{ fontSize: '12px', color: '#5C6470', marginTop: '4px' }}>{company}</div>
+              </td>
+              <td>
+                <div className="route-info" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div className="route-from" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500 }}>
+                    <div className="route-dot-blue" style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#3D5AFE' }}></div> {startCity}
+                  </div>
+                  <div className="route-to" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500, color: '#5C6470' }}>
+                    <div className="route-dot-green" style={{ width: '8px', height: '8px', borderRadius: '50%', border: '2px solid #059669' }}></div> {endCity}
+                  </div>
                 </div>
-                <div className="route-to">
-                  <div className="route-dot-green"></div> {load.to}
-                </div>
-              </div>
-            </td>
-            <td className="date-cell">{load.dateStart}</td>
-            <td><span className="cargo-tag">{load.cargo}</span></td>
-            <td><span className="vehicle-tag">{load.vehicle}</span></td>
-            <td className="price-cell">{load.price}</td>
-            <td>{load.match}%</td>
-            <td>
-              <button 
-                className="more-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNavigateDetails(load.id);
-                }}
-              >
-                ⋯
-              </button>
-            </td>
-          </tr>
-        ))}
+              </td>
+              <td className="date-cell" style={{ color: '#5C6470' }}>
+                 {load.dateStart ? new Date(load.dateStart).toLocaleDateString() : 'Flexible'}
+              </td>
+              <td><span className="cargo-tag" style={{ background: '#F6F7FB', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 500 }}>{load.cargo || 'General'}</span></td>
+              <td><span className="vehicle-tag" style={{ color: '#5C6470', fontSize: '13px' }}>{load.recommendedVehicle || 'Tautliner'}</span></td>
+              <td className="price-cell" style={{ fontWeight: 600, color: '#0E1116' }}>€{load.price || 'Offer'}</td>
+              <td>
+                 <span style={{ background: '#ECFDF5', color: '#059669', padding: '4px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '12px' }}>
+                   98%
+                 </span>
+              </td>
+              <td style={{ textAlign: 'right', paddingRight: '24px' }}>
+                <button 
+                  className="more-btn"
+                  style={{ background: 'transparent', border: 'none', fontSize: '18px', color: '#A0AAB9', cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNavigateDetails(load.id);
+                  }}
+                >
+                  ⋯
+                </button>
+              </td>
+            </tr>
+          );
+        })}
       </tbody>
     </table>
   );

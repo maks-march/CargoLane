@@ -70,22 +70,6 @@ interface UserDetailsVm {
   updated: string;
 }
 
-
-
-// Load types
-export type { 
-  CreateLoadCommand,
-  CreateLoadDraftCommand,
-  UpdateLoadDraftCommand,
-  LoadDraftVm,
-  LoadDetailsVm,
-  LoadListVm,
-  PayloadInputDto,
-  RoutePointInputDto,
-  LoadDraftRoutePoint,
-  RoutePointDraftVm
-};
-
 interface PayloadInputDto {
   length: number;
   width: number;

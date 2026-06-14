@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import type { AuthResponse } from '../api/types';
-import { authService } from '../services/auth.service';
+import { persist } from 'zustand/middleware';
+import { authService, type LoginCommand } from '../services/auth.service';
 
 interface AuthState {
   user: {
@@ -9,36 +9,47 @@ interface AuthState {
   } | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (tokens: AuthResponse) => void;
+  login: (data: LoginCommand) => Promise<void>;
   logout: () => void;
   initialize: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
-  login: (tokens: AuthResponse) => {
-    set({
-      user: tokens.userId ? { id: tokens.userId, name: tokens.userName } : null,
-      isAuthenticated: !!tokens.accessToken,
-      isLoading: false,
-    });
-  },
-  logout: () => {
-    authService.logout();
-    set({ user: null, isAuthenticated: false, isLoading: false });
-  },
-  initialize: () => {
-    const tokens = authService.getCurrentUserTokens();
-    if (tokens && tokens.accessToken) {
-      set({
-        user: { id: tokens.userId, name: tokens.userName },
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } else {
-      set({ user: null, isAuthenticated: false, isLoading: false });
-    }
-  },
-}));
+const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      user: null,
+      isAuthenticated: false,
+      isLoading: true,
+      
+      login: async (data: LoginCommand) => {
+        const tokens = await authService.login(data);
+        set({
+          user: tokens.userId ? { id: tokens.userId, name: tokens.username } : null,
+          isAuthenticated: !!tokens.token,
+          isLoading: false,
+        });
+      },
+      
+      logout: () => {
+        authService.logout();
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      },
+      
+      initialize: () => {
+        const tokens = authService.getCurrentUserTokens();
+        if (tokens && tokens.token) {
+          set({
+            user: { id: tokens.userId, name: tokens.username },
+            isAuthenticated: true,
+            isLoading: false,
+          });
+        } else {
+          set({ user: null, isAuthenticated: false, isLoading: false });
+        }
+      },
+    }),
+    { name: 'auth-storage' }
+  )
+);
+
+export default useAuthStore;
