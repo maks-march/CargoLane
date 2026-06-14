@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Application.DTO.Chat;
 using FluentAssertions;
 
 namespace ApplicationTest.IntegrationTests.Chat;

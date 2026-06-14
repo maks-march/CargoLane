@@ -46,12 +46,13 @@
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AThrowHelper_002Ecs_002Fl_003AC_0021_003FUsers_003Fmarch_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E2_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003F5a6236cfdac448ffada1671fabc4404ef49908_003F75_003F7e8a97ab_003FThrowHelper_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AValueTask_00601_002Ecs_002Fl_003AC_0021_003FUsers_003Fmarch_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E2_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003F5a6236cfdac448ffada1671fabc4404ef49908_003F42_003F7b48fea7_003FValueTask_00601_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
 	<s:String x:Key="/Default/CodeInspection/ExcludedFiles/FilesAndFoldersToSkip2/=7020124F_002D9FFC_002D4AC3_002D8F3D_002DAAB8E0240759_002Ff_003AWebApplicationFactory_00601_002Ecs_002Fl_003AC_0021_003FUsers_003Fmarch_003FAppData_003FRoaming_003FJetBrains_003FRider2025_002E2_003Fresharper_002Dhost_003FDecompilerCache_003Fdecompiler_003Fcaaf9dc08cf54679b77c695cb40de12810710_003Fbf_003F59f892e8_003FWebApplicationFactory_00601_002Ecs/@EntryIndexedValue">ForceIncluded</s:String>
-	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=8e4a1c09_002Ddc83_002D4b3f_002D9bf1_002D3086e5d1eaef/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="Session" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
-  &lt;And&gt;&#xD;
-    &lt;Namespace&gt;ApplicationTest.IntegrationTests&lt;/Namespace&gt;&#xD;
-    &lt;Project Location="D:\progs\CSharp\CargoLane\backend\Tests\ApplicationTest" Presentation="&amp;lt;ApplicationTest&amp;gt;" /&gt;&#xD;
-  &lt;/And&gt;&#xD;
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=1f63f628_002D08b1_002D4472_002D8e67_002D27cfc0c24519/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" IsActive="True" Name="All tests from &amp;lt;ApplicationTest&amp;gt; #2" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;Project Location="D:\progs\CSharp\CargoLane\backend\Tests\ApplicationTest" Presentation="&amp;lt;ApplicationTest&amp;gt;" /&gt;&#xD;
 &lt;/SessionState&gt;</s:String>
+	<s:String x:Key="/Default/Environment/UnitTesting/UnitTestSessionStore/Sessions/=5eb693d4_002D21c9_002D461e_002D9a31_002D46816d699201/@EntryIndexedValue">&lt;SessionState ContinuousTestingMode="0" Name="All tests from &amp;lt;ApplicationTest&amp;gt;" xmlns="urn:schemas-jetbrains-com:jetbrains-ut-session"&gt;&#xD;
+  &lt;Project Location="D:\progs\CSharp\CargoLane\backend\Tests\ApplicationTest" Presentation="&amp;lt;ApplicationTest&amp;gt;" /&gt;&#xD;
+&lt;/SessionState&gt;</s:String>
+	
 	
 	
 	
