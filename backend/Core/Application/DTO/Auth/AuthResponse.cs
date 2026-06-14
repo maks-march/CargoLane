@@ -4,5 +4,6 @@ public record AuthResponse(
     string AccessToken,
     string RefreshToken,
     Guid UserId,
-    string? UserName
+    string? UserName,
+    string? Role = null
 );

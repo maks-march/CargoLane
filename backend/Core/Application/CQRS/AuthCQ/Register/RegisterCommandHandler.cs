@@ -10,9 +10,9 @@ public class RegisterCommandHandler(
     IJwtProvider jwtProvider,
     IEmailService emailService,
     UserManager<ApplicationUser> userManager)
-    : IRequestHandler<RegisterCommand, (bool Succeeded, Guid Id, string Token)>
+    : IRequestHandler<RegisterCommand, RegisterResponse>
 {
-    public async Task<(bool Succeeded, Guid Id, string Token)> Handle(RegisterCommand request, CancellationToken cancellationToken)
+    public async Task<RegisterResponse> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
         var existingAppUser = await userManager.FindByEmailAsync(request.Login);
         if (existingAppUser != null && existingAppUser.EmailConfirmed)
@@ -21,9 +21,11 @@ public class RegisterCommandHandler(
         if (existingAppUser != null)
             await identityService.DeleteUser(existingAppUser.Id);
         
-        // 1. Создаем пользователя через наш сервис
+        // 1. Создаем пользователя через наш сервис (используем Username из команды)
+        var name = request.Username ?? string.Empty;
+        var surname = string.Empty;
         var (succeeded, errors, userId) = await identityService.CreateUserAsync(
-            request.Login, request.Password, "", "");
+            request.Login, request.Password, name, surname);
         
         if (!succeeded)
         {
@@ -47,7 +49,7 @@ public class RegisterCommandHandler(
             await identityService.DeleteUser(userId);
             throw new InvalidOperationException("Failed to send confirmation email.");
         }
-        return (true, userId, token);
+        return new(true, userId, token);
         // // 3. Генерируем токены
         // var accessToken = jwtProvider.GenerateAccessToken(appUser);
         // var refreshToken = jwtProvider.GenerateRefreshToken();

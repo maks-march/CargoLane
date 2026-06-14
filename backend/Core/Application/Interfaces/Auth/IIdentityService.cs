@@ -17,4 +17,11 @@ public interface IIdentityService
     Task<(bool Succeeded, string[] Errors)> ConfirmEmailAsync(Guid userId, string token);
 
     Task<(bool Succeeded, string[] Errors)> DeleteUser(Guid userId);
+
+    Task<(bool Succeeded, string[] Errors, string? ResetToken)> GeneratePasswordResetTokenAsync(string email);
+
+    Task<(bool Succeeded, string[] Errors)> ResetPasswordAsync(string email, string resetToken, string newPassword);
+
+    Task<(bool Succeeded, string[] Errors)> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
+
 }
