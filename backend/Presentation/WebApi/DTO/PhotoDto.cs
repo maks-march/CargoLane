@@ -2,8 +2,7 @@ using Microsoft.AspNetCore.Http;
 
 namespace WebApi.DTO;
 
-public class PhotoDto
+public record PhotoDto
 {
-    public IFormFile? Avatar { get; set; }
-    public IFormFile[]? Photos { get; set; }
+    public required IFormFile Photo { get; set; }
 }

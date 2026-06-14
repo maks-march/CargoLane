@@ -11,8 +11,8 @@ public class UploadUserAvatarValidator : AbstractValidator<UploadUserAvatarComma
             .WithMessage("Avatar file is required");
 
         RuleFor(x => x.Avatar!.Length)
-            .LessThanOrEqualTo(5 * 1024 * 1024) // 5 MB
-            .WithMessage("Avatar size must be less than 5 MB")
+            .LessThanOrEqualTo(25 * 1024 * 1024) // 5 MB
+            .WithMessage("Avatar size must be less than 25 MB")
             .When(x => x.Avatar != null);
 
         RuleFor(x => x.Avatar!.ContentType)

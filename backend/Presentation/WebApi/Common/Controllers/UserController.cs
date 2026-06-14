@@ -18,6 +18,9 @@ namespace WebApi.Common.Controllers;
 [Authorize]
 public class UserController(IMediator mediator) : BaseController(mediator)
 {
+    #region old
+    
+    
     [AllowAnonymous]
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<UserDetailsVm>> Get(Guid id)
@@ -58,8 +61,18 @@ public class UserController(IMediator mediator) : BaseController(mediator)
         await Mediator.Send(new DeleteUserCommand { Id = UserId });
         return NoContent();
     }
+    
+    [HttpPatch("me")]
+    public async Task<ActionResult<Guid>> UpdateMe([FromBody] UpdateUserCommand command)
+    {
+        if (UserId == Guid.Empty) return Unauthorized();
+        command.Id = UserId;
+        return Ok(await Mediator.Send(command));
+    }
+    
+    
+    #endregion
 
-    // === Profile ===
     [HttpPut("profile")]
     public async Task<ActionResult<Guid>> UpdateProfile([FromBody] UpdateUserProfileCommand command)
     {
@@ -68,7 +81,6 @@ public class UserController(IMediator mediator) : BaseController(mediator)
         return Ok(await Mediator.Send(command));
     }
 
-    // === Company ===
     [HttpPut("company")]
     public async Task<ActionResult<Guid>> UpdateCompany([FromBody] UpdateUserCompanyCommand command)
     {
@@ -77,15 +89,13 @@ public class UserController(IMediator mediator) : BaseController(mediator)
         return Ok(await Mediator.Send(command));
     }
 
-    // === Avatar ===
+    
     [HttpPost("avatar")]
-    public async Task<IActionResult> UploadAvatar([FromForm] PhotoDto photos)
+    public async Task<IActionResult> UploadAvatar([FromForm] PhotoDto avatar)
     {
         if (UserId == Guid.Empty) return Unauthorized();
-        if (photos?.Photos == null || photos.Photos.Length == 0)
-            return BadRequest(new ErrorResponse { Error = "Avatar file is required" });
 
-        await Mediator.Send(new UploadUserAvatarCommand { UserId = UserId, Avatar = photos.Photos[0] });
+        await Mediator.Send(new UploadUserAvatarCommand { UserId = UserId, Avatar = avatar.Photo });
         return NoContent();
     }
 
@@ -97,12 +107,5 @@ public class UserController(IMediator mediator) : BaseController(mediator)
         return NoContent();
     }
 
-    // Legacy
-    [HttpPatch("me")]
-    public async Task<ActionResult<Guid>> UpdateMe([FromBody] UpdateUserCommand command)
-    {
-        if (UserId == Guid.Empty) return Unauthorized();
-        command.Id = UserId;
-        return Ok(await Mediator.Send(command));
-    }
+
 }

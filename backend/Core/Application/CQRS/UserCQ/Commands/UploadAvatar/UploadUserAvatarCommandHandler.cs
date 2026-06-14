@@ -13,33 +13,24 @@ public class UploadUserAvatarCommandHandler(
 {
     public async Task<string> Handle(UploadUserAvatarCommand request, CancellationToken cancellationToken)
     {
-        if (request.Avatar == null)
-            throw new InvalidOperationException("Avatar file is required");
-
-        var user = await dbContext.BusinessUsers
-            .Include(u => u.Avatar)
+        
+        var user = await dbContext.GetDbSet<User>()
+            .Include(x => x.Avatar)
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
-
         if (user == null)
-            throw new NotFoundException(nameof(User), request.UserId);
-
-        // Удаляем старый аватар, если есть
+            throw new NotFoundException(nameof(user), request.UserId);
+        var save = await fileService.SaveFiles(cancellationToken, request.Avatar);
+        if (save.Length == 0)
+            throw new InvalidOperationException("Failed to save avatar file");
         if (user.Avatar != null)
         {
             await fileService.DeleteFiles(cancellationToken, user.Avatar.FilePath);
-            dbContext.UserFiles.Remove(user.Avatar);
-            user.Avatar = null;
-            user.AvatarId = null;
+            dbContext.GetDbSet<UserFile>().Remove(user.Avatar);
         }
-
-        // Сохраняем новый файл
-        var savedPaths = await fileService.SaveFiles(cancellationToken, request.Avatar);
-        if (savedPaths.Length == 0)
-            throw new InvalidOperationException("Failed to save avatar file");
-
+        
         var newFile = new UserFile
         {
-            FilePath = savedPaths[0],
+            FilePath = save[0],
             OwnerId = user.Id,
             Owner = user
         };
@@ -51,7 +42,6 @@ public class UploadUserAvatarCommandHandler(
         user.Updated = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync(cancellationToken);
-
         return newFile.FilePath;
     }
 }
