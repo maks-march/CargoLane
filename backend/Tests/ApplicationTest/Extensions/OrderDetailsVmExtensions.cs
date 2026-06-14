@@ -1,6 +1,4 @@
-using Application.DTO.Order;
-using Domain.Enums;
-using FluentAssertions;
+/*using Domain.Enums;
 
 namespace ApplicationTest.Extensions;
 
@@ -113,4 +111,4 @@ public static class OrderDetailsVmExtensions
 
         return true;
     }
-}
+}*/

@@ -16,7 +16,7 @@ namespace ApplicationTest.Common;
 [TestFixture]
 public abstract class BaseIntegrationTest
 {
-    private TestWebApplicationFactory<Program> _factory;
+    protected TestWebApplicationFactory<Program> _factory;
     protected HttpClient Client;
     protected IFileService FileService;
     protected IMediator Mediator;
@@ -30,7 +30,7 @@ public abstract class BaseIntegrationTest
     {
         _factory = new TestWebApplicationFactory<Program>();
         Client = _factory.CreateClient();
-        Mediator =  _factory.Services.GetService<IMediator>() ?? new MediatR.Mediator(_factory.Services);
+        Mediator = _factory.Services.GetService<IMediator>() ?? new MediatR.Mediator(_factory.Services);
         FileService = _factory.Services.GetService<IFileService>() 
             ?? throw new NullReferenceException("File service not found in DI");
         

@@ -1,7 +1,5 @@
-using Domain.Enums;
 using Domain.Enums.Load;
 using Domain.Models.Abstract;
-using Domain.Models.Order;
 
 namespace Domain.Models.Load;
 

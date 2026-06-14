@@ -15,6 +15,9 @@ public class RegisterCommandHandler(
     public async Task<(bool Succeeded, Guid Id, string Token)> Handle(RegisterCommand request, CancellationToken cancellationToken)
     {
         var existingAppUser = await userManager.FindByEmailAsync(request.Login);
+        if (existingAppUser != null && existingAppUser.EmailConfirmed)
+            throw new InvalidOperationException("User already exists");
+        
         if (existingAppUser != null)
             await identityService.DeleteUser(existingAppUser.Id);
         

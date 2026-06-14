@@ -17,7 +17,7 @@ public class UpdateUserCommandHandler(IAppDbContext dbContext, IMapper mapper)
             throw new NotFoundException(nameof(User), request.Id);
         }
         mapper.Map(request, user);
-        user.Updated = DateTime.Now;
+        user.Updated = DateTime.UtcNow;
         
         dbContext.BusinessUsers.Update(user);
         await dbContext.SaveChangesAsync(cancellationToken);
