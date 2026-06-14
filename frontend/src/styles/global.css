@@ -2073,9 +2073,10 @@ body {
     }
 
     .create-header-title {
-        font-size: 20px;
-        font-weight: 600;
-        color: #0E1116;
+        font-size: 24px;
+        font-weight: 400;
+        color: rgb(14, 17, 22);
+        letter-spacing: -1px;
         margin-top: 4px;
     }
 

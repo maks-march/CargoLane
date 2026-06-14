@@ -163,5 +163,38 @@ export const loadsService = {
     } catch {
       return [];
     }
+  },
+
+  /**
+   * === НОВАЯ ЛОГИКА ДЛЯ SAVED SEARCHES / LOADS ===
+   */
+  
+  /**
+   * Получение сохраненных грузов текущего пользователя
+   */
+  getSavedLoads: async (params?: any): Promise<LoadListVm[]> => {
+    try {
+      // БЕКЕНДЕРУ: Заменить на реальный эндпоинт для сохраненных грузов
+      const response = await apiClient.get('/Load/saved', { params });
+      return response.data;
+    } catch {
+      return []; // Возвращаем пустой массив, пока бэкенд не готов
+    }
+  },
+
+  /**
+   * Добавление/Удаление груза из сохраненных
+   */
+  toggleSaveLoad: async (id: string, isCurrentlySaved: boolean): Promise<void> => {
+    try {
+      // БЕКЕНДЕРУ: Настроить реальные эндпоинты добавления/удаления из закладок
+      if (isCurrentlySaved) {
+        await apiClient.delete(`/Load/${id}/save`);
+      } else {
+        await apiClient.post(`/Load/${id}/save`);
+      }
+    } catch (error) {
+      console.warn("Save load endpoint not ready yet", error);
+    }
   }
 };

@@ -87,13 +87,12 @@ export const SearchPage: React.FC = () => {
     navigate(`/load-details?loadId=${loadId}`);
   };
 
-  // Возвращаем ТОЛЬКО контент страницы (без дублирования dashboard-page и dash-main)
-  // КЛЮЧЕВАЯ ДОРАБОТКА: Возвращена высота 100vh и стили для флекс-контейнера на весь экран.
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', overflow: 'hidden', background: '#F6F7FB' }}>
       
-      <header className="dash-header" style={{ padding: '16px 32px', borderBottom: '1px solid #E6E8EE', background: 'white' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+      {/* ХЕДЕР */}
+      <header className="dash-header" style={{ padding: '16px 32px', borderBottom: '1px solid #E6E8EE', background: 'white', flexShrink: 0, boxSizing: 'border-box' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
             <div className="dash-breadcrumb">
               <span style={{ color: '#A0AAB9', cursor: 'default' }}>Marketplace</span>
@@ -103,7 +102,7 @@ export const SearchPage: React.FC = () => {
             <h1 className="dash-title" style={{ fontSize: '24px', fontWeight: 400, color: '#0E1116', letterSpacing:'-1px',marginTop: '4px' }}>Load board</h1>
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
             <div style={{ position: 'relative' }}>
               <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#A0AAB9' }}>🔍</span>
               <input 
@@ -111,13 +110,13 @@ export const SearchPage: React.FC = () => {
                 placeholder="Search lanes, cargo, ID..." 
                 value={filters.query || ''}
                 onChange={(e) => setFilters({...filters, query: e.target.value})}
-                style={{ padding: '10px 16px 10px 36px', border: '1px solid #E6E8EE', borderRadius: '8px', width: '280px', fontSize: '14px', outline: 'none' }} 
+                style={{ padding: '10px 16px 10px 36px', border: '1px solid #E6E8EE', borderRadius: '8px', width: '280px', maxWidth: '100%', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} 
               />
             </div>
             <button 
               className="btn-figma-primary" 
               onClick={() => navigate('/create-load')} 
-              style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#3D5AFE', color: 'white', fontWeight: 400, cursor: 'pointer' }}
+              style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#3D5AFE', color: 'white', fontWeight: 400, cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
               + Post load
             </button>
@@ -125,9 +124,11 @@ export const SearchPage: React.FC = () => {
         </div>
       </header>
 
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+      {/* АДАПТИВНЫЙ КОНТЕЙНЕР (СКОПИРОВАН ИЗ SAVED PAGE) */}
+      <div className="split-layout-container">
         
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'white', padding: '24px 32px', overflowY: 'auto' }}>
+        {/* ЛЕВАЯ ЧАСТЬ С ТАБЛИЦЕЙ */}
+        <div className="split-layout-left">
           
           <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
             <div className="filter-select-wrapper">
@@ -175,8 +176,8 @@ export const SearchPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ flex: 1, overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+          <div style={{ flex: 1, overflowX: 'auto', width: '100%' }}>
+            <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr>
                   <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Load</th>
@@ -249,13 +250,14 @@ export const SearchPage: React.FC = () => {
           </div>
         </div>
 
-        <aside className="dash-map-panel">
+        {/* ПРАВАЯ ЧАСТЬ С КАРТОЙ */}
+        <aside className="split-layout-right dash-map-panel">
           <div className="dash-map-header">
             <h3>Map preview</h3>
             <span className="dash-map-count">{loads.length} loads</span>
           </div>
           
-          <div className="dash-map-container" style={{ background: '#E8F0E8' }}>
+          <div className="dash-map-container" style={{ background: '#E8F0E8', flex: 1 }}>
             {selectedLoad ? (
               <RoutingMap 
                 stops={[
@@ -266,7 +268,7 @@ export const SearchPage: React.FC = () => {
                 onRouteCalculated={(dist, dur) => setMapData({ distance: dist, duration: dur })}
               />
             ) : (
-              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A0AAB9' }}>Map waiting for data...</div>
+              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#A0AAB9' }}>Select a load to view map...</div>
             )}
           </div>
 
@@ -289,6 +291,62 @@ export const SearchPage: React.FC = () => {
       <style>{`
         .table-row-hover:hover { background-color: #FAFAFA !important; }
         .table-row-selected { background-color: #EEF1FF !important; }
+        ::-webkit-scrollbar { width: 0px; height: 0px; background: transparent; }
+        * { scrollbar-width: none; -ms-overflow-style: none; }
+
+        /* ИДЕАЛЬНАЯ АДАПТИВНАЯ ЛОГИКА ИЗ SAVED PAGE */
+        .split-layout-container {
+          display: flex;
+          flex-direction: row;
+          flex: 1;
+          width: 100%;
+          overflow: hidden;
+        }
+        
+        .split-layout-left {
+          flex: 1.5 1 600px !important; 
+          display: flex;
+          flex-direction: column;
+          background: white;
+          padding: 24px 32px;
+          overflow-y: auto;
+          min-width: 0;
+          min-height: 350px !important; 
+        }
+        
+        .split-layout-right {
+          flex: 1 1 400px !important; 
+          display: flex;
+          flex-direction: column;
+          background: white;
+          border-left: 1px solid #E6E8EE;
+          min-height: 350px !important; 
+        }
+
+        @media (max-width: 1200px) {
+          .split-layout-container {
+            flex-direction: column !important;
+            overflow-y: auto !important; 
+            overflow-x: hidden !important;
+          }
+          
+          .split-layout-left {
+            flex: 1 0 400px !important; 
+            min-height: 400px !important; 
+            padding: 16px 32px !important;
+            border-bottom: 1px solid #E6E8EE !important;
+            width: 100% !important;
+            max-width: 100% !important;
+          }
+          
+          .split-layout-right {
+            flex: 1 0 450px !important; 
+            min-height: 450px !important; 
+            width: 100% !important; 
+            max-width: 100% !important;
+            border-left: none !important;
+          }
+        }
       `}</style>
     </div>
   );
