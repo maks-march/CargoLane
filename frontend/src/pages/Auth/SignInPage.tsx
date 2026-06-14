@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import useAuthStore from '../../store/auth.store';
+import { RoutingMap } from '../../components/UI/RoutingMap';
+import { loadsService } from '../../services/loadsService';
 
 export const SignInPage: React.FC = () => {
   const navigate = useNavigate();
@@ -12,12 +14,35 @@ export const SignInPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [backgroundStops, setBackgroundStops] = useState<any[]>([
+    { address: 'Rotterdam', type: 'start' },
+    { address: 'Warsaw', type: 'end' }
+  ]);
+
+  useEffect(() => {
+    const fetchLatestRoute = async () => {
+      try {
+        const data = await loadsService.getAllLoads();
+        if (data && data.length > 0) {
+          const latestLoad = data[data.length - 1];
+          
+          if (latestLoad.from && latestLoad.to) {
+            setBackgroundStops([
+              { address: latestLoad.from.split(',')[0], type: 'start' },
+              { address: latestLoad.to.split(',')[0], type: 'end' }
+            ]);
+          }
+        }
+      } catch (err) {
+        console.warn('Backend is down or empty. Using default background route.');
+      }
+    };
+    fetchLatestRoute();
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Please fill in all fields.');
-      return;
-    }
+    if (!email || !password) return;
 
     setLoading(true);
     setError('');
@@ -37,6 +62,9 @@ export const SignInPage: React.FC = () => {
     }
   };
 
+  // Проверка: заполнены ли все поля
+  const isFormValid = email.trim() !== '' && password.trim() !== '';
+
   return (
     <div className="auth-page active">
       <div className="auth-left" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -48,7 +76,11 @@ export const SignInPage: React.FC = () => {
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-subtitle">Enter your details to sign in to your account</p>
 
-          {error && <div style={{ color: '#EF4444', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#FEF2F2', borderRadius: '8px' }}>{error}</div>}
+          {error && (
+            <div style={{ color: '#EF4444', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#FEF2F2', borderRadius: '8px' }}>
+              {error}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">
@@ -63,7 +95,7 @@ export const SignInPage: React.FC = () => {
               />
             </div>
             <div className="form-group">
-              <div className="form-label">
+              <div className="form-label" style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                 <label>Password</label>
                 <Link to="/recovery" className="link">Forgot?</Link>
               </div>
@@ -76,18 +108,25 @@ export const SignInPage: React.FC = () => {
                 required 
               />
             </div>
-            <button className="form-submit" type="submit" disabled={loading}>
+            
+            <button 
+              className="form-submit" 
+              type="submit" 
+              disabled={loading || !isFormValid} 
+              style={{ 
+                marginTop: '8px', 
+                opacity: (!isFormValid || loading) ? 0.6 : 1, 
+                cursor: (!isFormValid || loading) ? 'not-allowed' : 'pointer',
+                transition: 'opacity 0.2s'
+              }}
+            >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </form>
 
-          <div className="divider">or</div>
-          <button className="google-btn">
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" style={{width: '20px'}}/>
-            Sign in with Google
-          </button>
-
-          <p className="auth-footer-text">Don't have an account? <Link to="/register" className="link">Sign up</Link></p>
+          <p className="auth-footer-text" style={{ marginTop: '24px' }}>
+            Don't have an account? <Link to="/register" className="link">Sign up</Link>
+          </p>
         </div>
 
         <div className="auth-bottom" style={{ position: 'absolute', bottom: '32px', left: '48px', right: '48px', display: 'flex', justifyContent: 'space-between', color: '#5C6470', fontSize: '14px' }}>
@@ -96,11 +135,11 @@ export const SignInPage: React.FC = () => {
         </div>
       </div>
 
-      <div className="auth-right">
-        <img src="/src/assets/hero.png" alt="Truck" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-        <div className="auth-right-overlay"></div>
-        <div className="auth-right-content">
-          <div className="growth-badge">New routes available</div>
+      <div className="auth-right" style={{ position: 'relative', overflow: 'hidden' }}>
+        <RoutingMap stops={backgroundStops} hideFloatingWidget={true} />
+        <div className="auth-right-overlay" style={{ pointerEvents: 'none' }}></div>
+        <div className="auth-right-content" style={{ zIndex: 10, position: 'absolute' }}>
+          <div className="growth-badge">Live Network Map</div>
           <h2 className="auth-right-title">Manage your logistics <br/><span className="light">efficiently.</span></h2>
           <p className="auth-right-desc">Join thousands of carriers and shippers connecting daily across the EU network.</p>
         </div>

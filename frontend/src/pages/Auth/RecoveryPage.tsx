@@ -1,14 +1,88 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { RoutingMap } from '../../components/UI/RoutingMap';
+import { loadsService } from '../../services/loadsService';
 
 export const RecoveryPage: React.FC = () => {
   const navigate = useNavigate();
+  
+  const [email, setEmail] = useState('');
+  const [code, setCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const [timer, setTimer] = useState(0);
+  const [isCodeSent, setIsCodeSent] = useState(false);
+
+  const [backgroundStops, setBackgroundStops] = useState<any[]>([
+    { address: 'Brussels', type: 'start' },
+    { address: 'Frankfurt', type: 'end' }
+  ]);
+
+  useEffect(() => {
+    const fetchLatestRoute = async () => {
+      try {
+        const data = await loadsService.getAllLoads();
+        if (data && data.length > 0) {
+          const latestLoad = data[data.length - 1];
+          
+          if (latestLoad.from && latestLoad.to) {
+            setBackgroundStops([
+              { address: latestLoad.from.split(',')[0], type: 'start' },
+              { address: latestLoad.to.split(',')[0], type: 'end' }
+            ]);
+          }
+        }
+      } catch (err) {
+        console.warn('Using default background route for recovery page.');
+      }
+    };
+    fetchLatestRoute();
+  }, []);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
+
+  // Проверка: является ли введенный текст валидным Email
+  const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  const handleSendCode = () => {
+    if (!isEmailValid) return;
+    setIsCodeSent(true);
+    setTimer(60); 
+    setMessage('Verification code sent to your email.');
+    // TODO: Здесь бэкендер добавит запрос API на отправку кода
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Заглушка, потом подключишь бэкенд
-    navigate('/login');
+    if (!email || !code || !newPassword || !confirmPassword) return;
+
+    if (newPassword !== confirmPassword) {
+      setMessage('Passwords do not match.');
+      return;
+    }
+
+    setLoading(true);
+    setTimeout(() => {
+      setMessage('Password successfully reset! You can now log in.');
+      setLoading(false);
+      setTimeout(() => navigate('/login'), 2000);
+    }, 1500);
   };
+
+  // Проверка: заполнены ли все 4 поля для финальной кнопки
+  const isFormValid = email.trim() !== '' && code.trim() !== '' && newPassword.trim() !== '' && confirmPassword.trim() !== '';
 
   return (
     <div className="auth-page active">
@@ -18,48 +92,129 @@ export const RecoveryPage: React.FC = () => {
             <div className="logo-icon">▲</div>
             Cargolane
           </div>
-          <h1 className="auth-title">Password recovery</h1>
-          
-          <form onSubmit={handleSubmit} style={{ marginTop: '24px' }}>
-            <div className="form-group">
-              <div className="form-label"><label>Your email</label></div>
-              <input type="email" className="form-input" defaultValue="elena@nordhafen.de" />
+          <h1 className="auth-title">Reset password</h1>
+          <p className="auth-subtitle">Enter your email to receive a code and set a new password</p>
+
+          {message && (
+            <div style={{ color: '#059669', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#ECFDF5', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
+              {message}
             </div>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            
             <div className="form-group">
-              <div className="form-label">
-                <label>Code</label>
-                <span className="resend-link" style={{ color: '#3D5AFE', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}>Resend</span>
+              <div className="form-label"><label>Email address</label></div>
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input 
+                  type="email" 
+                  className="form-input" 
+                  placeholder="name@company.com" 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
+                  style={{ width: '100%', paddingRight: '80px' }} 
+                  required 
+                />
+                
+                {timer > 0 ? (
+                  <span style={{ position: 'absolute', right: '16px', color: '#A0AAB9', fontSize: '14px', fontWeight: 600 }}>
+                    0:{timer < 10 ? `0${timer}` : timer}
+                  </span>
+                ) : (
+                  <button 
+                    type="button" 
+                    onClick={handleSendCode}
+                    disabled={!isEmailValid}
+                    style={{ 
+                      position: 'absolute', 
+                      right: '6px', 
+                      background: '#EEF1FF', 
+                      color: '#3D5AFE', 
+                      border: 'none', 
+                      padding: '6px 12px', 
+                      borderRadius: '6px', 
+                      fontSize: '12px', 
+                      fontWeight: 600, 
+                      cursor: !isEmailValid ? 'not-allowed' : 'pointer',
+                      opacity: !isEmailValid ? 0.5 : 1,
+                      transition: 'opacity 0.2s'
+                    }}
+                  >
+                    {isCodeSent ? 'Resend' : 'Send'}
+                  </button>
+                )}
               </div>
-              <input type="text" className="form-input" defaultValue="A1B2C3" />
             </div>
+
             <div className="form-group">
-              <div className="form-label"><label>New password</label></div>
-              <input type="password" className="form-input" defaultValue="••••••••••" />
+              <div className="form-label"><label>Verification Code</label></div>
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="Enter 6-digit code" 
+                value={code} 
+                onChange={(e) => setCode(e.target.value)} 
+                required 
+              />
             </div>
+
             <div className="form-group">
-              <div className="form-label"><label>Retry new password</label></div>
-              <input type="password" className="form-input" defaultValue="••••••••••" />
+              <div className="form-label"><label>New Password</label></div>
+              <input 
+                type="password" 
+                className="form-input" 
+                placeholder="••••••••" 
+                value={newPassword} 
+                onChange={(e) => setNewPassword(e.target.value)} 
+                required 
+              />
             </div>
-            <button type="submit" className="form-submit">Continue</button>
+
+            <div className="form-group">
+              <div className="form-label"><label>Confirm New Password</label></div>
+              <input 
+                type="password" 
+                className="form-input" 
+                placeholder="••••••••" 
+                value={confirmPassword} 
+                onChange={(e) => setConfirmPassword(e.target.value)} 
+                required 
+              />
+            </div>
+
+            <button 
+              className="form-submit" 
+              type="submit" 
+              disabled={loading || !isFormValid} 
+              style={{ 
+                marginTop: '8px',
+                opacity: (!isFormValid || loading) ? 0.6 : 1, 
+                cursor: (!isFormValid || loading) ? 'not-allowed' : 'pointer',
+                transition: 'opacity 0.2s'
+              }}
+            >
+              {loading ? 'Resetting...' : 'Reset Password'}
+            </button>
           </form>
 
-          <p className="auth-footer-text" style={{ marginTop: '24px' }}>Remember your password? <Link to="/login" className="link">Sign in</Link></p>
+          <p className="auth-footer-text" style={{ marginTop: '24px' }}>
+            Remember your password? <Link to="/login" className="link">Back to sign in</Link>
+          </p>
         </div>
 
         <div className="auth-bottom" style={{ position: 'absolute', bottom: '32px', left: '48px', right: '48px', display: 'flex', justifyContent: 'space-between', color: '#5C6470', fontSize: '14px' }}>
-          <span>© 2026 Cargolane</span>
-          <span className="lang">EN ▾</span>
+          <span>© 2026 CargoLane</span>
+          <span className="lang">English (US)</span>
         </div>
       </div>
-      
-      <div className="auth-right">
-        {/* Картинка с картой из public/assets */}
-        <img src="/src/assets/map.png" alt="Europe map" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-        <div className="auth-right-overlay"></div>
-        <div className="auth-right-content">
-          <div className="growth-badge">12% week-over-week</div>
-          <h2 className="auth-right-title">184,000 loads<br /><span className="light">matched last week.</span></h2>
-          <p className="auth-right-desc">From the North Sea to the Aegean — Cargolane keeps Europe's freight moving securely.</p>
+
+      <div className="auth-right" style={{ position: 'relative', overflow: 'hidden' }}>
+        <RoutingMap stops={backgroundStops} hideFloatingWidget={true} />
+        <div className="auth-right-overlay" style={{ pointerEvents: 'none' }}></div>
+        <div className="auth-right-content" style={{ zIndex: 10, position: 'absolute' }}>
+          <div className="growth-badge">Live Network Map</div>
+          <h2 className="auth-right-title">Manage your logistics <br/><span className="light">efficiently.</span></h2>
+          <p className="auth-right-desc">Join thousands of carriers and shippers connecting daily across the EU network.</p>
         </div>
       </div>
     </div>
