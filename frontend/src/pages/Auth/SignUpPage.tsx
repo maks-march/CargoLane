@@ -89,7 +89,7 @@ export const SignUpPage: React.FC = () => {
               <input 
                 type="text" 
                 className="form-input" 
-                placeholder="John Doe" 
+                placeholder="" 
                 value={username} 
                 onChange={(e) => setUsername(e.target.value)} 
                 required 

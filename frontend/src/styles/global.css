@@ -1,7 +1,18 @@
+html, body {
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+
+*, *::before, *::after {
+    font-family: inherit;
 }
 
 body {
@@ -124,13 +135,15 @@ a {
 .hero {
     display: flex;
     padding: 64px 48px;
-    gap: 48px;
-    max-width: 1400px;
+    gap: ;
+    width: 2500px;
     margin: 0 auto;
+    
 }
 
 .hero-left {
     flex: 1;
+    padding-top: 140px;
     max-width: 520px;
 }
 
@@ -152,7 +165,7 @@ h1 {
     line-height: 1.1;
     font-weight: 600;
     margin-bottom: 20px;
-    letter-spacing: -0.02em;
+    letter-spacing: -2.24px;
 }
 
 h1 .highlight {
@@ -653,7 +666,7 @@ h1 .highlight {
 
 .auth-title {
     font-size: 32px;
-    font-weight: 500;
+    font-weight: 400;
     margin-bottom: 8px;
     letter-spacing: -0.02em;
 }
@@ -662,6 +675,7 @@ h1 .highlight {
     font-size: 15px;
     color: #888;
     margin-bottom: 32px;
+    font-weight: 400;
 }
 
 .google-btn {
@@ -828,10 +842,10 @@ h1 .highlight {
 
 .auth-right-title {
     font-size: 36px;
-    font-weight: 500;
+    font-weight: 400;
     line-height: 1.2;
     margin-bottom: 20px;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.5px;
 }
 
 .auth-right-title .light {

@@ -1,162 +1,227 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { RoutingMap } from '../../components/UI/RoutingMap';
+import { loadsService } from '../../services/loadsService';
+import { Weight } from 'lucide-react';
+
+const formatCount = (num: number): string => {
+  if (num === 0) return '0';
+  if (num < 1000) return num.toString();
+  if (num < 1000000) return Math.floor(num / 1000) + 'K';
+  if (num < 1000000000) return (num / 1000000).toFixed(1).replace('.0', '') + 'M';
+  if (num < 1000000000000) return (num / 1000000000).toFixed(1).replace('.0', '') + 'B';
+  return (num / 1000000000000).toFixed(1).replace('.0', '') + 'T';
+};
+
+const formatMoney = (num: number): string => {
+  if (num === 0) return '€0';
+  if (num < 1000) return '€' + num.toString();
+  if (num < 1000000) return '€' + Math.floor(num / 1000) + 'K';
+  if (num < 1000000000) return '€' + (num / 1000000).toFixed(1).replace('.0', '') + 'M';
+  if (num < 1000000000000) return '€' + (num / 1000000000).toFixed(1).replace('.0', '') + 'B';
+  return '€' + (num / 1000000000000).toFixed(1).replace('.0', '') + 'T';
+};
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  const [routeStops, setRouteStops] = useState<any[]>([]);
+  
+  // Стейт статистики ( carriers теперь '0' по умолчанию )
+  const [stats, setStats] = useState({ loads: '0', carriers: '0', fee: '€0', support: '24/7' });
+
+  // Логика получения статистики с кэшем на 1 час
+  useEffect(() => {
+    const fetchStats = async () => {
+      const cacheKey = 'cargo_stats_cache';
+      const cacheTimeKey = 'cargo_stats_time';
+      const now = new Date().getTime();
+
+      const cachedData = localStorage.getItem(cacheKey);
+      const cachedTime = localStorage.getItem(cacheTimeKey);
+
+      if (cachedData && cachedTime && now - parseInt(cachedTime) < 3600000) {
+        setStats(JSON.parse(cachedData));
+        return;
+      }
+
+      try {
+        const loads = await loadsService.getAllLoads();
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+
+        let totalGMV = 0; // Итоговая сумма денег
+
+        const monthlyLoads = loads.filter((load: any) => {
+          if (!load.dateStart) return false;
+          const loadDate = new Date(load.dateStart);
+          const isThisMonth = loadDate.getMonth() === currentMonth && loadDate.getFullYear() === currentYear;
+          
+          // Плюсуем цену к общей сумме, если груз за этот месяц
+          if (isThisMonth && load.price) {
+            totalGMV += Number(load.price);
+          }
+          
+          return isThisMonth;
+        });
+
+        const newStats = { 
+            loads: formatCount(monthlyLoads.length), 
+            carriers: '0', 
+            fee: formatMoney(totalGMV), 
+            support: '24/7' 
+        };
+        
+        setStats(newStats);
+        localStorage.setItem(cacheKey, JSON.stringify(newStats));
+        localStorage.setItem(cacheTimeKey, now.toString());
+      } catch (e) {
+        console.warn('Backend unavailable');
+      }
+    };
+    fetchStats();
+  }, []);
+
+  const [fromAddress, setFromAddress] = useState('');
+  const [toAddress, setToAddress] = useState('');
+
+  const handleApplyRoute = () => {
+    const newStops = [];
+    if (fromAddress.trim()) newStops.push({ address: fromAddress, type: 'start' });
+    if (toAddress.trim()) newStops.push({ address: toAddress, type: 'end' });
+    setRouteStops(newStops);
+  };
+
+  const isFormValid = fromAddress.trim() !== '' && toAddress.trim() !== '';
 
   return (
-    <div className="page active">
-      {/* NAVBAR */}
-      <nav className="navbar">
+    <div className="page active" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      
+      {/* 1. NAVBAR */}
+      <nav className="navbar" style={{ 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          padding: '20px 2.5%', 
+          width: '100%', 
+          boxSizing: 'border-box',
+          background: '#FAFAFA'
+      }}>
         <div className="nav-left">
           <div className="logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
             <div className="logo-icon">▲</div>
             Cargolane
           </div>
-          <div className="nav-links">
-            <a href="#find-cargo">Find cargo</a>
-            <a href="#find-transport">Find transport</a>
-            <a href="#pricing">Pricing</a>
-            <a href="#about">About</a>
-          </div>
         </div>
-        <div className="nav-right">
-          <div className="lang-selector">🌐 EN</div>
-          <button className="nav-btn" onClick={() => navigate('/login')}>Sign in</button>
+        <div className="nav-right" style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+          <button className="nav-btn" onClick={() => navigate('/login')} style={{ background: 'transparent' }}>Sign in</button>
           <button className="btn-primary" onClick={() => navigate('/register')}>Get started →</button>
         </div>
       </nav>
 
-      {/* HERO SECTION */}
-      <section className="hero">
-        <div className="hero-left">
-          <div className="badge">Now live in 27 EU countries</div>
-          <h1>The freight exchange <span className="highlight">built for Europe.</span></h1>
-          <p className="hero-desc">
+      {/* 2. HERO SECTION */}
+      <section className="hero" style={{ 
+          maxWidth: '2000px', 
+          margin: '0 auto', 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          gap: '250px', 
+          padding: '64px 2.5%',
+          width: '100%',
+          boxSizing: 'border-box'
+      }}>
+        {/* ЛЕВАЯ ЧАСТЬ - Увеличенная ширина для длинных строк, убрана лишняя жирность */}
+        <div className="hero-left" style={{ flex: '1 1 600px', maxWidth: '700px' }}>
+          <h1 style={{fontWeight: '400',fontSize: '67px',  lineHeight: 1.15, marginBottom: '24px' }}>
+            The freight exchange <span className="highlight">built for Europe.</span>
+          </h1>
+          <p className="hero-desc" style={{ fontSize: '23px', lineHeight: 1.6, marginBottom: '32px' }}>
             Match cargo to capacity in seconds. Plan multi-stop routes, calculate volumes automatically, and trade with verified carriers — all GDPR-compliant, in 14 languages.
           </p>
-          <div className="hero-buttons">
-            <button className="btn-primary btn-large" onClick={() => navigate('/register')}>Post a load free →</button>
-            <button className="btn-outline" onClick={() => navigate('/register')}>🚛 I'm a carrier</button>
-          </div>
-          <div className="hero-features">
-            <span>No commission</span>
-            <span>Verified VAT-IDs</span>
-            <span>GDPR-native</span>
+          <div className="hero-buttons" style={{ display: 'flex', gap: '20px', marginBottom: '32px' }}>
+            <button className="btn-primary btn-large" onClick={() => navigate('/register')} style={{ fontWeight:'400', fontSize: '21px', padding: '16px 32px' }}>
+              Post a load free →
+            </button>
           </div>
         </div>
-        <div className="hero-right">
-          <img src="/src/assets/map.png" alt="Europe Map" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        </div>
-      </section>
+        
+        {/* ПРАВАЯ ЧАСТЬ - Интерактивная карта (без изменений) */}
+        <div className="hero-right" style={{ 
+            flex: '1 1 450px', 
+            width: '100%', 
+            height: '600px', 
+            borderRadius: '24px', 
+            overflow: 'hidden', 
+            position: 'relative' 
+        }}>
+          <RoutingMap stops={routeStops} hideFloatingWidget={true} />
+          
+          <div className="search-card" style={{ position: 'absolute', top: '15px', left: '15px', right: 'auto', width: '320px', padding: '24px', borderRadius: '16px', boxShadow: '0 12px 32px rgba(14, 17, 22, 0.12)', background: 'white', zIndex: 1000 }}>
+            <h3 style={{ fontSize: '16px', fontWeight: 500, margin: '0 0 20px 0' }}>Quick search</h3>
+            <form onSubmit={(e) => { e.preventDefault(); navigate('/login'); }} style={{ display: 'flex', flexDirection: 'column', gap: '16px', position: 'relative' }}>
+              
+              <div style={{ position: 'absolute', left: '21px', top: '30px', width: '2px', height: '36px', background: '#E6E8EE', zIndex: 1 }}></div>
 
-      {/* STATS SECTION (Вернул по макету!) */}
-      <section className="stats-section" style={{ display: 'flex', justifyContent: 'space-between', padding: '64px 48px', borderTop: '1px solid #E6E8EE', borderBottom: '1px solid #E6E8EE', background: '#FAFAFA' }}>
-        <div>
-          <div style={{ fontSize: '48px', fontWeight: 700, color: '#0E1116' }}>184k+</div>
-          <div style={{ color: '#5C6470', fontSize: '16px', marginTop: '8px' }}>Loads matched monthly</div>
-        </div>
-        <div>
-          <div style={{ fontSize: '48px', fontWeight: 700, color: '#0E1116' }}>12,000+</div>
-          <div style={{ color: '#5C6470', fontSize: '16px', marginTop: '8px' }}>Verified EU carriers</div>
-        </div>
-        <div>
-          <div style={{ fontSize: '48px', fontWeight: 700, color: '#0E1116' }}>€0</div>
-          <div style={{ color: '#5C6470', fontSize: '16px', marginTop: '8px' }}>Subscription fee</div>
-        </div>
-        <div>
-          <div style={{ fontSize: '48px', fontWeight: 700, color: '#0E1116' }}>24/7</div>
-          <div style={{ color: '#5C6470', fontSize: '16px', marginTop: '8px' }}>Multilingual support</div>
-        </div>
-      </section>
-
-      {/* STEPS SECTION */}
-      <section className="steps-section">
-        <h2 className="steps-header">How it works</h2>
-        <div className="steps-grid">
-          <div className="step-item">
-            <div className="step-number">01</div>
-            <div className="step-title">Post or Search</div>
-            <div className="step-desc">Enter route details. Our system auto-calculates LDM, tonnage, and ETA in real-time.</div>
-          </div>
-          <div className="step-item">
-            <div className="step-number">02</div>
-            <div className="step-title">Match</div>
-            <div className="step-desc">Smart suggestions surface compatible counterparties on your route.</div>
-          </div>
-          <div className="step-item">
-            <div className="step-number">03</div>
-            <div className="step-title">Negotiate</div>
-            <div className="step-desc">Counter, accept and lock the price in the integrated chat.</div>
-          </div>
-          <div className="step-item">
-            <div className="step-number">04</div>
-            <div className="step-title">Track & close</div>
-            <div className="step-desc">Status updates, POD upload, and a clean audit trail per shipment.</div>
-          </div>
-        </div>
-      </section>
-
-      {/* TESTIMONIALS (Вернул по макету!) */}
-      <section className="testimonials-section" style={{ padding: '80px 48px', background: '#0E1116', color: 'white' }}>
-        <h2 style={{ fontSize: '32px', marginBottom: '48px', textAlign: 'center' }}>Trusted by European Logistics Leaders</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '32px' }}>
-          <div style={{ background: '#1A1D24', padding: '32px', borderRadius: '16px' }}>
-            <p style={{ fontSize: '16px', color: '#A0AAB9', marginBottom: '24px', lineHeight: 1.6 }}>"Cargolane cut our dispatch time by 40%. The auto-calculation for LDM is a lifesaver when dealing with mixed pallets."</p>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <div style={{ width: '40px', height: '40px', background: '#3D5AFE', borderRadius: '50%' }}></div>
-              <div>
-                <div style={{ fontWeight: 600 }}>Markus Weber</div>
-                <div style={{ color: '#A0AAB9', fontSize: '14px' }}>Logistics Manager, Berlin</div>
+              <div className="input-field" style={{ position: 'relative', zIndex: 2, background: 'white', padding: '12px 16px', border: '1px solid #E6E8EE', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+                <div className="dot" style={{ width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0, transition: 'background 0.2s', background: fromAddress ? '#3D5AFE' : 'white', border: fromAddress ? 'none' : '2px solid #3D5AFE' }}></div>
+                <input type="text" placeholder="Origin city" value={fromAddress} onChange={(e) => setFromAddress(e.target.value)} onBlur={handleApplyRoute} style={{ border: 'none', outline: 'none', width: '100%', fontSize: '14px', marginLeft: '12px', background: 'transparent' }} />
               </div>
-            </div>
-          </div>
-          <div style={{ background: '#1A1D24', padding: '32px', borderRadius: '16px' }}>
-            <p style={{ fontSize: '16px', color: '#A0AAB9', marginBottom: '24px', lineHeight: 1.6 }}>"The safest board we've used. Verified VAT-IDs mean we never worry about fake carriers picking up our electronics."</p>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <div style={{ width: '40px', height: '40px', background: '#059669', borderRadius: '50%' }}></div>
-              <div>
-                <div style={{ fontWeight: 600 }}>Elena Rossi</div>
-                <div style={{ color: '#A0AAB9', fontSize: '14px' }}>Shipper, Milan</div>
+
+              <div className="input-field" style={{ position: 'relative', zIndex: 2, background: 'white', padding: '12px 16px', border: '1px solid #E6E8EE', borderRadius: '8px', display: 'flex', alignItems: 'center' }}>
+                <div className="dot green" style={{ width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0, transition: 'background 0.2s', background: toAddress ? '#00C48C' : 'white', border: toAddress ? 'none' : '2px solid #00C48C' }}></div>
+                <input type="text" placeholder="Destination city" value={toAddress} onChange={(e) => setToAddress(e.target.value)} onBlur={handleApplyRoute} style={{ border: 'none', outline: 'none', width: '100%', fontSize: '14px', marginLeft: '12px', background: 'transparent' }} />
               </div>
-            </div>
-          </div>
-          <div style={{ background: '#1A1D24', padding: '32px', borderRadius: '16px' }}>
-            <p style={{ fontSize: '16px', color: '#A0AAB9', marginBottom: '24px', lineHeight: 1.6 }}>"I love that there are no hidden subscription fees. We only pay a tiny fraction when a deal is actually closed."</p>
-            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-              <div style={{ width: '40px', height: '40px', background: '#F59E0B', borderRadius: '50%' }}></div>
-              <div>
-                <div style={{ fontWeight: 600 }}>Jan Kowalski</div>
-                <div style={{ color: '#A0AAB9', fontSize: '14px' }}>Fleet Owner, Warsaw</div>
-              </div>
-            </div>
+
+              <button type="submit" className="search-btn" disabled={!isFormValid} style={{ marginTop: '8px', padding: '14px', fontSize: '15px', fontWeight: '400',borderRadius: '8px', background: '#3D5AFE', color: 'white', border: 'none', opacity: !isFormValid ? 0.6 : 1, cursor: !isFormValid ? 'not-allowed' : 'pointer', transition: 'opacity 0.2s' }}>
+                Search
+              </button>
+            </form>
           </div>
         </div>
       </section>
 
-      {/* CTA SECTION */}
-      <section className="cta-section">
-        <h2 className="cta-title">Move your first load this week.</h2>
-        <p className="cta-desc">Free to post. Free to bid. Pay only when a deal closes — and even then, less than the others.</p>
-        <div className="cta-buttons">
-          <button className="btn-white" onClick={() => navigate('/register')}>Create free account →</button>
-          <button className="btn-dark-outline">Talk to sales</button>
+      {/* 3. STATS SECTION - Возвращено сжатое расстояние между блоками */}
+      <section className="stats-section" style={{ borderTop: '1px solid #E6E8EE', borderBottom: '1px solid #E6E8EE', background: '#FAFAFA', width: '100%' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '32px', padding: '64px 48px', maxWidth: '1750px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
+          <div>
+            <div style={{ fontSize: '48px', fontWeight: 400, color: '#0E1116' }}>{stats.loads}</div>
+            <div style={{ color: '#5C6470', fontSize: '16px', marginTop: '8px' }}>Loads matched monthly</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '48px', fontWeight: 400, color: '#0E1116' }}>{stats.carriers}</div>
+            <div style={{ color: '#5C6470', fontSize: '16px', marginTop: '8px' }}>Verified EU carriers</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '48px', fontWeight: 400, color: '#0E1116' }}>{stats.fee}</div>
+            <div style={{ color: '#5C6470', fontSize: '16px', marginTop: '8px' }}>Subscription fee</div>
+          </div>
+          <div>
+            <div style={{ fontSize: '48px', fontWeight: 400, color: '#0E1116' }}>{stats.support}</div>
+            <div style={{ color: '#5C6470', fontSize: '16px', marginTop: '8px' }}>Multilingual support</div>
+          </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="footer">
-        <div className="footer-left">
-          <div className="footer-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>
-            <div className="logo-icon">▲</div>
-            Cargolane
+      {/* Spacer */}
+      <div style={{ flex: 1, background: 'white' }}></div>
+
+      {/* 4. FOOTER */}
+      <footer className="footer" style={{ borderTop: '1px solid #E6E8EE', width: '100%', boxSizing: 'border-box', background: '#FAFAFA' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '24px', padding: '16px 2.5%', width: '100%', boxSizing: 'border-box' }}>
+          <div className="footer-left" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div className="footer-logo" onClick={() => navigate('/')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: '#0E1116' }}>
+              <div className="logo-icon" style={{ color: '#3D5AFE' }}>▲</div>
+              Cargolane
+            </div>
+            <span className="footer-copy" style={{ color: '#5C6470', fontSize: '14px' }}>© 2026 Cargolane EU. All rights reserved.</span>
           </div>
-          <span className="footer-copy">© 2026 Cargolane EU. All rights reserved.</span>
-        </div>
-        <div className="footer-right" style={{ display: 'flex', gap: '24px', color: '#5C6470', fontSize: '14px' }}>
-          <a href="#terms">Terms of Service</a>
-          <a href="#privacy">Privacy Policy</a>
-          <a href="#status">System Status</a>
+          <div className="footer-right" style={{ display: 'flex', gap: '24px', color: '#5C6470', fontSize: '14px' }}>
+            <a href="#terms" style={{ textDecoration: 'none', color: 'inherit' }}>Terms of Service</a>
+            <a href="#privacy" style={{ textDecoration: 'none', color: 'inherit' }}>Privacy Policy</a>
+            <a href="#status" style={{ textDecoration: 'none', color: 'inherit' }}>System Status</a>
+          </div>
         </div>
       </footer>
 
