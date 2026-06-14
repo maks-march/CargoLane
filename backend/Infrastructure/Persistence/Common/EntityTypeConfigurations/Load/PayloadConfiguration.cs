@@ -1,6 +1,5 @@
 using Domain.Models.Load;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Persistence.Common.EntityTypeConfigurations.Order;
 
 namespace Persistence.Common.EntityTypeConfigurations.Load;
 

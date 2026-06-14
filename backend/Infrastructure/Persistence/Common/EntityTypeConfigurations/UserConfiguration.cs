@@ -14,16 +14,6 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.FirstName).HasMaxLength(50).IsRequired();
         builder.Property(x => x.LastName).HasMaxLength(50).IsRequired();
         
-        builder.HasMany(x => x.Trucks)
-            .WithOne(x => x.User)
-            .HasForeignKey(x => x.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        builder.HasMany(x => x.Orders)
-            .WithOne(x => x.User)
-            .HasForeignKey(x => x.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-        
         builder
             .HasOne(u => u.Avatar)
             .WithOne(uf => uf.Owner)

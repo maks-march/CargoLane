@@ -1,4 +1,3 @@
-using Application.CQRS.AuthCQ.Register;
 using Application.DTO.Auth;
 using Application.Interfaces.Auth;
 using MediatR;

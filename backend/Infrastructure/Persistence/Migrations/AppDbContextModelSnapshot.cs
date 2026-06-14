@@ -192,90 +192,6 @@ namespace Persistence.Migrations
                     b.ToTable("RoutePoint<LoadEntity>");
                 });
 
-            modelBuilder.Entity("Domain.Models.Abstract.RoutePoint<Domain.Models.Order.OrderEntity>", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("ArrivalTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<Guid>("EntityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsLoad")
-                        .HasColumnType("boolean");
-
-                    b.Property<TimeSpan>("LoadTimeEnd")
-                        .HasColumnType("interval");
-
-                    b.Property<TimeSpan>("LoadTimeStart")
-                        .HasColumnType("interval");
-
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EntityId");
-
-                    b.ToTable("OrderRoutePoints");
-                });
-
-            modelBuilder.Entity("Domain.Models.Abstract.RoutePoint<Domain.Models.Truck.TruckEntity>", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime?>("ArrivalTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateOnly>("Date")
-                        .HasColumnType("date");
-
-                    b.Property<Guid>("EntityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsLoad")
-                        .HasColumnType("boolean");
-
-                    b.Property<TimeSpan>("LoadTimeEnd")
-                        .HasColumnType("interval");
-
-                    b.Property<TimeSpan>("LoadTimeStart")
-                        .HasColumnType("interval");
-
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EntityId");
-
-                    b.ToTable("TruckRoutePoints");
-                });
-
             modelBuilder.Entity("Domain.Models.Chat.ChatEntity", b =>
                 {
                     b.Property<Guid>("Id")
@@ -364,42 +280,6 @@ namespace Persistence.Migrations
                     b.ToTable("FileEntity<LoadEntity>");
 
                     b.HasDiscriminator<string>("Discriminator").HasValue("FileEntity<LoadEntity>");
-
-                    b.UseTphMappingStrategy();
-                });
-
-            modelBuilder.Entity("Domain.Models.FileEntity<Domain.Models.Order.OrderEntity>", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Discriminator")
-                        .IsRequired()
-                        .HasMaxLength(34)
-                        .HasColumnType("character varying(34)");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("OwnerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("Updated")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("FileEntity<OrderEntity>");
-
-                    b.HasDiscriminator<string>("Discriminator").HasValue("FileEntity<OrderEntity>");
 
                     b.UseTphMappingStrategy();
                 });
@@ -611,314 +491,6 @@ namespace Persistence.Migrations
                     b.HasIndex("EntityId");
 
                     b.ToTable("PayloadDraft");
-                });
-
-            modelBuilder.Entity("Domain.Models.Order.OrderEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("About")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("SpecNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<DateOnly>("StartDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("Updated")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Orders", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Models.Order.PayloadOrder", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Amount")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("EntityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<double>("Height")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Length")
-                        .HasColumnType("double precision");
-
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("integer");
-
-                    b.Property<double>("Volume")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Weight")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Width")
-                        .HasColumnType("double precision");
-
-                    b.Property<string>("Wrap")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EntityId");
-
-                    b.ToTable("Payloads");
-                });
-
-            modelBuilder.Entity("Domain.Models.Order.Payment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<double>("ByCash")
-                        .HasColumnType("double precision");
-
-                    b.Property<Guid>("EntityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsByCash")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsNotTaxedByCard")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPrepaymentByFuel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsTaxedByCard")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsVisible")
-                        .HasColumnType("boolean");
-
-                    b.Property<double>("NotTaxedByCard")
-                        .HasColumnType("double precision");
-
-                    b.Property<int>("PaymentAfterDays")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("PaymentType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<double>("Prepayment")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("TaxedByCard")
-                        .HasColumnType("double precision");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EntityId")
-                        .IsUnique();
-
-                    b.ToTable("Payments");
-                });
-
-            modelBuilder.Entity("Domain.Models.Order.Transport", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Adr")
-                        .HasColumnType("integer");
-
-                    b.PrimitiveCollection<string[]>("BodyType")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<Guid>("EntityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsCmr")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsCrewFull")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsHitch")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsMedicalBook")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPneumaticVehicle")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsStakes")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsT1")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsTir")
-                        .HasColumnType("boolean");
-
-                    b.PrimitiveCollection<string[]>("LoadType")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<int?>("TemperatureFrom")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("TemperatureTo")
-                        .HasColumnType("integer");
-
-                    b.PrimitiveCollection<string[]>("UnloadType")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<int>("Vehicles")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EntityId")
-                        .IsUnique();
-
-                    b.ToTable("Transports");
-                });
-
-            modelBuilder.Entity("Domain.Models.Truck.TruckEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Adr")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("BodyType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<double>("ByCash")
-                        .HasColumnType("double precision");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsCmr")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsCrewFull")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsHitch")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsMedicalBook")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPaymentRequested")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPneumaticVehicle")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsStakes")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsT1")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsTir")
-                        .HasColumnType("boolean");
-
-                    b.PrimitiveCollection<string[]>("LoadType")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<double>("NotTaxedByCard")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("TaxedByCard")
-                        .HasColumnType("double precision");
-
-                    b.Property<int?>("TemperatureFrom")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("TemperatureTo")
-                        .HasColumnType("integer");
-
-                    b.PrimitiveCollection<string[]>("UnloadType")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<DateTime>("Updated")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Vehicles")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Trucks", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Models.TruckFile", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("OwnerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("Updated")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerId");
-
-                    b.ToTable("TruckFile");
                 });
 
             modelBuilder.Entity("Domain.Models.User", b =>
@@ -1144,15 +716,6 @@ namespace Persistence.Migrations
                     b.HasDiscriminator().HasValue("LoadFile");
                 });
 
-            modelBuilder.Entity("Domain.Models.OrderFile", b =>
-                {
-                    b.HasBaseType("Domain.Models.FileEntity<Domain.Models.Order.OrderEntity>");
-
-                    b.HasIndex("OwnerId");
-
-                    b.HasDiscriminator().HasValue("OrderFile");
-                });
-
             modelBuilder.Entity("Domain.Models.UserFile", b =>
                 {
                     b.HasBaseType("Domain.Models.FileEntity<Domain.Models.User>");
@@ -1191,28 +754,6 @@ namespace Persistence.Migrations
             modelBuilder.Entity("Domain.Models.Abstract.RoutePoint<Domain.Models.Load.LoadEntity>", b =>
                 {
                     b.HasOne("Domain.Models.Load.LoadEntity", "Entity")
-                        .WithMany("RoutePoints")
-                        .HasForeignKey("EntityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Entity");
-                });
-
-            modelBuilder.Entity("Domain.Models.Abstract.RoutePoint<Domain.Models.Order.OrderEntity>", b =>
-                {
-                    b.HasOne("Domain.Models.Order.OrderEntity", "Entity")
-                        .WithMany("RoutePoints")
-                        .HasForeignKey("EntityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Entity");
-                });
-
-            modelBuilder.Entity("Domain.Models.Abstract.RoutePoint<Domain.Models.Truck.TruckEntity>", b =>
-                {
-                    b.HasOne("Domain.Models.Truck.TruckEntity", "Entity")
                         .WithMany("RoutePoints")
                         .HasForeignKey("EntityId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -1294,72 +835,6 @@ namespace Persistence.Migrations
                     b.Navigation("Entity");
                 });
 
-            modelBuilder.Entity("Domain.Models.Order.OrderEntity", b =>
-                {
-                    b.HasOne("Domain.Models.User", "User")
-                        .WithMany("Orders")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Domain.Models.Order.PayloadOrder", b =>
-                {
-                    b.HasOne("Domain.Models.Order.OrderEntity", "Entity")
-                        .WithMany("Payloads")
-                        .HasForeignKey("EntityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Entity");
-                });
-
-            modelBuilder.Entity("Domain.Models.Order.Payment", b =>
-                {
-                    b.HasOne("Domain.Models.Order.OrderEntity", "Entity")
-                        .WithOne("Payment")
-                        .HasForeignKey("Domain.Models.Order.Payment", "EntityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Entity");
-                });
-
-            modelBuilder.Entity("Domain.Models.Order.Transport", b =>
-                {
-                    b.HasOne("Domain.Models.Order.OrderEntity", "Entity")
-                        .WithOne("Transport")
-                        .HasForeignKey("Domain.Models.Order.Transport", "EntityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Entity");
-                });
-
-            modelBuilder.Entity("Domain.Models.Truck.TruckEntity", b =>
-                {
-                    b.HasOne("Domain.Models.User", "User")
-                        .WithMany("Trucks")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Domain.Models.TruckFile", b =>
-                {
-                    b.HasOne("Domain.Models.Truck.TruckEntity", "Owner")
-                        .WithMany("Photos")
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Owner");
-                });
-
             modelBuilder.Entity("Domain.Models.User", b =>
                 {
                     b.HasOne("Domain.Models.UserFile", "Avatar")
@@ -1432,17 +907,6 @@ namespace Persistence.Migrations
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("Domain.Models.OrderFile", b =>
-                {
-                    b.HasOne("Domain.Models.Order.OrderEntity", "Owner")
-                        .WithMany("Photos")
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Owner");
-                });
-
             modelBuilder.Entity("Domain.Models.UserFile", b =>
                 {
                     b.HasOne("Domain.Models.User", null)
@@ -1473,28 +937,6 @@ namespace Persistence.Migrations
                     b.Navigation("RoutePoints");
                 });
 
-            modelBuilder.Entity("Domain.Models.Order.OrderEntity", b =>
-                {
-                    b.Navigation("Payloads");
-
-                    b.Navigation("Payment")
-                        .IsRequired();
-
-                    b.Navigation("Photos");
-
-                    b.Navigation("RoutePoints");
-
-                    b.Navigation("Transport")
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Domain.Models.Truck.TruckEntity", b =>
-                {
-                    b.Navigation("Photos");
-
-                    b.Navigation("RoutePoints");
-                });
-
             modelBuilder.Entity("Domain.Models.User", b =>
                 {
                     b.Navigation("Certificates");
@@ -1502,10 +944,6 @@ namespace Persistence.Migrations
                     b.Navigation("Loads");
 
                     b.Navigation("LoadsDrafts");
-
-                    b.Navigation("Orders");
-
-                    b.Navigation("Trucks");
                 });
 
             modelBuilder.Entity("Domain.Models.UserFile", b =>

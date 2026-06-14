@@ -1,6 +1,5 @@
 using Application.DTO.Chat;
 using Application.Interfaces;
-using Domain.Models;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 

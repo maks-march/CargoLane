@@ -12,8 +12,8 @@ using Persistence.Common.DbContexts;
 namespace Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260531155940_Truck")]
-    partial class Truck
+    [Migration("20260614095332_RemoveOrderTrucks")]
+    partial class RemoveOrderTrucks
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -96,7 +96,22 @@ namespace Persistence.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Models.Abstract.RoutePoint<Domain.Models.Order.OrderEntity>", b =>
+            modelBuilder.Entity("ChatEntityUser", b =>
+                {
+                    b.Property<Guid>("ChatsId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ParticipantsId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("ChatsId", "ParticipantsId");
+
+                    b.HasIndex("ParticipantsId");
+
+                    b.ToTable("ChatParticipants", (string)null);
+                });
+
+            modelBuilder.Entity("Domain.Models.Abstract.RoutePoint<Domain.Models.Load.LoadDraft>", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -105,6 +120,9 @@ namespace Persistence.Migrations
                     b.Property<string>("Address")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("ArrivalTime")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("City")
                         .IsRequired()
@@ -132,10 +150,10 @@ namespace Persistence.Migrations
 
                     b.HasIndex("EntityId");
 
-                    b.ToTable("OrderRoutePoints");
+                    b.ToTable("RoutePoint<LoadDraft>");
                 });
 
-            modelBuilder.Entity("Domain.Models.Abstract.RoutePoint<Domain.Models.Truck.TruckEntity>", b =>
+            modelBuilder.Entity("Domain.Models.Abstract.RoutePoint<Domain.Models.Load.LoadEntity>", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -144,6 +162,9 @@ namespace Persistence.Migrations
                     b.Property<string>("Address")
                         .IsRequired()
                         .HasColumnType("text");
+
+                    b.Property<DateTime?>("ArrivalTime")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("City")
                         .IsRequired()
@@ -171,10 +192,66 @@ namespace Persistence.Migrations
 
                     b.HasIndex("EntityId");
 
-                    b.ToTable("TruckRoutePoints");
+                    b.ToTable("RoutePoint<LoadEntity>");
                 });
 
-            modelBuilder.Entity("Domain.Models.FileEntity<Domain.Models.Order.OrderEntity>", b =>
+            modelBuilder.Entity("Domain.Models.Chat.ChatEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("LastMessageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Updated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LastMessageId");
+
+                    b.ToTable("Chats");
+                });
+
+            modelBuilder.Entity("Domain.Models.Chat.ChatMessageEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ChatId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("SenderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("Updated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChatId");
+
+                    b.HasIndex("SenderId");
+
+                    b.ToTable("Messages");
+                });
+
+            modelBuilder.Entity("Domain.Models.FileEntity<Domain.Models.Load.LoadEntity>", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -203,288 +280,14 @@ namespace Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Files", (string)null);
+                    b.ToTable("FileEntity<LoadEntity>");
 
-                    b.HasDiscriminator<string>("Discriminator").HasValue("FileEntity<OrderEntity>");
+                    b.HasDiscriminator<string>("Discriminator").HasValue("FileEntity<LoadEntity>");
 
                     b.UseTphMappingStrategy();
                 });
 
-            modelBuilder.Entity("Domain.Models.Order.OrderEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("About")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("SpecNumber")
-                        .HasColumnType("integer");
-
-                    b.Property<DateOnly>("StartDate")
-                        .HasColumnType("date");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("Updated")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Orders", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Models.Order.Payload", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Amount")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("EntityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<int>("OrderIndex")
-                        .HasColumnType("integer");
-
-                    b.Property<double>("Volume")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Weight")
-                        .HasColumnType("double precision");
-
-                    b.Property<string>("Wrap")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EntityId");
-
-                    b.ToTable("Payloads");
-                });
-
-            modelBuilder.Entity("Domain.Models.Order.Payment", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<double>("ByCash")
-                        .HasColumnType("double precision");
-
-                    b.Property<Guid>("EntityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsByCash")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsNotTaxedByCard")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPrepaymentByFuel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsTaxedByCard")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsVisible")
-                        .HasColumnType("boolean");
-
-                    b.Property<double>("NotTaxedByCard")
-                        .HasColumnType("double precision");
-
-                    b.Property<int>("PaymentAfterDays")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("PaymentType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<double>("Prepayment")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("TaxedByCard")
-                        .HasColumnType("double precision");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EntityId")
-                        .IsUnique();
-
-                    b.ToTable("Payments");
-                });
-
-            modelBuilder.Entity("Domain.Models.Order.Transport", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Adr")
-                        .HasColumnType("integer");
-
-                    b.PrimitiveCollection<string[]>("BodyType")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<Guid>("EntityId")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsCmr")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsCrewFull")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsHitch")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsMedicalBook")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPneumaticVehicle")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsStakes")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsT1")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsTir")
-                        .HasColumnType("boolean");
-
-                    b.PrimitiveCollection<string[]>("LoadType")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<int?>("TemperatureFrom")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("TemperatureTo")
-                        .HasColumnType("integer");
-
-                    b.PrimitiveCollection<string[]>("UnloadType")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<int>("Vehicles")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EntityId")
-                        .IsUnique();
-
-                    b.ToTable("Transports");
-                });
-
-            modelBuilder.Entity("Domain.Models.Truck.TruckEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Adr")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("BodyType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<double>("ByCash")
-                        .HasColumnType("double precision");
-
-                    b.Property<DateTime>("Created")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("IsCmr")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsCrewFull")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsHitch")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsMedicalBook")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPaymentRequested")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsPneumaticVehicle")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsStakes")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsT1")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsTir")
-                        .HasColumnType("boolean");
-
-                    b.PrimitiveCollection<string[]>("LoadType")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<double>("NotTaxedByCard")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("TaxedByCard")
-                        .HasColumnType("double precision");
-
-                    b.Property<int?>("TemperatureFrom")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("TemperatureTo")
-                        .HasColumnType("integer");
-
-                    b.PrimitiveCollection<string[]>("UnloadType")
-                        .IsRequired()
-                        .HasColumnType("text[]");
-
-                    b.Property<DateTime>("Updated")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("Vehicles")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Trucks", (string)null);
-                });
-
-            modelBuilder.Entity("Domain.Models.TruckPhoto", b =>
+            modelBuilder.Entity("Domain.Models.FileEntity<Domain.Models.User>", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -492,6 +295,11 @@ namespace Persistence.Migrations
 
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Discriminator")
+                        .IsRequired()
+                        .HasMaxLength(21)
+                        .HasColumnType("character varying(21)");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
@@ -508,9 +316,184 @@ namespace Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OwnerId");
+                    b.ToTable("FileEntity<User>");
 
-                    b.ToTable("TruckPhoto");
+                    b.HasDiscriminator<string>("Discriminator").HasValue("FileEntity<User>");
+
+                    b.UseTphMappingStrategy();
+                });
+
+            modelBuilder.Entity("Domain.Models.Load.LoadDraft", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("About")
+                        .HasColumnType("text");
+
+                    b.Property<int?>("Adr")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HScode")
+                        .HasColumnType("text");
+
+                    b.Property<double?>("Insurance")
+                        .HasColumnType("double precision");
+
+                    b.Property<double?>("Payment")
+                        .HasColumnType("double precision");
+
+                    b.Property<DateOnly?>("StartDate")
+                        .HasColumnType("date");
+
+                    b.PrimitiveCollection<string[]>("SuitableCargos")
+                        .HasColumnType("text[]");
+
+                    b.Property<DateTime>("Updated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("LoadDrafts");
+                });
+
+            modelBuilder.Entity("Domain.Models.Load.LoadEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("About")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Adr")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("Created")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("HScode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<double>("Insurance")
+                        .HasColumnType("double precision");
+
+                    b.Property<bool>("IsReviewed")
+                        .HasColumnType("boolean");
+
+                    b.Property<double>("Payment")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.PrimitiveCollection<string[]>("SuitableCargos")
+                        .IsRequired()
+                        .HasColumnType("text[]");
+
+                    b.Property<DateTime>("Updated")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Loads");
+                });
+
+            modelBuilder.Entity("Domain.Models.Load.Payload", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Amount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("Height")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Length")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<double>("Volume")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Weight")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Width")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityId");
+
+                    b.ToTable("Payload");
+                });
+
+            modelBuilder.Entity("Domain.Models.Load.PayloadDraft", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Amount")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<double>("Height")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Length")
+                        .HasColumnType("double precision");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<double>("Volume")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Weight")
+                        .HasColumnType("double precision");
+
+                    b.Property<double>("Width")
+                        .HasColumnType("double precision");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityId");
+
+                    b.ToTable("PayloadDraft");
                 });
 
             modelBuilder.Entity("Domain.Models.User", b =>
@@ -519,23 +502,80 @@ namespace Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid?>("AvatarId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyCountry")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CompanyType")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("Name")
+                    b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
-                    b.Property<string>("Surname")
+                    b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
+
+                    b.Property<string>("NickName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Region")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("TimeZone")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("Updated")
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("AvatarId")
+                        .IsUnique();
 
                     b.ToTable("Users", (string)null);
                 });
@@ -670,18 +710,42 @@ namespace Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("Domain.Models.OrderPhoto", b =>
+            modelBuilder.Entity("Domain.Models.LoadFile", b =>
                 {
-                    b.HasBaseType("Domain.Models.FileEntity<Domain.Models.Order.OrderEntity>");
+                    b.HasBaseType("Domain.Models.FileEntity<Domain.Models.Load.LoadEntity>");
 
                     b.HasIndex("OwnerId");
 
-                    b.HasDiscriminator().HasValue("OrderPhoto");
+                    b.HasDiscriminator().HasValue("LoadFile");
                 });
 
-            modelBuilder.Entity("Domain.Models.Abstract.RoutePoint<Domain.Models.Order.OrderEntity>", b =>
+            modelBuilder.Entity("Domain.Models.UserFile", b =>
                 {
-                    b.HasOne("Domain.Models.Order.OrderEntity", "Entity")
+                    b.HasBaseType("Domain.Models.FileEntity<Domain.Models.User>");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasDiscriminator().HasValue("UserFile");
+                });
+
+            modelBuilder.Entity("ChatEntityUser", b =>
+                {
+                    b.HasOne("Domain.Models.Chat.ChatEntity", null)
+                        .WithMany()
+                        .HasForeignKey("ChatsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("ParticipantsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Domain.Models.Abstract.RoutePoint<Domain.Models.Load.LoadDraft>", b =>
+                {
+                    b.HasOne("Domain.Models.Load.LoadDraft", "Entity")
                         .WithMany("RoutePoints")
                         .HasForeignKey("EntityId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -690,9 +754,9 @@ namespace Persistence.Migrations
                     b.Navigation("Entity");
                 });
 
-            modelBuilder.Entity("Domain.Models.Abstract.RoutePoint<Domain.Models.Truck.TruckEntity>", b =>
+            modelBuilder.Entity("Domain.Models.Abstract.RoutePoint<Domain.Models.Load.LoadEntity>", b =>
                 {
-                    b.HasOne("Domain.Models.Truck.TruckEntity", "Entity")
+                    b.HasOne("Domain.Models.Load.LoadEntity", "Entity")
                         .WithMany("RoutePoints")
                         .HasForeignKey("EntityId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -701,10 +765,39 @@ namespace Persistence.Migrations
                     b.Navigation("Entity");
                 });
 
-            modelBuilder.Entity("Domain.Models.Order.OrderEntity", b =>
+            modelBuilder.Entity("Domain.Models.Chat.ChatEntity", b =>
+                {
+                    b.HasOne("Domain.Models.Chat.ChatMessageEntity", "LastMessage")
+                        .WithMany()
+                        .HasForeignKey("LastMessageId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("LastMessage");
+                });
+
+            modelBuilder.Entity("Domain.Models.Chat.ChatMessageEntity", b =>
+                {
+                    b.HasOne("Domain.Models.Chat.ChatEntity", "Chat")
+                        .WithMany("Messages")
+                        .HasForeignKey("ChatId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Domain.Models.User", "Sender")
+                        .WithMany()
+                        .HasForeignKey("SenderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Chat");
+
+                    b.Navigation("Sender");
+                });
+
+            modelBuilder.Entity("Domain.Models.Load.LoadDraft", b =>
                 {
                     b.HasOne("Domain.Models.User", "User")
-                        .WithMany("Orders")
+                        .WithMany("LoadsDrafts")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -712,9 +805,20 @@ namespace Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Domain.Models.Order.Payload", b =>
+            modelBuilder.Entity("Domain.Models.Load.LoadEntity", b =>
                 {
-                    b.HasOne("Domain.Models.Order.OrderEntity", "Entity")
+                    b.HasOne("Domain.Models.User", "User")
+                        .WithMany("Loads")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Domain.Models.Load.Payload", b =>
+                {
+                    b.HasOne("Domain.Models.Load.LoadEntity", "Entity")
                         .WithMany("Payloads")
                         .HasForeignKey("EntityId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -723,48 +827,25 @@ namespace Persistence.Migrations
                     b.Navigation("Entity");
                 });
 
-            modelBuilder.Entity("Domain.Models.Order.Payment", b =>
+            modelBuilder.Entity("Domain.Models.Load.PayloadDraft", b =>
                 {
-                    b.HasOne("Domain.Models.Order.OrderEntity", "Entity")
-                        .WithOne("Payment")
-                        .HasForeignKey("Domain.Models.Order.Payment", "EntityId")
+                    b.HasOne("Domain.Models.Load.LoadDraft", "Entity")
+                        .WithMany("Payloads")
+                        .HasForeignKey("EntityId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Entity");
                 });
 
-            modelBuilder.Entity("Domain.Models.Order.Transport", b =>
+            modelBuilder.Entity("Domain.Models.User", b =>
                 {
-                    b.HasOne("Domain.Models.Order.OrderEntity", "Entity")
-                        .WithOne("Transport")
-                        .HasForeignKey("Domain.Models.Order.Transport", "EntityId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                    b.HasOne("Domain.Models.UserFile", "Avatar")
+                        .WithOne("Owner")
+                        .HasForeignKey("Domain.Models.User", "AvatarId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("Entity");
-                });
-
-            modelBuilder.Entity("Domain.Models.Truck.TruckEntity", b =>
-                {
-                    b.HasOne("Domain.Models.User", "User")
-                        .WithMany("Trucks")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("Domain.Models.TruckPhoto", b =>
-                {
-                    b.HasOne("Domain.Models.Truck.TruckEntity", "Owner")
-                        .WithMany("Photos")
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Owner");
+                    b.Navigation("Avatar");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -818,9 +899,9 @@ namespace Persistence.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Domain.Models.OrderPhoto", b =>
+            modelBuilder.Entity("Domain.Models.LoadFile", b =>
                 {
-                    b.HasOne("Domain.Models.Order.OrderEntity", "Owner")
+                    b.HasOne("Domain.Models.Load.LoadEntity", "Owner")
                         .WithMany("Photos")
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -829,23 +910,31 @@ namespace Persistence.Migrations
                     b.Navigation("Owner");
                 });
 
-            modelBuilder.Entity("Domain.Models.Order.OrderEntity", b =>
+            modelBuilder.Entity("Domain.Models.UserFile", b =>
                 {
-                    b.Navigation("Payloads");
-
-                    b.Navigation("Payment")
-                        .IsRequired();
-
-                    b.Navigation("Photos");
-
-                    b.Navigation("RoutePoints");
-
-                    b.Navigation("Transport")
+                    b.HasOne("Domain.Models.User", null)
+                        .WithMany("Certificates")
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Domain.Models.Truck.TruckEntity", b =>
+            modelBuilder.Entity("Domain.Models.Chat.ChatEntity", b =>
                 {
+                    b.Navigation("Messages");
+                });
+
+            modelBuilder.Entity("Domain.Models.Load.LoadDraft", b =>
+                {
+                    b.Navigation("Payloads");
+
+                    b.Navigation("RoutePoints");
+                });
+
+            modelBuilder.Entity("Domain.Models.Load.LoadEntity", b =>
+                {
+                    b.Navigation("Payloads");
+
                     b.Navigation("Photos");
 
                     b.Navigation("RoutePoints");
@@ -853,9 +942,17 @@ namespace Persistence.Migrations
 
             modelBuilder.Entity("Domain.Models.User", b =>
                 {
-                    b.Navigation("Orders");
+                    b.Navigation("Certificates");
 
-                    b.Navigation("Trucks");
+                    b.Navigation("Loads");
+
+                    b.Navigation("LoadsDrafts");
+                });
+
+            modelBuilder.Entity("Domain.Models.UserFile", b =>
+                {
+                    b.Navigation("Owner")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }
