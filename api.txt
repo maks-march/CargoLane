@@ -1,0 +1,315 @@
+ErrorResponse
+{
+  "error": "string",
+  "details": "string"
+}
+
+
+POST /api/auth/register
+{
+  "login": "string",
+  "password": "string",
+  "email": "string",
+  "username": "string",
+  "role": "string"
+}
+/response
+{
+  "succeeded": true,
+  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "token": "string"
+} + письмо на почту с подтверждением регистрации
+
+POST /api/auth/login
+{
+  "login": "string",
+  "password": "string"
+}
+/response (AuthResponse)
+{
+  "accessToken": "string",
+  "refreshToken": "string",
+  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "userName": "string",
+  "role": "string"
+}
+
+POST /api/auth/refresh
+{
+  "accessToken": "string",
+  "refreshToken": "string"
+}
+/response (AuthResponse)
+{
+  "accessToken": "string",
+  "refreshToken": "string",
+  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "userName": "string",
+  "role": "string"
+}
+
+POST /api/auth/confirm-email
+{
+  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "token": "string"
+}
+/response
+{}
+
+POST /api/auth/change-password
+{
+  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "currentPassword": "string",
+  "newPassword": "string"
+}
+
+POST /api/auth/reset-password
+{
+  "email": "string"
+}
+
+POST /api/auth/reset-password
+{
+  "email": "string",
+  "code": "string",
+  "newPassword": "string"
+}
+
+GET /api/user/{id} и /api/user/me
+/response
+{
+  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "email": "string",
+  "firstName": "string",
+  "lastName": "string",
+  "displayName": "string",
+  "phone": "string",
+  "timezone": 0,
+  "isMetric": true,
+  "companyName": "string",
+  "companyCountry": "string",
+  "companyType": "string",
+  "country": "string",
+  "region": "string",
+  "city": "string",
+  "address": "string",
+  "postalCode": "string",
+  "avatarPath": "string",
+  "created": "2026-06-15T07:34:21.131Z",
+  "updated": "2026-06-15T07:34:21.131Z"
+}
+
+PATCH /api/user/me
+/response
+{
+  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "firstName": "string",
+  "lastName": "string",
+  "displayName": "string",
+  "timezone": 0,
+  "phone": "string",
+  "companyName": "string",
+  "companyCountry": "string",
+  "companyType": "string",
+  "country": "string",
+  "region": "string",
+  "city": "string",
+  "address": "string",
+  "postalCode": "string"
+}
+
+POST /api/user/avatar
+{
+  "photo": "binary"
+}
+
+DELETE /api/user/avatar
+{}
+
+DELETE /api/user/me
+{}
+
+POST /api/user/deactivate
+{}
+
+GET /api/chat/user/{id} и /api/chat/me
+[
+  {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "username": "string",
+    "userCompany": "string",
+    "userAvatarPath": "string",
+    "lastMessageText": "string",
+    "lastMessageTime": "2026-06-15T07:53:21.954Z",
+    "unreadCount": 0
+  }
+]
+
+GET /api/chat/{id}/messages
+[
+  {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "senderId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "senderName": "string",
+    "text": "string",
+    "created": "2026-06-15T07:54:24.784Z",
+    "isRead": true
+  }
+]
+
+POST /api/chat/start/{userid}
+
+POST /api/chat/{chatid}/message
+{
+  "text": "string"
+}
+
+GET /api/load | GET /api/load/me
+[
+  {
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "startDate": "string",
+    "payment": 0,
+    "startCity": "string",
+    "endCity": "string",
+    "cargoType": "string",
+    "vihicleType": "string",
+    "totalWeight": 0,
+    "payloadCount": 0
+  }
+]
+
+GET /api/load/{id}
+{
+  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "payment": 0,
+  "insurance": 0,
+  "hScode": "string",
+  "adr": 0,
+  "vihicleTypes": [
+    "string"
+  ],
+  "cargoType": "string",
+  "about": "string",
+  "status": "string",
+  "isReviewed": true,
+  "userId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "payloads": [
+    {
+      "length": 0,
+      "width": 0,
+      "height": 0,
+      "weight": 0,
+      "volume": 0,
+      "amount": 0,
+      "type": "string"
+    }
+  ],
+  "routePoints": [
+    {
+      "city": "string",
+      "address": "string",
+      "arrivalTime": "2026-06-15T08:04:54.648Z",
+      "orderIndex": 0
+    }
+  ],
+  "photos": [
+    "string"
+  ]
+}
+
+PUT /api/load/{id}/close
+{}
+
+POST /api/load (json/application)
+{
+  "payment": 0,
+  "insurance": 0,
+  "hScode": "string",
+  "adr": 0,
+  "vihicleTypes": [
+    "string"
+  ],
+  "cargoType": "string",
+  "about": "string",
+  "payloads": [
+    {
+      "length": 0,
+      "width": 0,
+      "height": 0,
+      "weight": 0,
+      "volume": 0,
+      "amount": 0,
+      "type": "string"
+    }
+  ],
+  "routePoints": [
+    {
+      "city": "string",
+      "address": "string",
+      "arrivalTime": "2026-06-15T08:04:54.648Z",
+      "orderIndex": 0
+    }
+  ]
+}
+
+PUT /api/load/{id}/photos (multipart-formdata)
+{
+    "photos": [
+        file
+    ]
+}
+
+GET /api/load/draft
+[
+{
+    "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "startDate": "string",
+    "payment": 0,
+    "startCity": "string",
+    "endCity": "string",
+    "cargoType": "string",
+    "vihicleType": "string",
+    "totalWeight": 0,
+    "payloadCount": 0
+  }
+]
+
+GET /api/load/draft/{id} | PUT /api/load/draft/{id} | POST /api/load/draft
+{
+  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "payment": 0,
+  "insurance": 0,
+  "hScode": "string",
+  "adr": 0,
+  "vihicleTypes": [
+    "string"
+  ],
+  "cargoType": "string",
+  "about": "string",
+  "isReviewed": true,
+  "payloads": [
+    {
+      "length": 0,
+      "width": 0,
+      "height": 0,
+      "weight": 0,
+      "volume": 0,
+      "amount": 0,
+      "type": "string"
+    }
+  ],
+  "routePoints": [
+    {
+      "city": "string",
+      "address": "string",
+      "arrivalTime": "2026-06-15T08:04:54.648Z",
+      "orderIndex": 0
+    }
+  ]
+}
+
+DELETE /api/load/draft/{ID}
+
+
+/////////////////////////////////////////////////////////////////////////////////
