@@ -6,6 +6,6 @@ public class GetUserDetailsValidator : AbstractValidator<GetUserDetailsQuery>
 {
     public GetUserDetailsValidator()
     {
-        RuleFor(query => query.Id).NotEmpty();
+        RuleFor(query => query.Id).NotEmpty().WithMessage("Id is required.");
     }
 }

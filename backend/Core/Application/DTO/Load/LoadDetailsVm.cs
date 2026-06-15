@@ -11,7 +11,7 @@ public record LoadDetailsVm : IMapWith<LoadEntity>
     public double Insurance { get; init; }
     public string HScode { get; init; } = string.Empty;
     public int Adr { get; init; }
-    public string[] VihicleTypes { get; init; } = [];
+    public string[] VehicleTypes { get; init; } = [];
     public string CargoType { get; init; } = string.Empty;
     public string About { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
@@ -22,13 +22,13 @@ public record LoadDetailsVm : IMapWith<LoadEntity>
     // Вложенные коллекции
     public IList<PayloadVm> Payloads { get; init; } = [];
     public IList<LoadRoutePointVm> RoutePoints { get; init; } = [];
-    public IList<string> Photos { get; init; } = [];
+    public IList<string> Files { get; init; } = [];
 
     public void Mapping(Profile profile)
     {
         profile.CreateMap<LoadEntity, LoadDetailsVm>()
             .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()))
-            .ForMember(d => d.Photos, opt => opt.MapFrom(s => s.Photos.Select(p => p.FilePath)))
+            .ForMember(d => d.Files, opt => opt.MapFrom(s => s.Photos.Select(p => p.FilePath)))
             .ForMember(d => d.RoutePoints, opt => opt.MapFrom(s => s.RoutePoints.OrderBy(rp => rp.OrderIndex)));
     }
 }

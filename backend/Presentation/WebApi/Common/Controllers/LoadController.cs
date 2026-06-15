@@ -1,6 +1,7 @@
 using Application.CQRS.LoadCQ.Commands;
 using Application.CQRS.LoadCQ.Commands.CreateLoad;
 using Application.CQRS.LoadCQ.Commands.DeleteLoad;
+using Application.CQRS.LoadCQ.Commands.UploadFiles;
 using Application.CQRS.LoadCQ.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -44,7 +45,7 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     {
         return Ok(
             ChangeVmForUser(
-                await Mediator.Send(new GetLoadDetailQuery { Id = id })
+                await Mediator.Send(new GetLoadDetailQuery(id))
                 )
             );
     }
@@ -105,6 +106,16 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
         return NoContent();
     }
 
+    [HttpPut("{id:guid}/files")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult> PutFiles(Guid id, [FromForm] IFormFile[] files)
+    {
+        await Mediator.Send(new UploadLoadFilesCommand { LoadId = id, UserId = UserId, Files = files });
+        return NoContent();
+    }
+
     #endregion
 
     #region Работа с черновиками (LoadDraft)
@@ -158,6 +169,7 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
 
     private LoadDetailsVm ChangeVmForUser(LoadDetailsVm vm)
     {
+        if (UserId == Guid.Empty) return vm;
         var settings = UserSettings;
         foreach (var route in vm.RoutePoints)
         {

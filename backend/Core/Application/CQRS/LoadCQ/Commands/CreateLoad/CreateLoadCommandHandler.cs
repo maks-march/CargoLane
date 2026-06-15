@@ -1,5 +1,6 @@
 using Application.Interfaces;
 using AutoMapper;
+using Domain.Enums.Load;
 using Domain.Models.Load;
 using MediatR;
 
@@ -18,7 +19,7 @@ public class CreateLoadCommandHandler(IAppDbContext dbContext, IMapper mapper)
         load.Created = DateTime.UtcNow;
         load.Updated = DateTime.UtcNow;
         load.IsReviewed = false;
-        
+        load.Status = LoadStatus.Active;
         double totalVolume = 0.0;
         double totalWeight = 0.0;
         // 3. Обработка грузов (Payloads)

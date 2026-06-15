@@ -105,6 +105,7 @@ PATCH /api/user/me
   "lastName": "string",
   "displayName": "string",
   "timezone": 0,
+  "isMetric": true,
   "phone": "string",
   "companyName": "string",
   "companyCountry": "string",
@@ -118,7 +119,7 @@ PATCH /api/user/me
 
 POST /api/user/avatar
 {
-  "photo": "binary"
+  "file": file
 }
 
 DELETE /api/user/avatar
@@ -162,7 +163,22 @@ POST /api/chat/{chatid}/message
   "text": "string"
 }
 
-GET /api/load | GET /api/load/me
+GET /api/load/me
+QUERY:
+status: 0,1,2
+
+GET /api/load
+QUERY:
+startCity: "string"
+endCity: "string"
+fromDate: DateOnly
+cargoType: "string"
+vehicleType: "string"
+weight: double
+volume: double
+sortChoices: 0,1,2
+isDescending: bool
+/response
 [
   {
     "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -171,8 +187,9 @@ GET /api/load | GET /api/load/me
     "startCity": "string",
     "endCity": "string",
     "cargoType": "string",
-    "vihicleType": "string",
+    "vehicleType": "string",
     "totalWeight": 0,
+    "totalVolume": 0,
     "payloadCount": 0
   }
 ]
@@ -184,7 +201,7 @@ GET /api/load/{id}
   "insurance": 0,
   "hScode": "string",
   "adr": 0,
-  "vihicleTypes": [
+  "vehicleTypes": [
     "string"
   ],
   "cargoType": "string",
@@ -227,7 +244,7 @@ POST /api/load (json/application)
   "insurance": 0,
   "hScode": "string",
   "adr": 0,
-  "vihicleTypes": [
+  "vehicleTypes": [
     "string"
   ],
   "cargoType": "string",
@@ -239,7 +256,11 @@ POST /api/load (json/application)
       "height": 0,
       "weight": 0,
       "amount": 0,
-      "type": "string"
+      "type": "string" {Pallets,
+              Boxes,
+              Containers,
+              Refrigirated,
+              ADR}
     }
   ],
   "routePoints": [
@@ -254,8 +275,8 @@ POST /api/load (json/application)
 
 PUT /api/load/{id}/photos (multipart-formdata)
 {
-    "photos": [
-        file
+    "files": [
+        filedto: file
     ]
 }
 
@@ -268,7 +289,7 @@ GET /api/load/draft
     "startCity": "string",
     "endCity": "string",
     "cargoType": "string",
-    "vihicleType": "string",
+    "vehicleType": "string",
     "totalWeight": 0,
     "payloadCount": 0
   }
@@ -281,7 +302,7 @@ GET /api/load/draft/{id} | PUT /api/load/draft/{id} | POST /api/load/draft
   "insurance": 0,
   "hScode": "string",
   "adr": 0,
-  "vihicleTypes": [
+  "vehicleTypes": [
     "string"
   ],
   "cargoType": "string",

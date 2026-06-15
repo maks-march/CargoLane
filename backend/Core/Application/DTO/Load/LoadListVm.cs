@@ -16,7 +16,7 @@ public record LoadListVm : IMapWith<LoadEntity>
     public double TotalWeight { get; set; }
     public double TotalVolume { get; set; }
     
-    public string[] VihicleTypes { get; set; } = [];
+    public string[] VehicleTypes { get; set; } = [];
     public string CargoType { get; set; } = string.Empty;
     public int PayloadCount { get; init; }
 

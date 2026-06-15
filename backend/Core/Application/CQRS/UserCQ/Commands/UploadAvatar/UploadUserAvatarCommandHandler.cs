@@ -13,7 +13,6 @@ public class UploadUserAvatarCommandHandler(
 {
     public async Task<string> Handle(UploadUserAvatarCommand request, CancellationToken cancellationToken)
     {
-        
         var user = await dbContext.GetDbSet<User>()
             .Include(x => x.Avatar)
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);

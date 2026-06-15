@@ -76,13 +76,12 @@ public class UserController(IMediator mediator) : BaseController(mediator)
         await Mediator.Send(new DeactivateCommand(UserId));
         return Ok();
     }
-
+    
+    [Authorize]
     [HttpPost("avatar")]
-    public async Task<IActionResult> UploadAvatar([FromForm] PhotoDto avatar)
+    public async Task<IActionResult> UploadAvatar([FromForm] FileDto avatar)
     {
-        if (UserId == Guid.Empty) return Unauthorized();
-
-        await Mediator.Send(new UploadUserAvatarCommand { UserId = UserId, Avatar = avatar.Photo });
+        await Mediator.Send(new UploadUserAvatarCommand { UserId = UserId, Avatar = avatar.File });
         return NoContent();
     }
 

@@ -8,10 +8,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Application.CQRS.LoadCQ.Queries;
 
-public record GetLoadDetailQuery : IRequest<LoadDetailsVm>
-{
-    public Guid Id { get; init; }
-}
+public record GetLoadDetailQuery(Guid Id) : IRequest<LoadDetailsVm>
+{ }
 
 public class GetLoadDetailQueryHandler(IAppDbContext dbContext, IMapper mapper) 
     : IRequestHandler<GetLoadDetailQuery, LoadDetailsVm>
@@ -26,7 +24,6 @@ public class GetLoadDetailQueryHandler(IAppDbContext dbContext, IMapper mapper)
             .FirstOrDefaultAsync(l => l.Id == request.Id, ct);
 
         if (load == null) throw new NotFoundException(nameof(LoadEntity), request.Id);
-
         return mapper.Map<LoadDetailsVm>(load);
     }
 }

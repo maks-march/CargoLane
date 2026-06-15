@@ -9,7 +9,7 @@ public class LoadDraft : HasAuthor
     public double? Insurance { get; set; } = null;
     public string? HScode { get; set; } = null;
     public int? Adr { get; set; } = 1;
-    public string[]? VihicleTypes { get; set; } = null;
+    public string[]? VehicleTypes { get; set; } = null;
     public string? CargoType { get; set; } = null;
     
     public string? About { get; set; } = null;

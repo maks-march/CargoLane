@@ -27,7 +27,7 @@ public class UserAvatarTests : BaseIntegrationTest
         using var content = new MultipartFormDataContent();
         var fileContent = new ByteArrayContent(avatarBytes);
         fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
-        content.Add(fileContent, "Photo", "test-avatar.jpg");
+        content.Add(fileContent, "File", "test-avatar.jpg");
 
         var response = await Client.PostAsync(AvatarUrl, content);
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -51,7 +51,7 @@ public class UserAvatarTests : BaseIntegrationTest
         using var firstContent = new MultipartFormDataContent();
         var firstFile = new ByteArrayContent(firstBytes);
         firstFile.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
-        firstContent.Add(firstFile, "Photo", "first.jpg");
+        firstContent.Add(firstFile, "File", "first.jpg");
 
         var firstResponse = await Client.PostAsync(AvatarUrl, firstContent);
         firstResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -65,7 +65,7 @@ public class UserAvatarTests : BaseIntegrationTest
         using var secondContent = new MultipartFormDataContent();
         var secondFile = new ByteArrayContent(secondBytes);
         secondFile.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
-        secondContent.Add(secondFile, "Photo", "second.jpg");
+        secondContent.Add(secondFile, "File", "second.jpg");
 
         var secondResponse = await Client.PostAsync(AvatarUrl, secondContent);
         secondResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
@@ -149,7 +149,7 @@ public class UserAvatarTests : BaseIntegrationTest
         using var content = new MultipartFormDataContent();
         var fileContent = new ByteArrayContent(bytes);
         fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
-        content.Add(fileContent, "Photo", "unauth.jpg");
+        content.Add(fileContent, "File", "unauth.jpg");
 
         var response = await unauthClient.PostAsync(AvatarUrl, content);
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);

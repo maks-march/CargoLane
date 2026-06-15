@@ -31,5 +31,8 @@
       <_ContentIncludedByDefault Remove="wwwroot\uploads\b17dc9db-686c-48ea-8528-6d91400de791_test-avatar.jpg" />
       <_ContentIncludedByDefault Remove="wwwroot\uploads\ef3a897a-284e-467e-b974-426032b71af5_test-avatar.jpg" />
       <_ContentIncludedByDefault Remove="wwwroot\uploads\fd5de768-a5bd-438b-bcc2-5aa40ba49338_test-avatar.jpg" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\25ef0375-fa5d-423a-b842-22885f56ecd1_test-avatar.jpg" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\41bbe902-3012-4455-997b-66d5befa518a_test-avatar.jpg" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\89aee96b-64cc-45de-afb6-e594e698fa23_test-avatar.jpg" />
     </ItemGroup>
 </Project>

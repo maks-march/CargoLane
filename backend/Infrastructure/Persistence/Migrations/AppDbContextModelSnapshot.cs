@@ -332,7 +332,7 @@ namespace Persistence.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
-                    b.PrimitiveCollection<string[]>("VihicleTypes")
+                    b.PrimitiveCollection<string[]>("VehicleTypes")
                         .HasColumnType("text[]");
 
                     b.HasKey("Id");
@@ -390,7 +390,7 @@ namespace Persistence.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
-                    b.PrimitiveCollection<string[]>("VihicleTypes")
+                    b.PrimitiveCollection<string[]>("VehicleTypes")
                         .IsRequired()
                         .HasColumnType("text[]");
 

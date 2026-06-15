@@ -43,7 +43,6 @@ internal class FileService(IWebHostEnvironment enviroment) : IFileService
             else
             {
                 Console.WriteLine("Files not found");
-                throw new Exception("Files not found");
             }
         }
         return Task.FromResult(allDeleted);

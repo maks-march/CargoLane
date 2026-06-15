@@ -12,7 +12,7 @@ using Persistence.Common.DbContexts;
 namespace Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260615153633_LoadChange")]
+    [Migration("20260615191329_LoadChange")]
     partial class LoadChange
     {
         /// <inheritdoc />
@@ -335,7 +335,7 @@ namespace Persistence.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
-                    b.PrimitiveCollection<string[]>("VihicleTypes")
+                    b.PrimitiveCollection<string[]>("VehicleTypes")
                         .HasColumnType("text[]");
 
                     b.HasKey("Id");
@@ -393,7 +393,7 @@ namespace Persistence.Migrations
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
 
-                    b.PrimitiveCollection<string[]>("VihicleTypes")
+                    b.PrimitiveCollection<string[]>("VehicleTypes")
                         .IsRequired()
                         .HasColumnType("text[]");
 

@@ -10,7 +10,7 @@ public class LoadEntity : HasAuthor, IManyFiles<LoadFile>
     public string HScode { get; set; }
     public int Adr { get; set; } = 1;
     
-    public string[] VihicleTypes { get; set; } = [];
+    public string[] VehicleTypes { get; set; } = [];
     
     public string CargoType { get; set; } = string.Empty;
     

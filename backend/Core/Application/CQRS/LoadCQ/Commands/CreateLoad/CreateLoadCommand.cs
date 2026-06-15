@@ -10,10 +10,7 @@ namespace Application.CQRS.LoadCQ.Commands.CreateLoad;
 
 public record CreateLoadCommand : IRequest<Guid>, IMapWith<LoadEntity>
 {
-    public Guid UserId { get; set; } // Из контроллера
-    
-    [DefaultValue("Active")]
-    public string Status { get; set; } = string.Empty;
+    public Guid UserId { get; set; } = Guid.Empty;
     public double Payment { get; set; }
     public double Insurance { get; set; }
     public string HScode { get; set; } = string.Empty;
@@ -28,8 +25,6 @@ public record CreateLoadCommand : IRequest<Guid>, IMapWith<LoadEntity>
     public void Mapping(Profile profile)
     {
         profile.CreateMap<CreateLoadCommand, LoadEntity>()
-            .ForMember(dest => dest.Status, opt => 
-                opt.MapFrom(src => Enum.Parse<LoadStatus>(src.Status)))
             .ForMember(dest => dest.Payloads, opt => 
                 opt.MapFrom(src => src.Payloads))
             .ForMember(dest => dest.RoutePoints, opt => 

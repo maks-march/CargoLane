@@ -129,7 +129,6 @@ public abstract class LoadTestBase : BaseIntegrationTest
     {
         return new CreateLoadCommand
         {
-            Status = "Live",
             Payment = 5500,
             Insurance = 250,
             HScode = "8471.30",
