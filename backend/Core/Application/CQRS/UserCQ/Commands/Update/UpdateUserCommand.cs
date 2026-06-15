@@ -14,9 +14,9 @@ public record UpdateUserCommand : IRequest<Guid>, IMapWith<User>
     public string? FirstName { get; init; } = null;
     public string? LastName { get; init; } = null;
     
-    public string? NickName { get; set; } = null;
-    public int? TimeZone { get; set; } = null;
-    public string? PhoneNumber { get; set; } = null;
+    public string? DisplayName { get; set; } = null;
+    public int? Timezone { get; set; } = null;
+    public string? Phone { get; set; } = null;
     
     public string? CompanyName { get; set; } = null;
     public string? CompanyCountry { get; set; } = null;
@@ -27,7 +27,6 @@ public record UpdateUserCommand : IRequest<Guid>, IMapWith<User>
     public string? City { get; set; } = null;
     public string? Address { get; set; } = null;
     public string? PostalCode { get; set; } = null;
-    public string? Purpose { get; set; } = null;
     
     public void Mapping(Profile profile)
     {

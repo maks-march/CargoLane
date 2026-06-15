@@ -14,11 +14,10 @@ public class ForgotPasswordCommandHandler(
 
         if (!success || string.IsNullOrEmpty(resetToken))
             return (true, Array.Empty<string>());
-        // Send email with the token (frontend will use it as "code")
         var emailSent = await emailService.SendPasswordResetEmailAsync(request.Email, resetToken, cancellationToken);
 
         if (!emailSent)
-            return (false, new[] { "Failed to send reset email" });
+            throw new InvalidOperationException("Failed to send reset email");
 
         return (true, Array.Empty<string>());
     }

@@ -6,7 +6,7 @@ namespace Application.Interfaces.Auth;
 public interface IIdentityService
 {
     Task<(bool Succeeded, string[] Errors, Guid UserId)> CreateUserAsync(
-        string userName, string password, string name, string surname);
+        string userName, string password, string email, string name);
         
     Task<User?> FindBusinessUserByIdAsync(Guid userId);
     
@@ -23,5 +23,7 @@ public interface IIdentityService
     Task<(bool Succeeded, string[] Errors)> ResetPasswordAsync(string email, string resetToken, string newPassword);
 
     Task<(bool Succeeded, string[] Errors)> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword);
+
+    Task<bool> DeactivateUserAsync(Guid userId);
 
 }

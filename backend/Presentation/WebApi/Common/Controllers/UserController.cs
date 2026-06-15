@@ -1,9 +1,8 @@
 using Application.CQRS.UserCQ.Commands.Create;
+using Application.CQRS.UserCQ.Commands.Deactivate;
 using Application.CQRS.UserCQ.Commands.Delete;
 using Application.CQRS.UserCQ.Commands.DeleteAvatar;
 using Application.CQRS.UserCQ.Commands.Update;
-using Application.CQRS.UserCQ.Commands.UpdateCompany;
-using Application.CQRS.UserCQ.Commands.UpdateProfile;
 using Application.CQRS.UserCQ.Commands.UploadAvatar;
 using Application.CQRS.UserCQ.Queries.GetUserDetails;
 using Application.CQRS.UserCQ.Queries.GetUserList;
@@ -19,19 +18,6 @@ namespace WebApi.Common.Controllers;
 public class UserController(IMediator mediator) : BaseController(mediator)
 {
     #region old
-    
-    
-    [AllowAnonymous]
-    [HttpGet("{id:guid}")]
-    public async Task<ActionResult<UserDetailsVm>> Get(Guid id)
-    {
-        var query = new GetUserDetailsQuery { Id = id };
-        var vm = await Mediator.Send(query);
-        return Ok(vm);
-    }
-    
-    [HttpGet("me")]
-    public async Task<ActionResult<UserDetailsVm>> GetMe() => await Get(UserId);
     
     [HttpGet]
     public async Task<ActionResult<ICollection<UserDetailsVm>>> Get()
@@ -54,13 +40,26 @@ public class UserController(IMediator mediator) : BaseController(mediator)
         return NoContent();
     }
     
+    #endregion
+
     [HttpDelete("me")]
     public async Task<IActionResult> DeleteMe()
     {
-        if (UserId == Guid.Empty) return Unauthorized();
         await Mediator.Send(new DeleteUserCommand { Id = UserId });
         return NoContent();
     }
+    
+    [AllowAnonymous]
+    [HttpGet("{id:guid}")]
+    public async Task<ActionResult<UserDetailsVm>> Get(Guid id)
+    {
+        var query = new GetUserDetailsQuery { Id = id };
+        var vm = await Mediator.Send(query);
+        return Ok(vm);
+    }
+    
+    [HttpGet("me")]
+    public async Task<ActionResult<UserDetailsVm>> GetMe() => await Get(UserId);
     
     [HttpPatch("me")]
     public async Task<ActionResult<Guid>> UpdateMe([FromBody] UpdateUserCommand command)
@@ -70,26 +69,14 @@ public class UserController(IMediator mediator) : BaseController(mediator)
         return Ok(await Mediator.Send(command));
     }
     
-    
-    #endregion
-
-    [HttpPut("profile")]
-    public async Task<ActionResult<Guid>> UpdateProfile([FromBody] UpdateUserProfileCommand command)
+    [Authorize]
+    [HttpPost("deactivate")]
+    public async Task<ActionResult> Deactivate()
     {
-        if (UserId == Guid.Empty) return Unauthorized();
-        command.Id = UserId;
-        return Ok(await Mediator.Send(command));
+        await Mediator.Send(new DeactivateCommand(UserId));
+        return Ok();
     }
 
-    [HttpPut("company")]
-    public async Task<ActionResult<Guid>> UpdateCompany([FromBody] UpdateUserCompanyCommand command)
-    {
-        if (UserId == Guid.Empty) return Unauthorized();
-        command.Id = UserId;
-        return Ok(await Mediator.Send(command));
-    }
-
-    
     [HttpPost("avatar")]
     public async Task<IActionResult> UploadAvatar([FromForm] PhotoDto avatar)
     {
@@ -106,6 +93,4 @@ public class UserController(IMediator mediator) : BaseController(mediator)
         await Mediator.Send(new DeleteUserAvatarCommand(UserId));
         return NoContent();
     }
-
-
 }

@@ -23,9 +23,8 @@ public class RegisterCommandHandler(
         
         // 1. Создаем пользователя через наш сервис (используем Username из команды)
         var name = request.Username ?? string.Empty;
-        var surname = string.Empty;
         var (succeeded, errors, userId) = await identityService.CreateUserAsync(
-            request.Login, request.Password, name, surname);
+            request.Login, request.Password, request.Login, name);
         
         if (!succeeded)
         {
@@ -50,21 +49,5 @@ public class RegisterCommandHandler(
             throw new InvalidOperationException("Failed to send confirmation email.");
         }
         return new(true, userId, token);
-        // // 3. Генерируем токены
-        // var accessToken = jwtProvider.GenerateAccessToken(appUser);
-        // var refreshToken = jwtProvider.GenerateRefreshToken();
-        //
-        //
-        // // 4. Сохраняем Refresh Token в базу
-        // appUser.RefreshToken = refreshToken;
-        // appUser.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
-        // await userManager.UpdateAsync(appUser);
-        //
-        // // 5. Возвращаем ответ
-        // return new AuthResponse(
-        //     accessToken, 
-        //     refreshToken, 
-        //     userId, 
-        //     appUser.Email);
     }
 }

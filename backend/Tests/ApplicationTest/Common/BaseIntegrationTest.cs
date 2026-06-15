@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Application.CQRS.AuthCQ;
+using Application.CQRS.AuthCQ.ConfirmEmail;
 using Application.CQRS.AuthCQ.Login;
 using Application.CQRS.AuthCQ.Refresh;
 using Application.CQRS.AuthCQ.Register;
@@ -87,6 +88,13 @@ public abstract class BaseIntegrationTest
         response.IsSuccessStatusCode.Should().BeTrue();
         var result = await response.Content.ReadFromJsonAsync<T>();
         return result;
+    }
+    
+    [TearDown]
+    public void TearDown()
+    {
+        Client.DefaultRequestHeaders.Authorization = 
+            new AuthenticationHeaderValue("Bearer", Tokens.AccessToken);
     }
     
     [OneTimeTearDown]

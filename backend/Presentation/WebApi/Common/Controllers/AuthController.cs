@@ -1,5 +1,6 @@
 using Application.CQRS.AuthCQ;
 using Application.CQRS.AuthCQ.ChangePassword;
+using Application.CQRS.AuthCQ.ConfirmEmail;
 using Application.CQRS.AuthCQ.ForgotPassword;
 using Application.CQRS.AuthCQ.Login;
 using Application.CQRS.AuthCQ.Refresh;
@@ -36,7 +37,6 @@ public class AuthController(IMediator mediator, IConfiguration configuration)
     public async Task<IActionResult> Register([FromBody] RegisterCommand command)
     {
         var response = await Mediator.Send(command);
-        // Return success + userId + confirmation token (as before); frontend can ignore token
         return Ok(response);
     }
 
@@ -85,11 +85,6 @@ public class AuthController(IMediator mediator, IConfiguration configuration)
     public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailCommand command)
     {
         var result = await Mediator.Send(command);
-        if (!result.Succeeded)
-        {
-            Console.WriteLine(string.Join("\n", result.Errors));
-            throw new InvalidOperationException(string.Join('\n', result.Errors));
-        }
         return Ok("Account confirmed");
     }
 
@@ -103,11 +98,8 @@ public class AuthController(IMediator mediator, IConfiguration configuration)
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordCommand command)
     {
-        if (UserId == Guid.Empty) return Unauthorized();
-        command.UserId = UserId; // enrich from authenticated context (BaseController)
+        command.UserId = UserId;
         var result = await Mediator.Send(command);
-        if (!result.Succeeded)
-            return BadRequest(new { errors = result.Errors });
         return Ok();
     }
 
@@ -121,9 +113,7 @@ public class AuthController(IMediator mediator, IConfiguration configuration)
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
     {
         var result = await Mediator.Send(command);
-        if (!result.Succeeded)
-            return BadRequest(new { errors = result.Errors });
-        return Ok(new { message = "If the email exists, a reset code has been sent." }); // don't leak existence
+        return Ok(new { message = "If the email exists, a reset code has been sent." });
     }
 
     /// <summary>

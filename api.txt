@@ -9,9 +9,7 @@ POST /api/auth/register
 {
   "login": "string",
   "password": "string",
-  "email": "string",
-  "username": "string",
-  "role": "string"
+  "username": "string"
 }
 /response
 {
@@ -63,7 +61,7 @@ POST /api/auth/change-password
   "newPassword": "string"
 }
 
-POST /api/auth/reset-password
+POST /api/auth/forgot-password
 {
   "email": "string"
 }

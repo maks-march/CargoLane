@@ -19,13 +19,5 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
             .WithOne(uf => uf.Owner)
             .HasForeignKey<User>(u => u.AvatarId)
             .OnDelete(DeleteBehavior.SetNull); // При удалении файла - AvatarId = null
-    
-        // Конфигурация для связи Certificates (один-ко-многим)
-        builder
-            .HasMany(u => u.Certificates)
-            .WithOne() // Нет обратной навигации
-            .HasForeignKey(f => f.OwnerId) // Теневой внешний ключ
-            .OnDelete(DeleteBehavior.Cascade); // При удалении пользователя - удаляем все сертификаты
-        
     }
 }

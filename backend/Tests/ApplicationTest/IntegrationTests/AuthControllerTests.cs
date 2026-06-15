@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Application.CQRS.AuthCQ;
 using Application.CQRS.AuthCQ.ChangePassword;
+using Application.CQRS.AuthCQ.ConfirmEmail;
 using Application.CQRS.AuthCQ.ForgotPassword;
 using Application.CQRS.AuthCQ.Login;
 using Application.CQRS.AuthCQ.Refresh;
@@ -162,9 +163,7 @@ public class AuthControllerTests : BaseIntegrationTest
         {
             Login = login,
             Password = Password,
-            Email = login,
-            Username = "FullUserName",
-            Role = "User"
+            Username = "FullUserName"
         };
 
         var response = await Client.PostAsJsonAsync("/api/Auth/register", registerCommand);

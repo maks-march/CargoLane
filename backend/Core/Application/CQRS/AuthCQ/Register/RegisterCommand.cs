@@ -16,17 +16,7 @@ public record RegisterCommand : IRequest<RegisterResponse>
     public required string Password { get; init; }
 
     /// <summary>
-    /// Email (может совпадать с Login).
-    /// </summary>
-    public string? Email { get; init; }
-
-    /// <summary>
     /// Отображаемое имя пользователя.
     /// </summary>
-    public string? Username { get; init; }
-
-    /// <summary>
-    /// Роль пользователя (User по умолчанию).
-    /// </summary>
-    public string? Role { get; init; }
+    public string Username { get; init; }
 }

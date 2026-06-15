@@ -2,6 +2,7 @@ using Application;
 using Application.Common.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Persistence.Extensions;
+using WebApi.Common.Middleware;
 using WebApi.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,7 +50,7 @@ await app.SeedData();
 
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseMiddleware<UserStatusMiddleware>();
 app.MapControllers();
 
 app.Run();

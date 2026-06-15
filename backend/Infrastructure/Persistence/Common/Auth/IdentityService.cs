@@ -1,3 +1,4 @@
+using Application.Common.Exceptions;
 using Application.DTO.Auth;
 using Application.Interfaces.Auth;
 using Domain.Models;
@@ -10,9 +11,9 @@ public class IdentityService(UserManager<ApplicationUser> userManager, AppDbCont
     : IIdentityService
 {
     public async Task<(bool Succeeded, string[] Errors, Guid UserId)> CreateUserAsync(
-        string userName, string password, string name, string surname)
+        string userName, string password, string email, string name)
     {
-        var appUser = new ApplicationUser { UserName = userName, Email = userName };
+        var appUser = new ApplicationUser { UserName = userName, Email = email };
         var result = await userManager.CreateAsync(appUser, password);
 
         if (!result.Succeeded)
@@ -21,10 +22,10 @@ public class IdentityService(UserManager<ApplicationUser> userManager, AppDbCont
         var businessUser = new User
         {
             Id = appUser.Id, 
-            FirstName = name, 
-            LastName = surname,
-            Created = DateTime.Now,
-            Updated = DateTime.Now
+            FirstName = name,
+            DisplayName = name,
+            Created = DateTime.UtcNow,
+            Updated = DateTime.UtcNow
         };
         context.BusinessUsers.Add(businessUser);
         await context.SaveChangesAsync(CancellationToken.None);
@@ -111,5 +112,19 @@ public class IdentityService(UserManager<ApplicationUser> userManager, AppDbCont
 
         var result = await userManager.ResetPasswordAsync(user, resetToken, newPassword);
         return (result.Succeeded, result.Errors.Select(e => e.Description).ToArray());
+    }
+    
+    public async Task<bool> DeactivateUserAsync(Guid userId)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user == null)
+            throw new NotFoundException("User not found", userId);
+        // Устанавливаем блокировку до конца времен (9999 год)
+        var blocked = await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+        
+        await userManager.SetLockoutEnabledAsync(user, true);
+        // Опционально: сбрасываем Security Stamp, чтобы пользователя выкинуло из системы мгновенно
+        await userManager.UpdateSecurityStampAsync(user);
+        return blocked.Succeeded;
     }
 }

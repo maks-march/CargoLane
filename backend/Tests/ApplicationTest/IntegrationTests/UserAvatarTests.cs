@@ -13,108 +13,10 @@ namespace ApplicationTest.IntegrationTests;
 /// Written in the same style as the existing UserControllerTests.
 /// </summary>
 [TestFixture]
-public class UserProfileAvatarTests : BaseIntegrationTest
+public class UserAvatarTests : BaseIntegrationTest
 {
     private const string BaseUrl = "api/User/";
-    private const string ProfileUrl = "api/User/profile";
-    private const string CompanyUrl = "api/User/company";
     private const string AvatarUrl = "api/User/avatar";
-
-    #region Profile
-
-    [Test]
-    public async Task Put_Profile_WithValidData_ShouldUpdatePersonalFields()
-    {
-        var request = new
-        {
-            FirstName = "UpdatedFirst",
-            LastName = "UpdatedLast",
-            NickName = "UpdatedNick",
-            PhoneNumber = "+79991234567",
-            TimeZone = 3,
-            Country = "Russia",
-            City = "Moscow",
-            Address = "Tverskaya 1"
-        };
-
-        var response = await Client.PutAsJsonAsync(ProfileUrl, request);
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var me = await GetMeAsync();
-        me.Name.Should().Be(request.FirstName);
-        me.Surname.Should().Be(request.LastName);
-        me.NickName.Should().Be(request.NickName);
-        me.PhoneNumber.Should().Be(request.PhoneNumber);
-        me.TimeZone.Should().Be(request.TimeZone);
-        me.Country.Should().Be(request.Country);
-        me.City.Should().Be(request.City);
-        me.Address.Should().Be(request.Address);
-    }
-
-    [Test]
-    public async Task Put_Profile_WithInvalidData_ShouldReturnBadRequest()
-    {
-        var request = new
-        {
-            FirstName = new string('A', 100), // too long
-            LastName = ""
-        };
-
-        var response = await Client.PutAsJsonAsync(ProfileUrl, request);
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
-
-        var error = await response.Content.ReadFromJsonAsync<ErrorResponse>();
-        error.Should().NotBeNull();
-    }
-
-    [Test]
-    public async Task Put_Profile_WithoutAuth_ShouldBeUnauthorized()
-    {
-        var unauthClient = _factory.CreateClient();
-        unauthClient.DefaultRequestHeaders.Authorization = null;
-
-        var request = new { FirstName = "Test" };
-
-        var response = await unauthClient.PutAsJsonAsync(ProfileUrl, request);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    #endregion
-
-    #region Company
-
-    [Test]
-    public async Task Put_Company_WithValidData_ShouldUpdateCompanyFields()
-    {
-        var request = new
-        {
-            CompanyName = "ООО Рога и Копыта",
-            CompanyCountry = "Russia",
-            CompanyType = "ООО"
-        };
-
-        var response = await Client.PutAsJsonAsync(CompanyUrl, request);
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        var me = await GetMeAsync();
-        me.CompanyName.Should().Be(request.CompanyName);
-        me.CompanyCountry.Should().Be(request.CompanyCountry);
-        me.CompanyType.Should().Be(request.CompanyType);
-    }
-
-    [Test]
-    public async Task Put_Company_WithoutAuth_ShouldBeUnauthorized()
-    {
-        var unauthClient = _factory.CreateClient();
-        unauthClient.DefaultRequestHeaders.Authorization = null;
-
-        var request = new { CompanyName = "Test" };
-
-        var response = await unauthClient.PutAsJsonAsync(CompanyUrl, request);
-        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
-    }
-
-    #endregion
 
     #region Avatar
 
@@ -137,7 +39,7 @@ public class UserProfileAvatarTests : BaseIntegrationTest
 
         if (!string.IsNullOrEmpty(me.AvatarPath))
         {
-            await CleanupAvatarIfExists(me.AvatarPath);
+            await Client.DeleteAsync(AvatarUrl);
         }
     }
 
@@ -156,7 +58,7 @@ public class UserProfileAvatarTests : BaseIntegrationTest
 
         var meAfterFirst = await GetMeAsync();
         var oldPath = meAfterFirst.AvatarPath;
-        // oldPath.Should().NotBeNullOrEmpty(); // may be null if GetUserDetailsQueryHandler lacks .Include
+        oldPath.Should().NotBeNullOrEmpty();
 
         // Upload second avatar (replace)
         var secondBytes = CreateFakeJpegBytes();
@@ -169,8 +71,8 @@ public class UserProfileAvatarTests : BaseIntegrationTest
         secondResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         var meAfterSecond = await GetMeAsync();
-        // meAfterSecond.AvatarPath.Should().NotBeNullOrEmpty();
-        // meAfterSecond.AvatarPath.Should().NotBe(oldPath);
+        meAfterSecond.AvatarPath.Should().NotBeNullOrEmpty();
+        meAfterSecond.AvatarPath.Should().NotBe(oldPath);
 
         // Old file should be deleted (only if we had a previous path)
         if (!string.IsNullOrEmpty(oldPath))
@@ -181,7 +83,7 @@ public class UserProfileAvatarTests : BaseIntegrationTest
 
         if (!string.IsNullOrEmpty(meAfterSecond.AvatarPath))
         {
-            await CleanupAvatarIfExists(meAfterSecond.AvatarPath);
+            await Client.DeleteAsync(AvatarUrl);
         }
     }
 
@@ -303,20 +205,6 @@ public class UserProfileAvatarTests : BaseIntegrationTest
         };
     }
 
-    private async Task CleanupAvatarIfExists(string? avatarPath)
-    {
-        if (string.IsNullOrEmpty(avatarPath)) return;
-
-        try
-        {
-            await FileService.DeleteFiles(CancellationToken.None, avatarPath);
-        }
-        catch
-        {
-            // Ignore cleanup errors in tests
-        }
-    }
-
     private async Task<bool> FileStillExists(string? path)
     {
         if (string.IsNullOrEmpty(path)) return false;
@@ -342,7 +230,16 @@ public class UserProfileAvatarTests : BaseIntegrationTest
             if (!string.IsNullOrEmpty(me.AvatarPath))
             {
                 await Client.DeleteAsync(AvatarUrl);
-                await CleanupAvatarIfExists(me.AvatarPath);
+                if (string.IsNullOrEmpty(me.AvatarPath)) return;
+
+                try
+                {
+                    await FileService.DeleteFiles(CancellationToken.None, me.AvatarPath);
+                }
+                catch
+                {
+                    // ignored
+                }
             }
         }
         catch

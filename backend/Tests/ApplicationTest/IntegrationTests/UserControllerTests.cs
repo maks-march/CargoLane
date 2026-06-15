@@ -27,8 +27,8 @@ public class UserControllerTests : BaseIntegrationTest
     public async Task Get_WithValidCredentials_ShouldBeOk()
     {
         var vm = await CheckGet_User(Tokens.UserId);
-        vm.Name.Should().NotBeNull();
-        vm.Surname.Should().NotBeNull();
+        vm.FirstName.Should().NotBeNull();
+        vm.LastName.Should().NotBeNull();
     }
     
     
@@ -41,8 +41,8 @@ public class UserControllerTests : BaseIntegrationTest
         var vm = await response.Content.ReadFromJsonAsync<UserDetailsVm>();
         
         vm.Should().NotBeNull();
-        vm.Name.Should().NotBeNull();
-        vm.Surname.Should().NotBeNull();
+        vm.FirstName.Should().NotBeNull();
+        vm.LastName.Should().NotBeNull();
     }
     
     [Test]
@@ -69,8 +69,8 @@ public class UserControllerTests : BaseIntegrationTest
         vm.Should().NotBeNull();
         vm.Should().NotBeEmpty();
         var first = vm.First(user => user.Id == Tokens.UserId);
-        first.Name.Should().NotBeNull();
-        first.Surname.Should().NotBeNull();
+        first.FirstName.Should().NotBeNull();
+        first.LastName.Should().NotBeNull();
     }
 
     [Test]
@@ -88,8 +88,8 @@ public class UserControllerTests : BaseIntegrationTest
 
         var getResponse = await CheckGet_User(id);
         
-        getResponse.Name.Should().Be(request.FirstName);
-        getResponse.Surname.Should().Be(request.LastName);
+        getResponse.FirstName.Should().Be(request.FirstName);
+        getResponse.LastName.Should().Be(request.LastName);
         getResponse.Updated.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
     }
     
@@ -113,5 +113,154 @@ public class UserControllerTests : BaseIntegrationTest
         vm.Should().NotBeNull();
         vm.Error.Should().ContainAll(["FirstName", "LastName"], "All fields not valid.");
         vm.Details.Should().NotBeNullOrEmpty();
+    }
+    
+        [Test]
+    public async Task Update_WithValidBasicFields_ShouldBeOk()
+    {
+        // Arrange
+        var request = new UpdateUserCommand()
+        {
+            FirstName = "NewName",
+            LastName = "NewSurname",
+            DisplayName = "SuperUser"
+        };
+
+        // Act
+        var response = await Client.PatchAsJsonAsync($"{BaseUrl}me", request);
+        
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+        var id = await response.Content.ReadFromJsonAsync<Guid>();
+
+        var user = await CheckGet_User(id);
+        user.FirstName.Should().Be(request.FirstName);
+        user.LastName.Should().Be(request.LastName);
+        user.DisplayName.Should().Be(request.DisplayName);
+        user.Updated.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(10));
+    }
+
+    [Test]
+    public async Task Update_AllFields_ShouldPersistCorrectData()
+    {
+        // Arrange: Тестируем компанию, телефон и адресные данные
+        var request = new UpdateUserCommand()
+        {
+            FirstName = "John",
+            LastName = "Doe",
+            Phone = "+1234567890",
+            Timezone = 3,
+            CompanyName = "Cargo Lane LLC",
+            CompanyCountry = "USA",
+            CompanyType = "Carrier",
+            Country = "USA",
+            Region = "California",
+            City = "San Francisco",
+            Address = "Market St. 123",
+            PostalCode = "94103"
+        };
+
+        // Act
+        var response = await Client.PatchAsJsonAsync($"{BaseUrl}me", request);
+        
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+        var id = await response.Content.ReadFromJsonAsync<Guid>();
+        var user = await CheckGet_User(id);
+
+        user.Phone.Should().Be(request.Phone);
+        user.CompanyName.Should().Be(request.CompanyName);
+        user.CompanyType.Should().Be(request.CompanyType);
+        user.City.Should().Be(request.City);
+        user.Address.Should().Be(request.Address);
+        user.Timezone.Should().Be(request.Timezone);
+    }
+
+    [Test]
+    public async Task Update_PartialUpdate_ShouldNotOverwriteExistingFieldsWithNull()
+    {
+        // Arrange: 1. Сначала устанавливаем имя и город
+        await Client.PatchAsJsonAsync($"{BaseUrl}me", new UpdateUserCommand 
+        { 
+            FirstName = "KeepMe", 
+            City = "London" 
+        });
+
+        // 2. Отправляем запрос только на изменение имени (City в команде будет null)
+        var partialRequest = new UpdateUserCommand { FirstName = "NewName" };
+
+        // Act
+        var response = await Client.PatchAsJsonAsync($"{BaseUrl}me", partialRequest);
+        
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+        var id = await response.Content.ReadFromJsonAsync<Guid>();
+        var user = await CheckGet_User(id);
+
+        user.FirstName.Should().Be("NewName");
+        // ПРОВЕРКА: Город не должен стать null, так как в команде он не был указан
+        user.City.Should().Be("London"); 
+    }
+
+    [Test]
+    public async Task Update_WithTooLongNames_ShouldBeBadRequest()
+    {
+        // Arrange: Генерируем слишком длинные строки
+        var longString = new string('A', 300);
+        var request = new UpdateUserCommand()
+        {
+            FirstName = longString,
+            LastName = longString
+        };
+
+        // Act
+        var response = await Client.PatchAsJsonAsync($"{BaseUrl}me", request);
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        var vm = await response.Content.ReadFromJsonAsync<ErrorResponse>();
+        
+        vm.Should().NotBeNull();
+        vm.Error.Should().ContainAny("FirstName", "LastName");
+    }
+
+    [Test]
+    public async Task Update_InvalidTimezone_ShouldBeBadRequest()
+    {
+        // Arrange: Таймзон обычно в пределах -12..+14
+        var request = new UpdateUserCommand { Timezone = 100 };
+
+        // Act
+        var response = await Client.PatchAsJsonAsync($"{BaseUrl}me", request);
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Test]
+    public async Task Update_Unauthorized_ShouldBeForbidden()
+    {
+        // Arrange: Убираем токен авторизации
+        Client.DefaultRequestHeaders.Authorization = null;
+        var request = new UpdateUserCommand { FirstName = "NewName" };
+
+        // Act
+        var response = await Client.PatchAsJsonAsync($"{BaseUrl}me", request);
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Test]
+    public async Task Update_EmptyRequest_ShouldNotChangeAnything()
+    {
+        // Arrange
+        var request = new UpdateUserCommand(); // Все поля null
+
+        // Act
+        var response = await Client.PatchAsJsonAsync($"{BaseUrl}me", request);
+        
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
     }
 }

@@ -63,7 +63,9 @@ public static class DependencyInjection
                 
                 options.SignIn.RequireConfirmedEmail = true; // Важно!
                 options.User.RequireUniqueEmail = true;
+                options.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultEmailProvider;
             })
+            .AddDefaultTokenProviders()
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
 
