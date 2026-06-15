@@ -280,43 +280,40 @@ PUT /api/load/{id}/photos (multipart-formdata)
     ]
 }
 
-GET /api/load/draft
+GET /api/load/draft/me
 [
 {
     "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-    "startDate": "string",
-    "payment": 0,
-    "startCity": "string",
-    "endCity": "string",
-    "cargoType": "string",
-    "vehicleType": "string",
-    "totalWeight": 0,
-    "payloadCount": 0
+    "startDate": "string"?,
+    "payment": 0?,
+    "startCity": "string"?,
+    "endCity": "string"?,
+    "cargoType": "string"?,
+    "vehicleType": "string"?
   }
 ]
 
 GET /api/load/draft/{id} | PUT /api/load/draft/{id} | POST /api/load/draft
 {
   "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "payment": 0,
-  "insurance": 0,
-  "hScode": "string",
-  "adr": 0,
+  "payment": 0?,
+  "insurance": 0?,
+  "hScode": "string"?,
+  "adr": 0?,
   "vehicleTypes": [
     "string"
-  ],
-  "cargoType": "string",
-  "about": "string",
-  "isReviewed": true,
+  ]?,
+  "cargoType": "string"?,
+  "about": "string"?,
   "payloads": [
     {
-      "length": 0,
-      "width": 0,
-      "height": 0,
-      "weight": 0,
-      "volume": 0,
-      "amount": 0,
-      "type": "string"
+      "length": 0?,
+      "width": 0?,
+      "height": 0?,
+      "weight": 0?,
+      "volume": 0?,
+      "amount": 0?,
+      "type": "string"?
     }
   ],
   "routePoints": [

@@ -4,7 +4,6 @@ namespace Domain.Models.Load;
 
 public class LoadDraft : HasAuthor
 {
-    public DateOnly? StartDate { get; set; } = null;
     public double? Payment { get; set; } = null;
     public double? Insurance { get; set; } = null;
     public string? HScode { get; set; } = null;

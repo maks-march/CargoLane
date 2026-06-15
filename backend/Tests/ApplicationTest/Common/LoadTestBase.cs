@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Application.CQRS.LoadCQ.Commands;
 using Application.CQRS.LoadCQ.Commands.CreateLoad;
+using Application.CQRS.LoadCQ.Commands.Draft.Create;
 using Application.DTO.Auth;
 using Application.DTO.Load;
 using ApplicationTest.Common;

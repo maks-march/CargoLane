@@ -6,7 +6,7 @@ using Domain.Enums.Load;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.CQRS.LoadCQ.Queries;
+namespace Application.CQRS.LoadCQ.Queries.Load;
 
 public class GetUserLoadsQuery : IRequest<LoadListVm[]>
 {

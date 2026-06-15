@@ -17,12 +17,11 @@ public class Payload : CollectionField<LoadEntity>
 
 public class PayloadDraft : CollectionField<LoadDraft>
 {
-    public required double Length { get; set; } = 1;
-    public required double Width { get; set; } = 1;
-    public required double Height { get; set; } = 1;
-    public required double Weight { get; set; } = 1;
-    public required double Volume { get; set; } = 1;
+    public double? Length { get; set; } = null;
+    public double? Width { get; set; } = null;
+    public double? Height { get; set; } = null;
+    public double? Weight { get; set; } = null;
 
-    public int Amount { get; set; } = 1;
-    public PayloadType Type { get; set; }
+    public int? Amount { get; set; } = null;
+    public PayloadType? Type { get; set; }
 }

@@ -1,8 +1,12 @@
 using Application.CQRS.LoadCQ.Commands;
 using Application.CQRS.LoadCQ.Commands.CreateLoad;
 using Application.CQRS.LoadCQ.Commands.DeleteLoad;
+using Application.CQRS.LoadCQ.Commands.Draft;
+using Application.CQRS.LoadCQ.Commands.Draft.Create;
 using Application.CQRS.LoadCQ.Commands.UploadFiles;
 using Application.CQRS.LoadCQ.Queries;
+using Application.CQRS.LoadCQ.Queries.Draft;
+using Application.CQRS.LoadCQ.Queries.Load;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -128,9 +132,35 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     public async Task<ActionResult<Guid>> CreateDraft([FromBody] CreateLoadDraftCommand command)
     {
         command.UserId = UserId;
+        var settings = UserSettings;
+        foreach (var route in command.RoutePoints ?? [])
+        {
+            route.ArrivalTime = route.ArrivalTime.AddHours(-settings.timezone);
+        }
+
+        if (!settings.isMetric)
+        {
+            foreach (var payload in command.Payloads ?? [])
+            {
+                payload.Height *= 1.609;
+                payload.Width *= 1.609;
+                payload.Length *= 1.609;
+
+                payload.Weight *= 0.4536;
+            }
+        }
         return Ok(await Mediator.Send(command));
     }
 
+    [HttpGet("draft/me")]
+    [ProducesResponseType(typeof(LoadDraftVm[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<LoadDraftVm[]>> GetMyDrafts()
+    {
+        var command = new GetUserLoadDraftQuery(UserId);
+        return await Mediator.Send(command);
+    }
+    
     /// <summary>
     /// Получить данные черновика.
     /// </summary>
@@ -139,7 +169,26 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<LoadDraftVm>> GetDraft(Guid id)
     {
-        return Ok(await Mediator.Send(new GetLoadDraftQuery { Id = id, UserId = UserId }));
+        var vm = await Mediator.Send(new GetLoadDraftQuery { Id = id, UserId = UserId });
+        if (UserId == Guid.Empty) return vm;
+        var settings = UserSettings;
+        foreach (var route in vm.RoutePoints)
+        {
+            route.ArrivalTime = route.ArrivalTime.AddHours(settings.timezone);
+        }
+
+        if (!settings.isMetric)
+        {
+            foreach (var payload in vm.Payloads)
+            {
+                payload.Height /= 1.609;
+                payload.Width /= 1.609;
+                payload.Length /= 1.609;
+
+                payload.Weight *= 2.20462;
+            }
+        }
+        return Ok(vm);
     }
 
     /// <summary>

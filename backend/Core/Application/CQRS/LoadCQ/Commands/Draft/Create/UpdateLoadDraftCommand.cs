@@ -5,20 +5,11 @@ using Domain.Models.Load;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.CQRS.LoadCQ.Commands;
+namespace Application.CQRS.LoadCQ.Commands.Draft.Create;
 
-public class UpdateLoadDraftCommand : IRequest<Guid>
+public class UpdateLoadDraftCommand : CreateLoadDraftCommand
 {
     public Guid Id { get; set; }
-    public Guid UserId { get; set; }
-    
-    public DateOnly? StartDate { get; set; }
-    public double? Payment { get; set; }
-    public double? Insurance { get; set; }
-    public string? HScode { get; set; }
-    public int? Adr { get; set; }
-    public string[]? SuitableCargos { get; set; }
-    public string? About { get; set; }
 }
 
 public class UpdateLoadDraftCommandHandler(IAppDbContext dbContext, IMapper mapper) 
@@ -34,7 +25,7 @@ public class UpdateLoadDraftCommandHandler(IAppDbContext dbContext, IMapper mapp
 
         // Мапим изменения (используя Null-проверку в профиле AutoMapper)
         mapper.Map(request, draft);
-        draft.Updated = DateTime.Now;
+        draft.Updated = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync(ct);
         return draft.Id;

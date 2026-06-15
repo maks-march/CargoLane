@@ -6,7 +6,7 @@ using Domain.Models.Load;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.CQRS.LoadCQ.Queries;
+namespace Application.CQRS.LoadCQ.Queries.Draft;
 
 public class GetLoadDraftQuery : IRequest<LoadDraftVm>
 {

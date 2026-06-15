@@ -32,11 +32,8 @@ public record LoadListVm : IMapWith<LoadEntity>
                 s.RoutePoints.Any()
                     ? s.RoutePoints.OrderByDescending(rp => rp.OrderIndex).First().City 
                     : string.Empty))
-            // Агрегируем данные по грузам (safe)
-            .ForMember(d => d.TotalWeight, opt => opt.MapFrom(s => 
-                s.Payloads.Sum(p => p.Weight * p.Amount)))
             .ForMember(d => d.PayloadCount, opt => opt.MapFrom(s => 
-                s.Payloads.Count))
+                s.Payloads.Select(p => p.Amount).Sum()))
             // Derive StartDate from first RoutePoint's ArrivalTime (common pattern for list cards)
             .ForMember(d => d.StartDate, opt => opt.MapFrom(s => 
                 s.RoutePoints.OrderBy(rp => rp.OrderIndex).First().ArrivalTime));
