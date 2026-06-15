@@ -21,7 +21,9 @@ public class GetLoadListQueryHandler(IAppDbContext dbContext, IMapper mapper)
     {
         var query = dbContext.Loads
             .AsNoTracking()
-            .Where(l => request.Status == null ||  l.Status == request.Status); // Только активные
+            .Include(l => l.RoutePoints)
+            .Include(l => l.Payloads)
+            .Where(l => request.Status == null || l.Status == request.Status);
 
         if (!string.IsNullOrEmpty(request.StartCity))
             query = query
@@ -34,6 +36,7 @@ public class GetLoadListQueryHandler(IAppDbContext dbContext, IMapper mapper)
                 .Where(l => l.RoutePoints.Any() && l.RoutePoints
                     .OrderByDescending(rp => rp.OrderIndex)
                     .First().City.Contains(request.EndCity));
+
         return await query
             .ProjectTo<LoadListVm>(mapper.ConfigurationProvider)
             .ToArrayAsync(ct);
