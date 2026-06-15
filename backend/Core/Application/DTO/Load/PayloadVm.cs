@@ -6,11 +6,11 @@ namespace Application.DTO.Load;
 
 public record PayloadVm : IMapWith<Payload>
 {
-    public double Length { get; init; }
-    public double Width { get; init; }
-    public double Height { get; init; }
-    public double Weight { get; init; }
-    public double Volume { get; init; }
+    public double Length { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+    public double Weight { get; set; }
+    public double Volume { get; set; }
     public int Amount { get; init; }
     public string Type { get; init; } = string.Empty;
 

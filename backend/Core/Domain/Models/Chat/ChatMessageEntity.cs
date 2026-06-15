@@ -12,5 +12,4 @@ public class ChatMessageEntity : Entity
 
     public string Text { get; set; } = string.Empty;
     public bool IsRead { get; set; } = false;
-    public bool IsSystem { get; set; } = false;   // Добавлено для поддержки системных сообщений (md)
 }

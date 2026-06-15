@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Application.CQRS.UserCQ.Queries.GetUserDetails;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,6 +26,16 @@ public class BaseController(IMediator mediator) : ControllerBase
             return User.Identity is { IsAuthenticated: true } && identifier != null
                 ? Guid.Parse(identifier)
                 : Guid.Empty;
+        }
+    }
+
+    internal (int timezone, bool isMetric) UserSettings
+    {
+        get
+        {
+            var query = new GetUserDetailsQuery { Id = UserId};
+            var userVm = Mediator.Send(query).Result;
+            return (userVm.Timezone, userVm.IsMetric);
         }
     }
 }

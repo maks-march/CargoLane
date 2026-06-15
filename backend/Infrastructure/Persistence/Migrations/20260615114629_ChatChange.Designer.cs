@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Persistence.Common.DbContexts;
@@ -11,9 +12,11 @@ using Persistence.Common.DbContexts;
 namespace Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260615114629_ChatChange")]
+    partial class ChatChange
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -118,15 +121,27 @@ namespace Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTime>("ArrivalTime")
+                    b.Property<DateTime?>("ArrivalTime")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("City")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
                     b.Property<Guid>("EntityId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("IsLoad")
+                        .HasColumnType("boolean");
+
+                    b.Property<TimeSpan>("LoadTimeEnd")
+                        .HasColumnType("interval");
+
+                    b.Property<TimeSpan>("LoadTimeStart")
+                        .HasColumnType("interval");
 
                     b.Property<int>("OrderIndex")
                         .HasColumnType("integer");
@@ -148,15 +163,27 @@ namespace Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<DateTime>("ArrivalTime")
+                    b.Property<DateTime?>("ArrivalTime")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("City")
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<DateOnly>("Date")
+                        .HasColumnType("date");
+
                     b.Property<Guid>("EntityId")
                         .HasColumnType("uuid");
+
+                    b.Property<bool>("IsLoad")
+                        .HasColumnType("boolean");
+
+                    b.Property<TimeSpan>("LoadTimeEnd")
+                        .HasColumnType("interval");
+
+                    b.Property<TimeSpan>("LoadTimeStart")
+                        .HasColumnType("interval");
 
                     b.Property<int>("OrderIndex")
                         .HasColumnType("integer");
@@ -308,9 +335,6 @@ namespace Persistence.Migrations
                     b.Property<int?>("Adr")
                         .HasColumnType("integer");
 
-                    b.Property<string>("CargoType")
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
 
@@ -326,14 +350,14 @@ namespace Persistence.Migrations
                     b.Property<DateOnly?>("StartDate")
                         .HasColumnType("date");
 
+                    b.PrimitiveCollection<string[]>("SuitableCargos")
+                        .HasColumnType("text[]");
+
                     b.Property<DateTime>("Updated")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
-
-                    b.PrimitiveCollection<string[]>("VihicleTypes")
-                        .HasColumnType("text[]");
 
                     b.HasKey("Id");
 
@@ -355,10 +379,6 @@ namespace Persistence.Migrations
                     b.Property<int>("Adr")
                         .HasColumnType("integer");
 
-                    b.Property<string>("CargoType")
-                        .IsRequired()
-                        .HasColumnType("text");
-
                     b.Property<DateTime>("Created")
                         .HasColumnType("timestamp with time zone");
 
@@ -378,21 +398,15 @@ namespace Persistence.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
-                    b.Property<double>("TotalVolume")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("TotalWeight")
-                        .HasColumnType("double precision");
+                    b.PrimitiveCollection<string[]>("SuitableCargos")
+                        .IsRequired()
+                        .HasColumnType("text[]");
 
                     b.Property<DateTime>("Updated")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("UserId")
                         .HasColumnType("uuid");
-
-                    b.PrimitiveCollection<string[]>("VihicleTypes")
-                        .IsRequired()
-                        .HasColumnType("text[]");
 
                     b.HasKey("Id");
 

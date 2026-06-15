@@ -16,6 +16,7 @@ public record UpdateUserCommand : IRequest<Guid>, IMapWith<User>
     
     public string? DisplayName { get; set; } = null;
     public int? Timezone { get; set; } = null;
+    public int? IsMetric { get; set; } = null;
     public string? Phone { get; set; } = null;
     
     public string? CompanyName { get; set; } = null;

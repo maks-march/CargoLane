@@ -34,7 +34,6 @@ public class SendMessageCommandHandler(
             ChatId = request.ChatId,
             SenderId = request.SenderId,
             Text = request.Text,
-            IsSystem = request.IsSystem,
             Created = DateTime.UtcNow,
             Id = Guid.NewGuid(),
             Updated = DateTime.UtcNow,

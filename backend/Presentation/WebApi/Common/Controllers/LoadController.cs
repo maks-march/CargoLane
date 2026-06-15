@@ -26,7 +26,11 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     [ProducesResponseType(typeof(LoadListVm[]), StatusCodes.Status200OK)]
     public async Task<ActionResult<LoadListVm[]>> GetList([FromQuery] GetLoadListQuery query)
     {
-        return Ok(await Mediator.Send(query));
+        return Ok(
+            ChangeListVmForUser(
+                await Mediator.Send(query)
+                )
+            );
     }
 
     /// <summary>
@@ -38,7 +42,11 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<LoadDetailsVm>> GetDetails(Guid id)
     {
-        return Ok(await Mediator.Send(new GetLoadDetailQuery { Id = id }));
+        return Ok(
+            ChangeVmForUser(
+                await Mediator.Send(new GetLoadDetailQuery { Id = id })
+                )
+            );
     }
 
     /// <summary>
@@ -48,17 +56,11 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     [ProducesResponseType(typeof(LoadListVm[]), StatusCodes.Status200OK)]
     public async Task<ActionResult<LoadListVm[]>> GetMy()
     {
-        return Ok(await Mediator.Send(new GetUserLoadsQuery { UserId = UserId }));
-    }
-
-    /// <summary>
-    /// Получить список заказов текущего авторизованного пользователя (по контракту md: /user).
-    /// </summary>
-    [HttpGet("user")]
-    [ProducesResponseType(typeof(LoadListVm[]), StatusCodes.Status200OK)]
-    public async Task<ActionResult<LoadListVm[]>> GetUserLoads()
-    {
-        return Ok(await Mediator.Send(new GetUserLoadsQuery { UserId = UserId }));
+        return Ok(
+            ChangeListVmForUser(
+                await Mediator.Send(new GetUserLoadsQuery { UserId = UserId })
+                )
+            );
     }
 
     /// <summary>
@@ -70,6 +72,23 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     public async Task<ActionResult<Guid>> Create([FromBody] CreateLoadCommand command)
     {
         command.UserId = UserId;
+        var settings = UserSettings;
+        foreach (var route in command.RoutePoints)
+        {
+            route.ArrivalTime = route.ArrivalTime.AddHours(-settings.timezone);
+        }
+
+        if (!settings.isMetric)
+        {
+            foreach (var payload in command.Payloads)
+            {
+                payload.Height *= 1.609;
+                payload.Width *= 1.609;
+                payload.Length *= 1.609;
+
+                payload.Weight *= 0.4536;
+            }
+        }
         return Ok(await Mediator.Send(command));
     }
 
@@ -136,4 +155,45 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     }
 
     #endregion
+
+    private LoadDetailsVm ChangeVmForUser(LoadDetailsVm vm)
+    {
+        var settings = UserSettings;
+        foreach (var route in vm.RoutePoints)
+        {
+            route.ArrivalTime = route.ArrivalTime.AddHours(settings.timezone);
+        }
+
+        if (!settings.isMetric)
+        {
+            vm.TotalWeight /= 1.609;
+            vm.TotalVolume /= 1.609;
+            foreach (var payload in vm.Payloads)
+            {
+                payload.Height /= 1.609;
+                payload.Width /= 1.609;
+                payload.Length /= 1.609;
+
+                payload.Weight *= 2.20462;
+            }
+        }
+
+        return vm;
+    }
+    
+    private LoadListVm[] ChangeListVmForUser(LoadListVm[] vms)
+    {
+        var settings = UserSettings;
+        foreach (var vm in vms)
+        {
+            vm.StartDate = vm.StartDate.AddHours(settings.timezone);
+            if (!settings.isMetric)
+            {
+                vm.TotalWeight /= 1.609;
+                vm.TotalVolume /= 1.609;
+            }
+        }
+
+        return vms;
+    }
 }

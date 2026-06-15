@@ -1,8 +1,8 @@
-using Application.CQRS.AuthCQ.ConfirmEmail;
-using MediatR;
+using Application.CQRS.ChatCQ.Commands;
 using Application.Interfaces.Auth;
+using MediatR;
 
-namespace Application.CQRS.AuthCQ;
+namespace Application.CQRS.AuthCQ.ConfirmEmail;
 
 
 public class ConfirmEmailCommandHandler(IIdentityService identityService) 
@@ -15,6 +15,7 @@ public class ConfirmEmailCommandHandler(IIdentityService identityService)
         {
             throw new InvalidOperationException(string.Join('\n', confirm.Errors));
         }
+        
         return confirm;
     }
 }

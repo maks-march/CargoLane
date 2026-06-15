@@ -9,7 +9,8 @@ public record LoadRoutePointVm : IMapWith<RoutePoint<LoadEntity>>
 {
     public string City { get; init; } = string.Empty;
     public string Address { get; init; } = string.Empty;
-    public DateTime? ArrivalTime { get; init; }
+    public DateTime ArrivalTime { get; set; }
+    
     public int OrderIndex { get; init; }
 
     public void Mapping(Profile profile)

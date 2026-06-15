@@ -18,7 +18,9 @@ public class CreateLoadCommandHandler(IAppDbContext dbContext, IMapper mapper)
         load.Created = DateTime.UtcNow;
         load.Updated = DateTime.UtcNow;
         load.IsReviewed = false;
-
+        
+        double totalVolume = 0.0;
+        double totalWeight = 0.0;
         // 3. Обработка грузов (Payloads)
         for (var i = 0; i < load.Payloads.Count; i++)
         {
@@ -26,14 +28,15 @@ public class CreateLoadCommandHandler(IAppDbContext dbContext, IMapper mapper)
             payload.Id = Guid.NewGuid();
             payload.EntityId = load.Id; // Привязка к LoadEntity
             payload.OrderIndex = i;
+            payload.Volume = payload.Width * payload.Height * payload.Length;
+            totalVolume += payload.Volume * payload.Amount;
+            totalWeight += payload.Weight * payload.Amount;
         }
-
+        load.TotalVolume = totalVolume;
+        load.TotalWeight = totalWeight;
         // 4. Обработка точек маршрута (RoutePoints)
         if (load.RoutePoints.Count > 0)
         {
-            // Помечаем первую точку как точку погрузки (как было раньше)
-            load.RoutePoints[0].IsLoad = true; 
-            
             for (var i = 0; i < load.RoutePoints.Count; i++)
             {
                 var point = load.RoutePoints[i];

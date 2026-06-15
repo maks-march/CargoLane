@@ -134,7 +134,8 @@ public abstract class LoadTestBase : BaseIntegrationTest
             Insurance = 250,
             HScode = "8471.30",
             Adr = 2,
-            SuitableCargos = new[] { "General", "Fragile" },
+            VihicleTypes = new[] { "General", "Fragile" },
+            CargoType = "Box",
             About = about,
             Payloads = new List<PayloadInputDto>
             {
@@ -144,7 +145,6 @@ public abstract class LoadTestBase : BaseIntegrationTest
                     Width = 80,
                     Height = 100,
                     Weight = 450,
-                    Volume = 0.96,
                     Amount = 5,
                     Type = "Boxes"
                 }
@@ -155,14 +155,12 @@ public abstract class LoadTestBase : BaseIntegrationTest
                 {
                     City = startCity,
                     Address = "Склад 1, ул. Тестовая 10",
-                    OrderIndex = 0,
                     ArrivalTime = DateTime.UtcNow.AddDays(1)
                 },
                 new RoutePointInputDto
                 {
                     City = endCity,
                     Address = "Терминал 2, пр. Ленина 5",
-                    OrderIndex = 1,
                     ArrivalTime = DateTime.UtcNow.AddDays(3)
                 }
             }

@@ -6,7 +6,9 @@ using Application.CQRS.AuthCQ.Login;
 using Application.CQRS.AuthCQ.Refresh;
 using Application.CQRS.AuthCQ.Register;
 using Application.CQRS.AuthCQ.ResetPassword;
+using Application.CQRS.ChatCQ.Commands;
 using Application.DTO.Auth;
+using Application.Interfaces.Auth;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +19,7 @@ namespace WebApi.Common.Controllers;
 /// <summary>
 /// Контроллер для аутентификации и регистрации пользователей.
 /// </summary>
-public class AuthController(IMediator mediator, IConfiguration configuration) 
+public class AuthController(IMediator mediator, IIdentityService identityService) 
     : BaseController(mediator)
 {
     /// <summary>
@@ -85,6 +87,17 @@ public class AuthController(IMediator mediator, IConfiguration configuration)
     public async Task<IActionResult> ConfirmEmail([FromBody] ConfirmEmailCommand command)
     {
         var result = await Mediator.Send(command);
+        
+        var admin = await identityService.FindUserByUsernameAsync("admin");
+        if (admin != null)
+        {
+            var newChat = new StartChatCommand
+            {
+                CurrentUserId = command.UserId,
+                TargetUserId = admin.Id
+            };
+            await Mediator.Send(newChat);
+        }
         return Ok("Account confirmed");
     }
 

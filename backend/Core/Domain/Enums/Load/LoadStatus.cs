@@ -2,8 +2,7 @@ namespace Domain.Enums.Load;
 
 public enum LoadStatus
 {
-    Ready,
-    Matched,
-    Live,
+    Active,
+    Pending,
     Closed
 }

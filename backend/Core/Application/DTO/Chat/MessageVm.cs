@@ -22,7 +22,6 @@ public record MessageVm : IMapWith<ChatMessageEntity>
             .ForMember(vm => vm.SenderName, opt => opt.MapFrom(src => $"{src.Sender.FirstName} {src.Sender.LastName}"))
             .ForMember(vm => vm.Text, opt => opt.MapFrom(src => src.Text))
             .ForMember(vm => vm.IsRead, opt => opt.MapFrom(src => src.IsRead))
-            .ForMember(vm => vm.IsSystem, opt => opt.MapFrom(src => src.IsSystem))
             .ForMember(vm => vm.Created, opt => opt.MapFrom(src => src.Created));
     }
 }

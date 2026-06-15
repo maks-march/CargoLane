@@ -11,13 +11,14 @@ public record LoadDetailsVm : IMapWith<LoadEntity>
     public double Insurance { get; init; }
     public string HScode { get; init; } = string.Empty;
     public int Adr { get; init; }
-    public string[] SuitableCargos { get; init; } = [];
+    public string[] VihicleTypes { get; init; } = [];
+    public string CargoType { get; init; } = string.Empty;
     public string About { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public bool IsReviewed { get; init; }
-    
+    public double TotalWeight { get; set; }
+    public double TotalVolume { get; set; }
     public Guid UserId { get; init; }
-    
     // Вложенные коллекции
     public IList<PayloadVm> Payloads { get; init; } = [];
     public IList<LoadRoutePointVm> RoutePoints { get; init; } = [];

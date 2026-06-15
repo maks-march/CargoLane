@@ -9,7 +9,6 @@ public class User : Entity
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
-    public int Timezone { get; set; } = 0;
     public string Phone { get; set; } = string.Empty;
     
     public string CompanyName { get; set; } = string.Empty;
@@ -22,6 +21,7 @@ public class User : Entity
     public string Address { get; set; } = string.Empty;
     public string PostalCode { get; set; } = string.Empty;
 
+    public int Timezone { get; set; } = 0;
     public bool IsMetric { get; set; } = true;
     public string Role { get; set; } = string.Empty;
     public Guid? AvatarId { get; set; } = null;

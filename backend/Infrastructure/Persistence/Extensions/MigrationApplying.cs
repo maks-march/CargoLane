@@ -32,7 +32,7 @@ public static class MigrationApplying
     {
         var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
     
-        string[] roles = { "Admin", "Manager", "User" };
+        string[] roles = { "Admin", "User" };
         foreach (var roleName in roles)
         {
             if (!await roleManager.RoleExistsAsync(roleName))
