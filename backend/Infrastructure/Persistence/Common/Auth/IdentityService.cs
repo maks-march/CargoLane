@@ -81,4 +81,35 @@ public class IdentityService(UserManager<ApplicationUser> userManager, AppDbCont
         var result = await userManager.DeleteAsync(user);
         return (result.Succeeded, result.Errors.Select(e => e.Description).ToArray());
     }
+
+    public async Task<(bool Succeeded, string[] Errors)> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword)
+    {
+        var user = await userManager.FindByIdAsync(userId.ToString());
+        if (user == null)
+            return (false, ["User not found"]);
+
+        var result = await userManager.ChangePasswordAsync(user, currentPassword, newPassword);
+        return (result.Succeeded, result.Errors.Select(e => e.Description).ToArray());
+    }
+
+    public async Task<(bool Succeeded, string[] Errors, string? ResetToken)> GeneratePasswordResetTokenAsync(string email)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        if (user == null)
+            return (false, ["User not found"], null);
+
+        // Use Identity's built-in reset token as the "code" for the frontend
+        var token = await userManager.GeneratePasswordResetTokenAsync(user);
+        return (true, [], token);
+    }
+
+    public async Task<(bool Succeeded, string[] Errors)> ResetPasswordAsync(string email, string resetToken, string newPassword)
+    {
+        var user = await userManager.FindByEmailAsync(email);
+        if (user == null)
+            return (false, ["User not found"]);
+
+        var result = await userManager.ResetPasswordAsync(user, resetToken, newPassword);
+        return (result.Succeeded, result.Errors.Select(e => e.Description).ToArray());
+    }
 }

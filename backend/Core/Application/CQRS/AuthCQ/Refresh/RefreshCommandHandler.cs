@@ -1,5 +1,6 @@
 using Application.DTO.Auth;
 using Application.Interfaces.Auth;
+using Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -38,7 +39,8 @@ public class RefreshCommandHandler(UserManager<ApplicationUser> userManager, IJw
         user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
         await userManager.UpdateAsync(user);
 
-        // 6. Возвращаем новую пару токенов клиенту
-        return new AuthResponse(newAccessToken, newRefreshToken, user.Id, user.UserName);
+        // 6. Возвращаем новую пару токенов клиенту (включая роль)
+        var role = userManager.GetRolesAsync(user).Result.ToHighRole();
+        return new AuthResponse(newAccessToken, newRefreshToken, user.Id, user.UserName, role);
     }
 }

@@ -1,6 +1,7 @@
 using Application.Common.Exceptions;
 using Application.DTO.Auth;
 using Application.Interfaces.Auth;
+using Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 
@@ -39,7 +40,8 @@ public class LoginCommandHandler(
         appUser.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
         await userManager.UpdateAsync(appUser);
         
-        // 4. Возвращаем ответ
-        return new AuthResponse(accessToken, refreshToken, userDto.Id, userDto.UserName!);
+        // 4. Возвращаем ответ (включая роль из существующей RoleMapping)
+        var role = userManager.GetRolesAsync(appUser).Result.ToHighRole();
+        return new AuthResponse(accessToken, refreshToken, userDto.Id, userDto.UserName, role);
     }
 }

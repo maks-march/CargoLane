@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Domain.Models.Abstract;
 using Domain.Models.Load;
-using Domain.Models.Truck;
 
 namespace Domain.Models;
 
@@ -20,13 +19,6 @@ public abstract class FileEntity<TOwner> : CollectionEntity where TOwner : Entit
     }
 }
 
-public class OrderFile : FileEntity<Order.OrderEntity>
-{
-    [SetsRequiredMembers]
-    public OrderFile()
-    {
-    }
-}
 
 
 public class LoadFile : FileEntity<LoadEntity>
@@ -37,13 +29,6 @@ public class LoadFile : FileEntity<LoadEntity>
     }
 }
 
-public class TruckFile : FileEntity<TruckEntity>
-{
-    [SetsRequiredMembers]
-    public TruckFile()
-    {
-    }
-}
 
 public class UserFile : FileEntity<User>
 {

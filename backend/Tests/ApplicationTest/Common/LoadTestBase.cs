@@ -1,0 +1,185 @@
+using System.Net;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using Application.CQRS.LoadCQ.Commands;
+using Application.CQRS.LoadCQ.Commands.CreateLoad;
+using Application.DTO.Auth;
+using Application.DTO.Load;
+using ApplicationTest.Common;
+using FluentAssertions;
+
+namespace ApplicationTest.Common;
+
+public abstract class LoadTestBase : BaseIntegrationTest
+{
+    protected const string LoadBaseUrl = "/api/Load";
+
+    protected AuthResponse AuthA;
+    protected AuthResponse AuthB;
+    protected AuthResponse AuthC;
+
+    [OneTimeSetUp]
+    public async Task LoadOneTimeSetup()
+    {
+        AuthA = await Register("LoadUserA_2026@mail.ru");
+        AuthB = await Register("LoadUserB_2026@mail.ru");
+        AuthC = await Register("LoadUserC_2026@mail.ru");
+    }
+
+    protected void SetAuth(AuthResponse auth)
+    {
+        Client.DefaultRequestHeaders.Authorization = 
+            new AuthenticationHeaderValue("Bearer", auth.AccessToken);
+    }
+
+    [TearDown]
+    public void ResetLoadAuth()
+    {
+        Client.DefaultRequestHeaders.Authorization = 
+            new AuthenticationHeaderValue("Bearer", Tokens.AccessToken);
+    }
+
+    // --- Public list (GET /api/Load) ---
+    protected async Task<LoadListVm[]> GetAllLoads(bool anonymous = false)
+    {
+        var client = anonymous ? _factory.CreateClient() : Client;
+        var response = await client.GetAsync(LoadBaseUrl);
+        return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
+    }
+
+    protected async Task<LoadListVm[]> GetAllLoadsWithFilter(
+        string? startCity = null, 
+        string? endCity = null, 
+        string? status = null)
+    {
+        var queryParams = new List<string>();
+        if (!string.IsNullOrEmpty(startCity)) queryParams.Add($"StartCity={Uri.EscapeDataString(startCity)}");
+        if (!string.IsNullOrEmpty(endCity)) queryParams.Add($"EndCity={Uri.EscapeDataString(endCity)}");
+        if (!string.IsNullOrEmpty(status)) queryParams.Add($"Status={status}");
+        
+        var query = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+        var response = await Client.GetAsync($"{LoadBaseUrl}{query}");
+        return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
+    }
+
+    // --- User loads ---
+    protected async Task<LoadListVm[]> GetUserLoads()
+    {
+        var response = await Client.GetAsync($"{LoadBaseUrl}/user");
+        return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
+    }
+
+    protected async Task<LoadListVm[]> GetMyLoads()
+    {
+        var response = await Client.GetAsync($"{LoadBaseUrl}/me");
+        return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
+    }
+
+    // --- Details (public) ---
+    protected async Task<LoadDetailsVm> GetLoadDetails(Guid id, bool anonymous = false)
+    {
+        var client = anonymous ? _factory.CreateClient() : Client;
+        var response = await client.GetAsync($"{LoadBaseUrl}/{id}");
+        return await ExtractFromResponse<LoadDetailsVm>(response);
+    }
+
+    // --- Drafts ---
+    protected async Task<LoadDraftVm> GetDraft(Guid id)
+    {
+        var response = await Client.GetAsync($"{LoadBaseUrl}/draft/{id}");
+        return await ExtractFromResponse<LoadDraftVm>(response);
+    }
+
+    // --- Create ---
+    protected async Task<Guid> CreateLoad(CreateLoadCommand command)
+    {
+        var response = await Client.PostAsJsonAsync(LoadBaseUrl, command);
+        return await ExtractFromResponse<Guid>(response);
+    }
+
+    protected async Task<Guid> CreateDraft(CreateLoadDraftCommand command)
+    {
+        var response = await Client.PostAsJsonAsync($"{LoadBaseUrl}/draft", command);
+        return await ExtractFromResponse<Guid>(response);
+    }
+
+    // --- Update draft ---
+    protected async Task<Guid> UpdateDraft(Guid id, UpdateLoadDraftCommand command)
+    {
+        var response = await Client.PutAsJsonAsync($"{LoadBaseUrl}/draft/{id}", command);
+        return await ExtractFromResponse<Guid>(response);
+    }
+
+    // --- Delete ---
+    protected async Task<HttpResponseMessage> DeleteLoad(Guid id)
+    {
+        return await Client.DeleteAsync($"{LoadBaseUrl}/{id}");
+    }
+
+    protected async Task<HttpResponseMessage> DeleteDraft(Guid id)
+    {
+        return await Client.DeleteAsync($"{LoadBaseUrl}/draft/{id}");
+    }
+
+    // --- Test data helpers ---
+    protected CreateLoadCommand CreateValidLoadCommand(
+        string about = "Test load from integration test",
+        string startCity = "Yekaterinburg",
+        string endCity = "Moscow")
+    {
+        return new CreateLoadCommand
+        {
+            Status = "Live",
+            Payment = 5500,
+            Insurance = 250,
+            HScode = "8471.30",
+            Adr = 2,
+            SuitableCargos = new[] { "General", "Fragile" },
+            About = about,
+            Payloads = new List<PayloadInputDto>
+            {
+                new PayloadInputDto
+                {
+                    Length = 120,
+                    Width = 80,
+                    Height = 100,
+                    Weight = 450,
+                    Volume = 0.96,
+                    Amount = 5,
+                    Type = "Boxes"
+                }
+            },
+            RoutePoints = new List<RoutePointInputDto>
+            {
+                new RoutePointInputDto
+                {
+                    City = startCity,
+                    Address = "Склад 1, ул. Тестовая 10",
+                    OrderIndex = 0,
+                    ArrivalTime = DateTime.UtcNow.AddDays(1)
+                },
+                new RoutePointInputDto
+                {
+                    City = endCity,
+                    Address = "Терминал 2, пр. Ленина 5",
+                    OrderIndex = 1,
+                    ArrivalTime = DateTime.UtcNow.AddDays(3)
+                }
+            }
+        };
+    }
+
+    protected CreateLoadDraftCommand CreateValidDraftCommand(string about = "Test draft")
+    {
+        return new CreateLoadDraftCommand
+        {
+            StartDate = DateOnly.FromDateTime(DateTime.Now.AddDays(10)),
+            Payment = 3200,
+            Insurance = 150,
+            HScode = "9403.20",
+            Adr = 1,
+            SuitableCargos = new[] { "Electronics" },
+            About = about
+        };
+    }
+}

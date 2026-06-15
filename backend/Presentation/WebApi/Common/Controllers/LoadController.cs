@@ -52,6 +52,16 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     }
 
     /// <summary>
+    /// Получить список заказов текущего авторизованного пользователя (по контракту md: /user).
+    /// </summary>
+    [HttpGet("user")]
+    [ProducesResponseType(typeof(LoadListVm[]), StatusCodes.Status200OK)]
+    public async Task<ActionResult<LoadListVm[]>> GetUserLoads()
+    {
+        return Ok(await Mediator.Send(new GetUserLoadsQuery { UserId = UserId }));
+    }
+
+    /// <summary>
     /// Создать заказ (полная валидация).
     /// </summary>
     [HttpPost]

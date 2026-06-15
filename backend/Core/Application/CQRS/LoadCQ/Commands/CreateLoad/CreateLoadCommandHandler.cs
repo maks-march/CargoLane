@@ -10,7 +10,7 @@ public class CreateLoadCommandHandler(IAppDbContext dbContext, IMapper mapper)
 {
     public async Task<Guid> Handle(CreateLoadCommand request, CancellationToken cancellationToken)
     {
-        // 1. Маппим команду в сущность
+        // 1. Маппим команду в сущность (now safe thanks to the mapping fixes above)
         var load = mapper.Map<LoadEntity>(request);
         
         // 2. Инициализируем основные поля
@@ -31,7 +31,7 @@ public class CreateLoadCommandHandler(IAppDbContext dbContext, IMapper mapper)
         // 4. Обработка точек маршрута (RoutePoints)
         if (load.RoutePoints.Count > 0)
         {
-            // Помечаем первую точку как точку погрузки
+            // Помечаем первую точку как точку погрузки (как было раньше)
             load.RoutePoints[0].IsLoad = true; 
             
             for (var i = 0; i < load.RoutePoints.Count; i++)

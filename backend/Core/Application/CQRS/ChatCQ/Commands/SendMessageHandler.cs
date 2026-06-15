@@ -12,12 +12,11 @@ namespace Application.CQRS.ChatCQ.Commands;
 
 public class SendMessageCommandHandler(
     IAppDbContext dbContext, 
-    IHubContext<ChatHub> hubContext, // Внедряем хаб
+    IHubContext<ChatHub> hubContext,
     IMapper mapper) : IRequestHandler<SendMessageCommand, Guid>
 {
     public async Task<Guid> Handle(SendMessageCommand request, CancellationToken cancellationToken)
     {
-        // Обновляем последнее сообщение в чате
         var chat = await dbContext.Chats
             .Include(c => c.Participants)
             .FirstOrDefaultAsync(c => c.Id == request.ChatId, cancellationToken);
@@ -35,6 +34,7 @@ public class SendMessageCommandHandler(
             ChatId = request.ChatId,
             SenderId = request.SenderId,
             Text = request.Text,
+            IsSystem = request.IsSystem,
             Created = DateTime.UtcNow,
             Id = Guid.NewGuid(),
             Updated = DateTime.UtcNow,
@@ -50,7 +50,6 @@ public class SendMessageCommandHandler(
         
         foreach (var participant in chat.Participants)
         {
-            // Отправляем конкретному пользователю по его UserId
             await hubContext.Clients.User(participant.Id.ToString())
                 .SendAsync("ReceiveMessage", messageVm, cancellationToken);
         }
