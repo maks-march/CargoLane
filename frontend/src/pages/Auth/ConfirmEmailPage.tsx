@@ -25,7 +25,6 @@ export const ConfirmEmailPage: React.FC = () => {
                 await authService.confirmEmail({ userId, token });
                 setStatus('success');
                 setMessage('Email confirmed successfully! You can now log in.');
-                setTimeout(() => navigate('/login'), 3000);
             } catch (err: unknown) {
                 setStatus('error');
                 // Правильная обработка ошибки Axios без использования 'any'

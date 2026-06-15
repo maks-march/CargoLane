@@ -24,4 +24,12 @@
       <ProjectReference Include="..\..\Core\Application\Application.csproj" />
       <ProjectReference Include="..\..\Infrastructure\Persistence\Persistence.csproj" />
     </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\51dbd883-02b7-4939-a0a6-c6690ee9a6b0_test-avatar.jpg" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\63f94eab-121d-4b5c-8b8e-7ad5eab93a1f_test-avatar.jpg" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\b17dc9db-686c-48ea-8528-6d91400de791_test-avatar.jpg" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\ef3a897a-284e-467e-b974-426032b71af5_test-avatar.jpg" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\fd5de768-a5bd-438b-bcc2-5aa40ba49338_test-avatar.jpg" />
+    </ItemGroup>
 </Project>

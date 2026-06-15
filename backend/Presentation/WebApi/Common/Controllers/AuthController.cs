@@ -88,15 +88,10 @@ public class AuthController(IMediator mediator, IConfiguration configuration)
         if (!result.Succeeded)
         {
             Console.WriteLine(string.Join("\n", result.Errors));
-            return BadRequest(new { error = "Wrong Email or User", errors = result.Errors });
+            throw new InvalidOperationException(string.Join('\n', result.Errors));
         }
         return Ok("Account confirmed");
     }
-
-    // legacy GET for backward compatibility (optional)
-    [HttpGet("confirm")]
-    public async Task<IActionResult> ConfirmEmailLegacy([FromQuery] Guid userId, [FromQuery] string token)
-        => await ConfirmEmail(new ConfirmEmailCommand(userId, token));
 
     /// <summary>
     /// Смена пароля авторизованного пользователя (по контракту md).
