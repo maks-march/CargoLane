@@ -54,9 +54,9 @@ export const SignUpPage: React.FC = () => {
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data) {
         const data = err.response.data as { error?: string, details?: string, message?: string };
-        setError(data.error || data.details || data.message || 'Registration failed.');
+        setError(data.error || data.details || data.message || 'Registration failed. User might already exist.');
       } else {
-        setError('Registration failed. Please try again.');
+        setError('Network error. Is the backend running?');
       }
     } finally {
       setLoading(false);
@@ -77,9 +77,13 @@ export const SignUpPage: React.FC = () => {
           <h1 className="auth-title">Create an account</h1>
           <p className="auth-subtitle">Get started with CargoLane logistics network today</p>
 
+          {/* КРАСИВОЕ ОКНО ВЫВОДА ОШИБКИ */}
           {error && (
-            <div style={{ color: '#EF4444', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#FEF2F2', borderRadius: '8px' }}>
-              {error}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '12px', marginBottom: '24px' }}>
+              <span style={{ color: '#DC2626', fontSize: '18px', lineHeight: 1 }}>⚠️</span>
+              <div style={{ color: '#991B1B', fontSize: '14px', fontWeight: 500, lineHeight: '1.4' }}>
+                {error}
+              </div>
             </div>
           )}
 
@@ -89,7 +93,7 @@ export const SignUpPage: React.FC = () => {
               <input 
                 type="text" 
                 className="form-input" 
-                placeholder="" 
+                placeholder="John Doe" 
                 value={username} 
                 onChange={(e) => setUsername(e.target.value)} 
                 required 

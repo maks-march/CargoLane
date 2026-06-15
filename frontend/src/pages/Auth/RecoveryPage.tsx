@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
+import { authService } from '../../services/auth.service';
 
 export const RecoveryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -12,6 +13,7 @@ export const RecoveryPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const [timer, setTimer] = useState(0);
@@ -28,7 +30,6 @@ export const RecoveryPage: React.FC = () => {
         const data = await loadsService.getAllLoads();
         if (data && data.length > 0) {
           const latestLoad = data[data.length - 1];
-          
           if (latestLoad.from && latestLoad.to) {
             setBackgroundStops([
               { address: latestLoad.from.split(',')[0], type: 'start' },
@@ -53,35 +54,51 @@ export const RecoveryPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [timer]);
 
-  // Проверка: является ли введенный текст валидным Email
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  const handleSendCode = () => {
+  // Логика запроса кода с бэкенда
+  const handleSendCode = async () => {
     if (!isEmailValid) return;
-    setIsCodeSent(true);
-    setTimer(60); 
-    setMessage('Verification code sent to your email.');
-    // TODO: Здесь бэкендер добавит запрос API на отправку кода
+    setError('');
+    setMessage('');
+    
+    try {
+      await authService.forgotPassword(email);
+      setIsCodeSent(true);
+      setTimer(60); 
+      setMessage('Verification code sent to your email.');
+    } catch (err: any) {
+      const serverErr = err.response?.data?.details || err.response?.data?.message || 'Failed to send code. User might not exist.';
+      setError(serverErr);
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Логика отправки нового пароля на бэкенд
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !code || !newPassword || !confirmPassword) return;
 
     if (newPassword !== confirmPassword) {
-      setMessage('Passwords do not match.');
+      setError('Passwords do not match.');
       return;
     }
 
     setLoading(true);
-    setTimeout(() => {
+    setError('');
+    setMessage('');
+
+    try {
+      await authService.resetPassword({ email, code, newPassword });
       setMessage('Password successfully reset! You can now log in.');
-      setLoading(false);
       setTimeout(() => navigate('/login'), 2000);
-    }, 1500);
+    } catch (err: any) {
+      const serverErr = err.response?.data?.details || err.response?.data?.message || 'Invalid code or email.';
+      setError(serverErr);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Проверка: заполнены ли все 4 поля для финальной кнопки
   const isFormValid = email.trim() !== '' && code.trim() !== '' && newPassword.trim() !== '' && confirmPassword.trim() !== '';
 
   return (
@@ -95,14 +112,27 @@ export const RecoveryPage: React.FC = () => {
           <h1 className="auth-title">Reset password</h1>
           <p className="auth-subtitle">Enter your email to receive a code and set a new password</p>
 
+          {/* КРАСИВОЕ ОКНО ВЫВОДА ОШИБКИ */}
+          {error && (
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '12px', marginBottom: '24px' }}>
+              <span style={{ color: '#DC2626', fontSize: '18px', lineHeight: 1 }}>⚠️</span>
+              <div style={{ color: '#991B1B', fontSize: '14px', fontWeight: 500, lineHeight: '1.4' }}>
+                {error}
+              </div>
+            </div>
+          )}
+
+          {/* КРАСИВОЕ ОКНО ВЫВОДА УСПЕХА */}
           {message && (
-            <div style={{ color: '#059669', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#ECFDF5', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
-              {message}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', marginBottom: '24px' }}>
+              <span style={{ color: '#059669', fontSize: '18px' }}>✅</span>
+              <div style={{ color: '#065F46', fontSize: '15px', fontWeight: 500 }}>
+                {message}
+              </div>
             </div>
           )}
 
           <form onSubmit={handleSubmit}>
-            
             <div className="form-group">
               <div className="form-label"><label>Email address</label></div>
               <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
@@ -115,7 +145,6 @@ export const RecoveryPage: React.FC = () => {
                   style={{ width: '100%', paddingRight: '80px' }} 
                   required 
                 />
-                
                 {timer > 0 ? (
                   <span style={{ position: 'absolute', right: '16px', color: '#A0AAB9', fontSize: '14px', fontWeight: 600 }}>
                     0:{timer < 10 ? `0${timer}` : timer}
@@ -148,50 +177,24 @@ export const RecoveryPage: React.FC = () => {
 
             <div className="form-group">
               <div className="form-label"><label>Verification Code</label></div>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="Enter 6-digit code" 
-                value={code} 
-                onChange={(e) => setCode(e.target.value)} 
-                required 
-              />
+              <input type="text" className="form-input" placeholder="Enter 6-digit code" value={code} onChange={(e) => setCode(e.target.value)} required />
             </div>
 
             <div className="form-group">
               <div className="form-label"><label>New Password</label></div>
-              <input 
-                type="password" 
-                className="form-input" 
-                placeholder="••••••••" 
-                value={newPassword} 
-                onChange={(e) => setNewPassword(e.target.value)} 
-                required 
-              />
+              <input type="password" className="form-input" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
             </div>
 
             <div className="form-group">
               <div className="form-label"><label>Confirm New Password</label></div>
-              <input 
-                type="password" 
-                className="form-input" 
-                placeholder="••••••••" 
-                value={confirmPassword} 
-                onChange={(e) => setConfirmPassword(e.target.value)} 
-                required 
-              />
+              <input type="password" className="form-input" placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
             </div>
 
             <button 
               className="form-submit" 
               type="submit" 
               disabled={loading || !isFormValid} 
-              style={{ 
-                marginTop: '8px',
-                opacity: (!isFormValid || loading) ? 0.6 : 1, 
-                cursor: (!isFormValid || loading) ? 'not-allowed' : 'pointer',
-                transition: 'opacity 0.2s'
-              }}
+              style={{ marginTop: '8px', opacity: (!isFormValid || loading) ? 0.6 : 1, cursor: (!isFormValid || loading) ? 'not-allowed' : 'pointer', transition: 'opacity 0.2s' }}
             >
               {loading ? 'Resetting...' : 'Reset Password'}
             </button>

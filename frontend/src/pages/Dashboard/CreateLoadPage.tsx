@@ -40,7 +40,7 @@ interface LoadFormData {
 }
 
 export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) => {
-  const navigate = useNavigate() 
+  const navigate = useNavigate();
 
   const [formData, setFormData] = useState<LoadFormData>({
     listingType: '',
@@ -64,9 +64,9 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedId, setGeneratedId] = useState<string>('');
-  const [draftId, setDraftId] = useState<string | null>(null); // Храним ID сохраненного черновика
+  const [draftId, setDraftId] = useState<string | null>(null); 
   const [errorMsg, setErrorMsg] = useState<string>('');
-  const [draftSuccessMsg, setDraftSavedMessage] = useState<string>(''); // Сообщение об успешном сохранении драфта
+  const [draftSuccessMsg, setDraftSavedMessage] = useState<string>(''); 
 
   let activeStep = 1;
   if (formData.listingType) activeStep = 2;
@@ -156,7 +156,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
     setFormData({ ...formData, packages: formData.packages.filter(p => p.id !== id) });
   };
 
-  // ЛОГИКА СОХРАНЕНИЯ ЧЕРНОВИКА (ДРАФТА)
   const handleSaveDraft = async () => {
     setIsSubmitting(true);
     setErrorMsg('');
@@ -196,11 +195,9 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
       };
 
       if (draftId) {
-        // БЕКЕНДЕРУ: Обновление уже существующего черновика груза в БД
         await loadsService.updateLoadDraft(draftId, mappedPayload as any);
         setDraftSavedMessage(`Draft ${draftId} successfully updated!`);
       } else {
-        // БЕКЕНДЕРУ: Создание нового черновика в БД
         const returnedId = await loadsService.createLoadDraft(mappedPayload as any);
         const finalId = returnedId || 'DFT-' + Math.floor(1000 + Math.random() * 9000);
         setDraftId(finalId);
@@ -259,7 +256,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
       setGeneratedId(returnedId || '#L-' + Math.floor(1000 + Math.random() * 9000));
       setIsSubmitted(true);
       if (draftId) {
-        // Если черновик был опубликован, удаляем его из таблицы черновиков
         try { await loadsService.deleteLoadDraft(draftId); } catch {}
       }
       window.scrollTo(0, 0);
@@ -275,7 +271,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', overflowY: 'auto', overflowX: 'hidden', background: '#F6F7FB' }}>
       
-      {/* ХЕДЕР - ЗНАЧОК УВЕДОМЛЕНИЙ ПУЛЕНЕПРОБИВАЕМО УДАЛЕН */}
       <header className="create-header" style={{ flexShrink: 0, padding: '16px 32px', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -301,10 +296,8 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
         </div>
       </header>
 
-      {/* ОСНОВНОЙ КОНТЕЙНЕР */}
       <div className="create-layout">
         
-        {/* СЛЕВА: ФИКСИРОВАННАЯ ПАНЕЛЬ ШАГОВ */}
         <aside className="create-steps-sidebar">
           <div className={`create-step-item ${activeStep === 1 ? 'active' : ''} ${isSubmitted ? 'step-disabled' : ''}`}>
             <div className={`step-icon ${activeStep > 1 || isSubmitted ? 'done' : activeStep === 1 ? 'active' : 'pending'}`}>
@@ -367,20 +360,31 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
           </div>
         </aside>
 
-        {/* ПО ЦЕНТРУ: КОНТЕНТ */}
         <div className="create-content">
           
+          {/* ==================================================== */}
+          {/* ПРЕМИАЛЬНЫЕ ОКНА ОШИБОК И УСПЕХОВ (КАК ТЫ И ПРОСИЛ!) */}
+          {/* ==================================================== */}
+          
           {errorMsg && (
-            <div style={{ padding: '16px', background: '#FEF2F2', border: '1px solid #EF4444', borderRadius: '12px', color: '#EF4444', fontWeight: 500, marginBottom: '24px' }}>
-              {errorMsg}
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', background: '#FEF2F2', border: '1px solid #FEE2E2', borderRadius: '12px', marginBottom: '24px' }}>
+              <span style={{ color: '#DC2626', fontSize: '18px', lineHeight: 1 }}>⚠️</span>
+              <div style={{ color: '#991B1B', fontSize: '14px', fontWeight: 500, lineHeight: '1.4' }}>
+                {errorMsg}
+              </div>
             </div>
           )}
 
           {draftSuccessMsg && (
-            <div style={{ padding: '16px', background: '#ECFDF5', border: '1px solid #10B981', borderRadius: '12px', color: '#065F46', fontWeight: 500, marginBottom: '24px' }}>
-              ✓ {draftSuccessMsg}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '16px', background: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '12px', marginBottom: '24px' }}>
+              <span style={{ color: '#059669', fontSize: '18px', lineHeight: 1 }}>✅</span>
+              <div style={{ color: '#065F46', fontSize: '15px', fontWeight: 500 }}>
+                {draftSuccessMsg}
+              </div>
             </div>
           )}
+          
+          {/* ==================================================== */}
 
           {isSubmitted && (
             <div className="step-row">
@@ -585,7 +589,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
 
         </div>
 
-        {/* СПРАВА: КОЛОНКА С КАРТОЙ */}
         <aside className="create-right-sidebar">
           <div className="figma-map-card">
               <div style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, borderBottom: '1px solid #E6E8EE', background: 'white' }}>Map preview</div>
@@ -606,7 +609,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
 
       </div>
 
-      {/* ФИНАЛЬНЫЕ ПУЛЕНЕПРОБИВАЕМЫЕ СТИЛИ И ГЕОМЕТРИЯ */}
       <style>{`
         ::-webkit-scrollbar { width: 0px; height: 0px; background: transparent; }
         
@@ -629,14 +631,12 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
           min-width: 0 !important; 
         }
 
-        /* КРИТИЧЕСКИЙ ФИКС АДАПТИВА ДЛЯ БЛОКА ШАГОВ (ФОТО 1 И 2) */
         @media (max-width: 1440px) {
           .create-layout {
             flex-direction: column !important;
             padding: 24px 32px !important; 
           }
           
-          /* Исправляем разметку контейнера шагов при переходе в горизонтальный ряд */
           .create-steps-sidebar {
             width: 100% !important;
             max-width: 100% !important;
@@ -652,7 +652,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
             white-space: nowrap !important;
           }
           
-          /* Фикс закругления, границ и центрирования каждого шага (Убирает "кривые" грани заливки) */
           .create-step-item {
             display: flex !important;
             align-items: center !important;
@@ -665,7 +664,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
             gap: 10px !important;
           }
 
-          /* Идеально ровный круг для бейджа цифры/галочки */
           .step-icon {
             display: flex !important;
             align-items: center !important;

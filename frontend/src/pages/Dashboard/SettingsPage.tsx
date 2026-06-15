@@ -18,7 +18,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // Состояние формы (Все поля готовы для синхронизации со Swagger и БД)
   const [userForm, setUserData] = useState({
     firstName: '',
     lastName: '',
@@ -30,7 +29,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     currency: 'EUR — Euro (€)',
     timezone: '(GMT+01:00) Central European — Hamburg',
     units: 'Metric: km, t, m³',
-    // Company
     companyName: '',
     companyType: 'Freight forwarder',
     regCountry: 'Germany',
@@ -47,7 +45,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     confirmPassword: ''
   });
 
-  // Получение данных пользователя из БД при загрузке страницы
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -63,7 +60,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
           role: storedRole,
         }));
 
-        // Запрос к бэкенду
         const response = await apiClient.get('/api/User/me');
         if (response.data) {
           setUserData(prev => ({ ...prev, ...response.data }));
@@ -76,7 +72,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     fetchUserData();
   }, []);
 
-  // Блокировка кнопки сохранения, если 4 обязательных поля не заполнены или стерты
   const isFormValid = useMemo(() => {
     return (
       userForm.firstName.trim() !== '' &&
@@ -93,7 +88,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     return 'U';
   }, [userForm.displayName]);
 
-  // Загрузка фото в кэш и отправка в БД
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -123,7 +117,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     }
   };
 
-  // Валидация перед отправкой (только буквы для имен, телефон с +)
   const validateInputs = () => {
     const nameRegex = /^[A-Za-zА-Яа-яЁё\s\-]+$/;
     if (!nameRegex.test(userForm.firstName) || !nameRegex.test(userForm.lastName) || !nameRegex.test(userForm.displayName)) {
@@ -141,7 +134,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     return true;
   };
 
-  // Хелпер: Превращает пустые необязательные строки в null для безопасности БД
   const sanitizePayload = (data: any) => {
     const sanitized = { ...data };
     Object.keys(sanitized).forEach(key => {
@@ -152,7 +144,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     return sanitized;
   };
 
-  // Сохранение Профиля и Региональных настроек в БД
   const handleSaveProfile = async () => {
     if (!validateInputs()) return;
     setIsLoading(true);
@@ -182,7 +173,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     }
   };
 
-  // Сохранение данных Компании в БД
   const handleSaveCompany = async () => {
     setIsLoading(true);
     setMessage({ type: '', text: '' });
@@ -209,7 +199,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     }
   };
 
-  // Обновление пароля в БД
   const handlePasswordUpdate = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -245,10 +234,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
     <div className="dashboard-page active">
       <Sidebar onNavigate={onNavigate} activePage="settings" />
 
-      {/* Родная обертка dash-main полностью устраняет пустые пропасти и зазоры */}
       <main className="dash-main" style={{ background: '#F6F7FB' }}>
         
-        {/* ХЕДЕР СТРАНИЦЫ (Выровнен по левому краю проекта) */}
         <header className="dash-header" style={{ borderBottom: '1px solid #E6E8EE', background: 'white', width: '100%' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
             <div>
@@ -265,10 +252,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
           </div>
         </header>
 
-        {/* КОНТЕНТНАЯ ОБЛАСТЬ (Растянута по горизонтали, без лишних левых паддингов) */}
         <div style={{ padding: '32px 48px', width: '100%', maxWidth: '1000px' }}>
           
-          {/* ТАБЫ (Красивые кнопки-вкладки с обводкой и тенью по фото 4) */}
           <div style={{ display: 'inline-flex', gap: '8px', marginBottom: '32px', padding: '4px', background: 'rgba(230, 232, 238, 0.3)', borderRadius: '10px' }}>
             <button 
               onClick={() => setActiveTab('profile')} 
@@ -302,17 +287,24 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
             >Security</button>
           </div>
 
-          {/* СЕРВЕРНЫЕ УВЕДОМЛЕНИЯ */}
+          {/* КРАСИВОЕ ОКНО ВЫВОДА ОШИБОК И УСПЕХОВ */}
           {message.text && (
-            <div style={{ padding: '16px', marginBottom: '24px', borderRadius: '8px', background: message.type === 'error' ? '#FEF2F2' : '#ECFDF5', border: `1px solid ${message.type === 'error' ? '#EF4444' : '#059669'}`, color: message.type === 'error' ? '#EF4444' : '#059669', fontSize: '14px', fontWeight: 500 }}>
-              {message.type === 'error' ? '⚠️ ' : '✓ '}{message.text}
+            <div style={{ 
+              display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', marginBottom: '24px', borderRadius: '12px',
+              background: message.type === 'error' ? '#FEF2F2' : '#ECFDF5', 
+              border: `1px solid ${message.type === 'error' ? '#FEE2E2' : '#A7F3D0'}` 
+            }}>
+              <span style={{ color: message.type === 'error' ? '#DC2626' : '#059669', fontSize: '18px', lineHeight: 1 }}>
+                {message.type === 'error' ? '⚠️' : '✅'}
+              </span>
+              <div style={{ color: message.type === 'error' ? '#991B1B' : '#065F46', fontSize: '14px', fontWeight: 500, lineHeight: '1.4' }}>
+                {message.text}
+              </div>
             </div>
           )}
 
-          {/* ==================== ТАБ: PROFILE ==================== */}
           {activeTab === 'profile' && (
             <div>
-              {/* Карточка 1: Основные данные */}
               <div className="detail-card" style={{ padding: '32px', marginBottom: '24px', backgroundColor: 'white' }}>
                 <div style={{ marginBottom: '32px' }}>
                   <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0E1116', marginBottom: '4px' }}>Your profile</h2>
@@ -363,7 +355,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
                 </div>
               </div>
 
-              {/* Карточка 2: Локализация */}
               <div className="detail-card" style={{ padding: '32px', backgroundColor: 'white' }}>
                 <div style={{ marginBottom: '24px' }}>
                   <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0E1116', marginBottom: '4px' }}>Language & region</h2>
@@ -392,7 +383,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
             </div>
           )}
 
-          {/* ==================== ТАБ: COMPANY & ADDRESS ==================== */}
           {activeTab === 'company' && (
             <div>
               <div className="detail-card" style={{ padding: '32px', marginBottom: '24px', backgroundColor: 'white' }}>
@@ -430,7 +420,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
                   </div>
                   <div className="form-group">
                     <div className="form-label"><label>Postal code</label></div>
-                    {/* Строго числовой инпут для индекс-кода */}
                     <input 
                       type="text" 
                       className="figma-input" 
@@ -458,7 +447,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({ onNavigate }) => {
             </div>
           )}
 
-          {/* ==================== ТАБ: SECURITY ==================== */}
           {activeTab === 'security' && (
             <div>
               <div className="detail-card" style={{ padding: '32px', marginBottom: '32px', backgroundColor: 'white' }}>
