@@ -1,33 +1,46 @@
-using Application.Common.Exceptions;
-using Application.Interfaces;
+using Application.Common.Mappings;
+using Application.CQRS.LoadCQ.Commands.CreateLoad;
 using AutoMapper;
+using Domain.Enums.Load;
+using Domain.Models.Abstract;
 using Domain.Models.Load;
-using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 namespace Application.CQRS.LoadCQ.Commands.Draft.Create;
 
-public class UpdateLoadDraftCommand : CreateLoadDraftCommand
+public class UpdateLoadDraftCommand : CreateLoadDraftCommand, IMapWith<LoadDraft>
 {
     public Guid Id { get; set; }
-}
+    public new IList<RoutePointDraftUpdateDto>? RoutePoints { get; set; } = null;
+    public new IList<PayloadDraftUpdateDto>? Payloads { get; set; } = null;
 
-public class UpdateLoadDraftCommandHandler(IAppDbContext dbContext, IMapper mapper) 
-    : IRequestHandler<UpdateLoadDraftCommand, Guid>
-{
-    public async Task<Guid> Handle(UpdateLoadDraftCommand request, CancellationToken ct)
+    public new void Mapping(Profile profile)
     {
-        var draft = await dbContext.LoadDrafts
-            .FirstOrDefaultAsync(d => d.Id == request.Id, ct);
-
-        if (draft == null) throw new NotFoundException(nameof(LoadDraft), request.Id);
-        if (draft.UserId != request.UserId) throw new ForbiddenException("Access denied", request.UserId);
-
-        // Мапим изменения (используя Null-проверку в профиле AutoMapper)
-        mapper.Map(request, draft);
-        draft.Updated = DateTime.UtcNow;
-
-        await dbContext.SaveChangesAsync(ct);
-        return draft.Id;
+        profile.CreateMap<UpdateLoadDraftCommand, LoadDraft>()
+            // Игнорируем поля, которые устанавливаются вручную в хендлере
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            // Маппим коллекции (AutoMapper автоматически обработает null, если настроено)
+            .ForMember(dest => dest.RoutePoints, opt => opt.MapFrom(src => src.RoutePoints))
+            .ForMember(dest => dest.Payloads, opt => opt.MapFrom(src => src.Payloads))
+            .ForAllMembers(opts => 
+                opts.Condition((src, dest, srcMember) => 
+                    srcMember != null));
+        
+        profile.CreateMap<PayloadDraftUpdateDto, PayloadDraft>()
+            .ForMember(dest => dest.Type, opt =>
+            {
+                opt.Condition(src => src.Type != null);
+                opt.MapFrom(src => Enum.Parse<PayloadType>(src.Type, true));
+            })
+            .ForAllMembers(opts => 
+                opts.Condition((src, dest, srcMember) => 
+                    srcMember != null));
+        
+        profile.CreateMap<RoutePointDraftUpdateDto, RoutePoint<LoadDraft>>()
+            .ForAllMembers(opts => 
+                opts.Condition((src, dest, srcMember) => 
+                    srcMember != null));
     }
 }
+
+public record PayloadDraftUpdateDto : PayloadDraftInputDto;
+public record RoutePointDraftUpdateDto : RoutePointInputDto;

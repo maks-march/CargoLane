@@ -21,6 +21,7 @@ public class CreateLoadDraftCommand : IRequest<Guid>, IMapWith<LoadDraft>
     
     public IList<RoutePointInputDto>? RoutePoints { get; set; } = null;
     public IList<PayloadDraftInputDto>? Payloads { get; set; } = null;
+    
     public void Mapping(Profile profile)
     {
         profile.CreateMap<CreateLoadDraftCommand, LoadDraft>()

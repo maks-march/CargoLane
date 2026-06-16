@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Application.CQRS.LoadCQ.Commands;
 using Application.CQRS.LoadCQ.Commands.CreateLoad;
 using Application.CQRS.LoadCQ.Commands.Draft.Create;
@@ -67,7 +68,7 @@ public abstract class LoadTestBase : BaseIntegrationTest
     // --- User loads ---
     protected async Task<LoadListVm[]> GetUserLoads()
     {
-        var response = await Client.GetAsync($"{LoadBaseUrl}/user");
+        var response = await Client.GetAsync($"{LoadBaseUrl}/me");
         return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
     }
 
@@ -123,6 +124,74 @@ public abstract class LoadTestBase : BaseIntegrationTest
         return await Client.DeleteAsync($"{LoadBaseUrl}/draft/{id}");
     }
 
+    // --- Files ---
+    protected async Task<HttpResponseMessage> UploadLoadFiles(Guid loadId, byte[] fileBytes, string fileName = "test.jpg")
+    {
+        using var content = new MultipartFormDataContent();
+        var fileContent = new ByteArrayContent(fileBytes);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("image/jpeg");
+        content.Add(fileContent, "files", fileName);
+        return await Client.PutAsync($"{LoadBaseUrl}/{loadId}/files", content);
+    }
+
+    /// <summary>
+    /// Возвращает список путей загруженных файлов груза, читая детали по JSON.
+    /// Ищет свойства filePaths/files/FilePaths/Files/Documents/documentPaths.
+    /// </summary>
+    protected async Task<string[]> GetLoadFilePaths(Guid loadId, bool anonymous = false)
+    {
+        var client = anonymous ? _factory.CreateClient() : Client;
+        var response = await client.GetAsync($"{LoadBaseUrl}/{loadId}");
+        response.EnsureSuccessStatusCode();
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+
+        foreach (var propName in new[] { "filePaths", "files", "FilePaths", "Files", "Documents", "documentPaths" })
+        {
+            if (root.TryGetProperty(propName, out var prop) && prop.ValueKind == JsonValueKind.Array)
+            {
+                return prop.EnumerateArray()
+                    .Select(x => x.GetString())
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .ToArray()!;
+            }
+        }
+
+        return Array.Empty<string>();
+    }
+
+    /// <summary>
+    /// Возвращает часовой пояс и флаг метрической системы текущего авторизованного пользователя.
+    /// Ожидает ответ от /api/User/me со свойствами time/timezone и isMetric/isMetricSystem.
+    /// </summary>
+    protected async Task<(int timezone, bool isMetric)> GetCurrentUserSettings()
+    {
+        var response = await Client.GetAsync("/api/User/me");
+        response.EnsureSuccessStatusCode();
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        var root = doc.RootElement;
+
+        var timezone = 0;
+        if (root.TryGetProperty("timeZone", out var tzProp)
+            || root.TryGetProperty("timezone", out tzProp)
+            || root.TryGetProperty("Timezone", out tzProp))
+        {
+            timezone = tzProp.GetInt32();
+        }
+
+        var isMetric = true;
+        if (root.TryGetProperty("isMetric", out var metricProp)
+            || root.TryGetProperty("isMetricSystem", out metricProp)
+            || root.TryGetProperty("IsMetric", out metricProp))
+        {
+            isMetric = metricProp.GetBoolean();
+        }
+
+        return (timezone, isMetric);
+    }
+
     // --- Test data helpers ---
     protected CreateLoadCommand CreateValidLoadCommand(
         string about = "Test load from integration test",
@@ -140,7 +209,7 @@ public abstract class LoadTestBase : BaseIntegrationTest
             About = about,
             Payloads = new List<PayloadInputDto>
             {
-                new PayloadInputDto
+                new()
                 {
                     Length = 120,
                     Width = 80,
@@ -152,13 +221,13 @@ public abstract class LoadTestBase : BaseIntegrationTest
             },
             RoutePoints = new List<RoutePointInputDto>
             {
-                new RoutePointInputDto
+                new()
                 {
                     City = startCity,
                     Address = "Склад 1, ул. Тестовая 10",
                     ArrivalTime = DateTime.UtcNow.AddDays(1)
                 },
-                new RoutePointInputDto
+                new()
                 {
                     City = endCity,
                     Address = "Терминал 2, пр. Ленина 5",
@@ -179,7 +248,7 @@ public abstract class LoadTestBase : BaseIntegrationTest
             About = about,
             Payloads = new List<PayloadDraftInputDto>
             {
-                new PayloadDraftInputDto
+                new()
                 {
                     Length = 100,
                     Width = 80,
@@ -191,7 +260,7 @@ public abstract class LoadTestBase : BaseIntegrationTest
             },
             RoutePoints = new List<RoutePointInputDto>
             {
-                new RoutePointInputDto
+                new()
                 {
                     City = "Yekaterinburg",
                     Address = "Draft Start Address",

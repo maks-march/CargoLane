@@ -244,6 +244,7 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     
     private LoadListVm[] ChangeListVmForUser(LoadListVm[] vms)
     {
+        if (UserId == Guid.Empty) return vms;
         var settings = UserSettings;
         foreach (var vm in vms)
         {

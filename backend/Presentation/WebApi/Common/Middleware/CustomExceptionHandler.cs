@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Application.Common.Exceptions;
+using AutoMapper;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using WebApi.DTO;
@@ -67,10 +68,14 @@ public class CustomExceptionHandler(RequestDelegate next)
                 error = operationCanceledException.Message;
                 details = operationCanceledException.InnerException?.Message ?? "Operation timed out.";
                 break;
+            case AutoMapperMappingException mappingException:
+                code = HttpStatusCode.BadRequest;
+                error = mappingException.Message;
+                details = mappingException.InnerException?.Message ?? "Validation exception.";
+                break;
         }
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)code;
-
         if (error == string.Empty)
         {
             error = exception.Message; 

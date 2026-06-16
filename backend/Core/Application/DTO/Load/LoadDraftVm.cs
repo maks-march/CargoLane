@@ -23,6 +23,12 @@ public record LoadDraftVm : IMapWith<LoadDraft>
         profile.CreateMap<LoadDraft, LoadDraftVm>()
             .ForMember(d => d.Payloads, opt => opt.MapFrom(s => s.Payloads))
             .ForMember(d => d.RoutePoints, opt => opt.MapFrom(s => s.RoutePoints));
+        profile.CreateMap<PayloadDraft, PayloadDraftVm>()
+            .ForMember(d => d.Type, opt =>
+            {
+                opt.Condition(s => s.Type != null);
+                opt.MapFrom(s => s.Type.ToString());
+            });
     }
 }
 

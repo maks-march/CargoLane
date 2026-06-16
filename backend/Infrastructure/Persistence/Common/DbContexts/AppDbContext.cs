@@ -1,6 +1,7 @@
 using Application.DTO.Auth;
 using Application.Interfaces;
 using Domain.Models;
+using Domain.Models.Abstract;
 using Domain.Models.Chat;
 using Domain.Models.Load;
 using Microsoft.AspNetCore.Identity;
@@ -21,9 +22,11 @@ public class AppDbContext
     public DbSet<ChatMessageEntity> Messages { get; set; }
     
     public DbSet<LoadEntity> Loads { get; set; }
-    public DbSet<LoadDraft> LoadDrafts { get; set; }
     public DbSet<Payload> Payload { get; set; }
+    public DbSet<RoutePoint<LoadEntity>> RoutePoints { get; set; }
+    public DbSet<LoadDraft> LoadDrafts { get; set; }
     public DbSet<PayloadDraft> PayloadDraft { get; set; }
+    public DbSet<RoutePoint<LoadDraft>> RoutePointsDraft { get; set; }
     
     
     public DbSet<UserFile> UserFiles { get; set; }

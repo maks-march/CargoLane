@@ -17,7 +17,7 @@ public class SwaggerJsonDefault : Attribute
     /// </summary>
     public string ExampleJson { get; }
 
-    private static JsonSerializerOptions opts = new JsonSerializerOptions
+    private static JsonSerializerOptions opts = new()
     {
         WriteIndented = true,
         Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
