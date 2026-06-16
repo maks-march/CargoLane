@@ -7,6 +7,7 @@ using Application.CQRS.LoadCQ.Commands.Draft.Create;
 using Application.DTO.Auth;
 using Application.DTO.Load;
 using ApplicationTest.Common;
+using Domain.Models.Load;
 using FluentAssertions;
 
 namespace ApplicationTest.Common;
@@ -171,13 +172,32 @@ public abstract class LoadTestBase : BaseIntegrationTest
     {
         return new CreateLoadDraftCommand
         {
-            StartDate = DateOnly.FromDateTime(DateTime.Now.AddDays(10)),
             Payment = 3200,
             Insurance = 150,
             HScode = "9403.20",
             Adr = 1,
-            SuitableCargos = new[] { "Electronics" },
-            About = about
+            About = about,
+            Payloads = new List<PayloadDraftInputDto>
+            {
+                new PayloadDraftInputDto
+                {
+                    Length = 100,
+                    Width = 80,
+                    Height = 50,
+                    Weight = 200,
+                    Amount = 2,
+                    Type = "Boxes"
+                }
+            },
+            RoutePoints = new List<RoutePointInputDto>
+            {
+                new RoutePointInputDto
+                {
+                    City = "Yekaterinburg",
+                    Address = "Draft Start Address",
+                    ArrivalTime = DateTime.UtcNow.AddDays(5)
+                }
+            }
         };
     }
 }

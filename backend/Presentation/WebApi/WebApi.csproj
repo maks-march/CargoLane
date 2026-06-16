@@ -34,5 +34,8 @@
       <_ContentIncludedByDefault Remove="wwwroot\uploads\25ef0375-fa5d-423a-b842-22885f56ecd1_test-avatar.jpg" />
       <_ContentIncludedByDefault Remove="wwwroot\uploads\41bbe902-3012-4455-997b-66d5befa518a_test-avatar.jpg" />
       <_ContentIncludedByDefault Remove="wwwroot\uploads\89aee96b-64cc-45de-afb6-e594e698fa23_test-avatar.jpg" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\2ea01eba-b5ce-49ca-88b9-8486310edfc8_расписание.xls" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\40a597e5-b194-4101-af3b-77c7ab6c1aa7_nomogram_Y1.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\46b29c7f-db9f-408f-a100-3eb2b59fd479_nomogram_Y1.png" />
     </ItemGroup>
 </Project>

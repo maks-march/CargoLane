@@ -12,7 +12,7 @@ using Persistence.Common.DbContexts;
 namespace Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260615191329_LoadChange")]
+    [Migration("20260615203516_LoadChange")]
     partial class LoadChange
     {
         /// <inheritdoc />
@@ -326,9 +326,6 @@ namespace Persistence.Migrations
                     b.Property<double?>("Payment")
                         .HasColumnType("double precision");
 
-                    b.Property<DateOnly?>("StartDate")
-                        .HasColumnType("date");
-
                     b.Property<DateTime>("Updated")
                         .HasColumnType("timestamp with time zone");
 
@@ -450,32 +447,28 @@ namespace Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
 
-                    b.Property<int>("Amount")
+                    b.Property<int?>("Amount")
                         .HasColumnType("integer");
 
                     b.Property<Guid>("EntityId")
                         .HasColumnType("uuid");
 
-                    b.Property<double>("Height")
+                    b.Property<double?>("Height")
                         .HasColumnType("double precision");
 
-                    b.Property<double>("Length")
+                    b.Property<double?>("Length")
                         .HasColumnType("double precision");
 
                     b.Property<int>("OrderIndex")
                         .HasColumnType("integer");
 
                     b.Property<string>("Type")
-                        .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<double>("Volume")
+                    b.Property<double?>("Weight")
                         .HasColumnType("double precision");
 
-                    b.Property<double>("Weight")
-                        .HasColumnType("double precision");
-
-                    b.Property<double>("Width")
+                    b.Property<double?>("Width")
                         .HasColumnType("double precision");
 
                     b.HasKey("Id");
