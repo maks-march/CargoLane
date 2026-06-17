@@ -1,4 +1,19 @@
-export type PageType = 'landing' | 'signin' | 'signup' | 'recovery' | 'dashboard' | 'saved' | 'load-detail' | 'create-load' | 'my-listings';
+export type PageType = 
+  | 'landing' 
+  | 'signin' 
+  | 'signup' 
+  | 'recovery' 
+  | 'dashboard' 
+  | 'search' 
+  | 'messages' 
+  | 'saved' 
+  | 'settings' 
+  | 'load-detail' 
+  | 'create-load' 
+  | 'createload' 
+  | 'my-listings'
+  | 'mylistings'
+  | 'chat';
 
 export interface NavigationPayload {
   loadId?: string;
@@ -19,5 +34,5 @@ export interface LoadData {
   vehicle: string;
   price: string;
   match: number;
-  status?: 'active' | 'pending' | 'draft' | 'closed'; // Добавили поле
+  status?: 'active' | 'pending' | 'draft' | 'closed'; // Добавлено поле
 }

@@ -30,10 +30,12 @@ export const LoadsTable: React.FC<LoadsTableProps> = ({
       </thead>
       <tbody>
         {loads.map((load) => {
-          // Безопасное чтение данных в зависимости от того, как отдает бэкенд
-          const startCity = (load as any).startCity || (load as any).from || 'Origin';
-          const endCity = (load as any).endCity || (load as any).to || 'Destination';
-          const company = (load as any).company || (load as any).companyName || 'Verified Shipper';
+          // ИСПРАВЛЕНО: Убран any, добавлена строгая промежуточная типизация
+          const loadData = load as unknown as { startCity?: string; from?: string; endCity?: string; to?: string; company?: string; companyName?: string };
+          
+          const startCity = loadData.startCity || loadData.from || 'Origin';
+          const endCity = loadData.endCity || loadData.to || 'Destination';
+          const company = loadData.company || loadData.companyName || 'Verified Shipper';
           
           return (
             <tr 

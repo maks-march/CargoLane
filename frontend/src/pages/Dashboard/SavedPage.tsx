@@ -2,16 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
+import type { LoadListVm } from '../../api/types';
 
 interface LoadSearchFilters {
   query?: string;
-  from?: string;
-  to?: string;
-  date?: string;
+  startCity?: string;
+  endCity?: string;
+  fromDate?: string;
   cargoType?: string;
-  mass?: string;
+  weight?: string;
   volume?: string;
-  vehicle?: string;
+  vehicleType?: string;
+  sortChoices?: number;
+  isDescending?: boolean;
 }
 
 interface ExtendedLoadVm {
@@ -37,29 +40,34 @@ export const SavedPage: React.FC = () => {
   const [mapData, setMapData] = useState({ distance: '0', duration: '0h 0m' });
 
   const [filters, setFilters] = useState<LoadSearchFilters>({
-    query: '', from: '', to: '', date: '', cargoType: '', mass: '', volume: '', vehicle: ''
+    query: '', startCity: '', endCity: '', fromDate: '', cargoType: '', weight: '', volume: '', vehicleType: '', sortChoices: 0, isDescending: false
   });
 
   useEffect(() => {
     const fetchSavedLoads = async () => {
       setIsLoading(true);
       try {
-        const data = await loadsService.getSavedLoads(filters);
+        const data = await loadsService.getAllLoads(filters);
 
         if (data) {
-          const mappedData = data.map((load: any) => ({
+          const mappedData: ExtendedLoadVm[] = data.map((load: LoadListVm) => ({
             ...load,
-            volumeStr: load.volumeStr || '0 m³', 
-            matchPercent: load.matchPercent || (Math.floor(Math.random() * 20) + 80)
+            volumeStr: '0 m³', 
+            matchPercent: Math.floor(Math.random() * 20) + 80
           }));
           setLoads(mappedData);
           
-          if (!mappedData.find((l: any) => l.id === selectedLoad?.id)) {
-             setSelectedLoad(null); 
-          }
+          // Функциональное обновление стейта решает проблему react-hooks/exhaustive-deps
+          setSelectedLoad((prevLoad) => {
+            if (prevLoad && !mappedData.find((l) => l.id === prevLoad.id)) {
+              return null;
+            }
+            return prevLoad;
+          });
         }
-      } catch (error) {
-        console.error("Backend Search API failed. Database is empty or server is down.");
+      } catch (error: unknown) {
+        const err = error as Error;
+        console.error("Backend Search API failed:", err.message);
         setLoads([]); 
       } finally {
         setIsLoading(false);
@@ -96,24 +104,18 @@ export const SavedPage: React.FC = () => {
             <h1 className="dash-title" style={{ fontSize: '24px', fontWeight: 400, color: '#0E1116', letterSpacing:'-1px',marginTop: '4px' }}>Saved searches</h1>
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-            <div style={{ position: 'relative' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', flex: 1, maxWidth: '500px', justifyContent: 'flex-end' }}>
+            {/* ИСПРАВЛЕНО: Кнопка Post Load удалена, инпут растянут (flex: 1) */}
+            <div style={{ position: 'relative', flex: 1, width: '100%' }}>
               <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#A0AAB9' }}>🔍</span>
               <input 
                 type="text" 
                 placeholder="Search lanes, cargo, ID..." 
                 value={filters.query || ''}
                 onChange={(e) => setFilters({...filters, query: e.target.value})}
-                style={{ padding: '10px 16px 10px 36px', border: '1px solid #E6E8EE', borderRadius: '8px', width: '280px', maxWidth: '100%', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} 
+                style={{ padding: '10px 16px 10px 36px', border: '1px solid #E6E8EE', borderRadius: '8px', width: '100%', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} 
               />
             </div>
-            <button 
-              className="btn-figma-primary" 
-              onClick={() => navigate('/create-load')} 
-              style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#3D5AFE', color: 'white', fontWeight: 400, cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
-              + Post load
-            </button>
           </div>
         </div>
       </header>
@@ -126,15 +128,15 @@ export const SavedPage: React.FC = () => {
           <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
             <div className="filter-select-wrapper">
               <span className="filter-label">From:</span>
-              <input type="text" className="filter-select" placeholder="Any" value={filters.from || ''} onChange={(e) => setFilters({...filters, from: e.target.value})} style={{ width: '80px', padding: 0 }} />
+              <input type="text" className="filter-select" placeholder="Any" value={filters.startCity || ''} onChange={(e) => setFilters({...filters, startCity: e.target.value})} style={{ width: '80px', padding: 0 }} />
             </div>
             <div className="filter-select-wrapper">
               <span className="filter-label">To:</span>
-              <input type="text" className="filter-select" placeholder="Any" value={filters.to || ''} onChange={(e) => setFilters({...filters, to: e.target.value})} style={{ width: '80px', padding: 0 }} />
+              <input type="text" className="filter-select" placeholder="Any" value={filters.endCity || ''} onChange={(e) => setFilters({...filters, endCity: e.target.value})} style={{ width: '80px', padding: 0 }} />
             </div>
             <div className="filter-select-wrapper">
               <span className="filter-label">Date:</span>
-              <input type="date" className="filter-select" placeholder="DD/MM/YYYY" value={filters.date || ''} onChange={(e) => setFilters({...filters, date: e.target.value})} style={{ padding: 0, color: filters.date ? '#0E1116' : '#A0AAB9' }} />
+              <input type="date" className="filter-select" placeholder="DD/MM/YYYY" value={filters.fromDate || ''} onChange={(e) => setFilters({...filters, fromDate: e.target.value})} style={{ padding: 0, color: filters.fromDate ? '#0E1116' : '#A0AAB9' }} />
             </div>
             <div className="filter-select-wrapper">
               <span className="filter-label">Cargo type:</span>
@@ -142,7 +144,7 @@ export const SavedPage: React.FC = () => {
             </div>
             <div className="filter-select-wrapper">
               <span className="filter-label">Mass:</span>
-              <input type="text" className="filter-select" placeholder="Any" value={filters.mass || ''} onChange={(e) => setFilters({...filters, mass: e.target.value})} style={{ width: '60px', padding: 0 }} />
+              <input type="text" className="filter-select" placeholder="Any" value={filters.weight || ''} onChange={(e) => setFilters({...filters, weight: e.target.value})} style={{ width: '60px', padding: 0 }} />
             </div>
             <div className="filter-select-wrapper">
               <span className="filter-label">Volume:</span>
@@ -150,7 +152,7 @@ export const SavedPage: React.FC = () => {
             </div>
             <div className="filter-select-wrapper">
               <span className="filter-label">Vehicle:</span>
-              <input type="text" className="filter-select" placeholder="Any" value={filters.vehicle || ''} onChange={(e) => setFilters({...filters, vehicle: e.target.value})} style={{ width: '80px', padding: 0 }} />
+              <input type="text" className="filter-select" placeholder="Any" value={filters.vehicleType || ''} onChange={(e) => setFilters({...filters, vehicleType: e.target.value})} style={{ width: '80px', padding: 0 }} />
             </div>
           </div>
 
@@ -161,10 +163,18 @@ export const SavedPage: React.FC = () => {
             </div>
             <div style={{ fontSize: '13px', color: '#5C6470', display: 'flex', alignItems: 'center', gap: '8px' }}>
               Sort
-              <select style={{ background: 'transparent', fontWeight: 500, color: '#0E1116', outline: 'none', cursor: 'pointer', width:'95px', height:'40px',borderRadius: '15px', border:'1px solid #E6E8EE' }}>
-                <option>Best match</option>
-                <option>Newest first</option>
-                <option>Price: High to Low</option>
+              <select 
+                style={{ background: 'transparent', fontWeight: 500, color: '#0E1116', outline: 'none', cursor: 'pointer', width:'130px', height:'40px',borderRadius: '15px', border:'1px solid #E6E8EE', paddingLeft: '8px' }}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "0") setFilters({...filters, sortChoices: 0, isDescending: false});
+                  if (val === "1") setFilters({...filters, sortChoices: 1, isDescending: true});
+                  if (val === "2") setFilters({...filters, sortChoices: 2, isDescending: true});
+                }}
+              >
+                <option value="0">Best match</option>
+                <option value="1">Newest first</option>
+                <option value="2">Price: High to Low</option>
               </select>
             </div>
           </div>

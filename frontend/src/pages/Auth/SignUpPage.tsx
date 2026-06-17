@@ -5,6 +5,17 @@ import { authService } from '../../services/auth.service';
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
 
+interface RouteStop {
+  address: string;
+  type: 'start' | 'end';
+}
+
+interface ApiErrorResponse {
+  error?: string;
+  details?: string;
+  message?: string;
+}
+
 export const SignUpPage: React.FC = () => {
   const navigate = useNavigate();
 
@@ -15,7 +26,8 @@ export const SignUpPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const [backgroundStops, setBackgroundStops] = useState<any[]>([
+  // ИСПРАВЛЕНО: Заменили any[] на строгий тип RouteStop[]
+  const [backgroundStops, setBackgroundStops] = useState<RouteStop[]>([
     { address: 'Berlin', type: 'start' },
     { address: 'Paris', type: 'end' }
   ]);
@@ -34,7 +46,8 @@ export const SignUpPage: React.FC = () => {
             ]);
           }
         }
-      } catch (err) {
+      } catch {
+        // ИСПРАВЛЕНО: Убрали неиспользуемую переменную err
         console.warn('Using default background route for signup page.');
       }
     };
@@ -53,8 +66,8 @@ export const SignUpPage: React.FC = () => {
       navigate('/login');
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data) {
-        const data = err.response.data as { error?: string, details?: string, message?: string };
-        setError(data.error || data.details || data.message || 'Registration failed.');
+        const data = err.response.data as ApiErrorResponse;
+        setError(data.details || data.error || data.message || 'Registration failed.');
       } else {
         setError('Registration failed. Please try again.');
       }
@@ -63,7 +76,6 @@ export const SignUpPage: React.FC = () => {
     }
   };
 
-  // Проверка: заполнены ли все поля
   const isFormValid = username.trim() !== '' && email.trim() !== '' && password.trim() !== '';
 
   return (
@@ -78,7 +90,7 @@ export const SignUpPage: React.FC = () => {
           <p className="auth-subtitle">Get started with CargoLane logistics network today</p>
 
           {error && (
-            <div style={{ color: '#EF4444', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#FEF2F2', borderRadius: '8px' }}>
+            <div style={{ color: '#EF4444', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#FEF2F2', borderRadius: '8px', border: '1px solid #EF4444' }}>
               {error}
             </div>
           )}

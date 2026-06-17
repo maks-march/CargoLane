@@ -4,70 +4,44 @@ import { RoutingMap } from './RoutingMap';
 
 interface Props {
   load: LoadDetailsVm;
-  routeInfo?: { distance: string; duration: string };
   onRouteCalculated?: (distance: string, duration: string) => void;
+  routeInfo: { distance: string, duration: string };
 }
 
-export const DetailRouteMap: React.FC<Props> = ({ load, routeInfo, onRouteCalculated }) => {
-  // Безопасное чтение городов (в зависимости от того, как их отдаст бэкенд: startCity или from)
-  const start = (load as any).startCity || (load as any).from || 'Rotterdam';
-  const end = (load as any).endCity || (load as any).to || 'Warsaw';
+export const DetailRouteMap: React.FC<Props> = ({ load, onRouteCalculated, routeInfo }) => {
+  const mapStops = load.routePoints.map((p, i) => ({
+    address: p.address || p.city || 'Unknown',
+    type: i === 0 ? 'start' : (i === load.routePoints.length - 1 ? 'end' : 'stop') as 'start' | 'stop' | 'end'
+  }));
 
-  const mapStops = [
-    { address: start, type: 'start' }
-  ];
-  
-  if ((load as any).extraRoute) {
-    mapStops.push({ address: String((load as any).extraRoute).replace('+ ', ''), type: 'stop' });
-  }
-  
-  mapStops.push({ address: end, type: 'end' });
 
-  // Функция для получения кода страны (для красоты в заголовке)
-  const getCountryCode = (city?: string) => {
-    if (!city) return 'EU';
-    const c = city.toLowerCase();
-    if (c.includes('rotterdam') || c.includes('amsterdam')) return 'NL';
-    if (c.includes('warsaw')) return 'PL';
-    if (c.includes('hamburg') || c.includes('berlin') || c.includes('munich')) return 'DE';
-    if (c.includes('paris') || c.includes('lyon')) return 'FR';
-    if (c.includes('madrid')) return 'ES';
-    if (c.includes('milan')) return 'IT';
-    return 'EU';
-  };
-
-  const fromCC = getCountryCode(start);
-  const toCC = getCountryCode(end);
-
-  const fromTitle = start.includes(fromCC) ? start : `${start}, ${fromCC}`;
-  const toTitle = end.includes(toCC) ? end : `${end}, ${toCC}`;
-
-  const stopsCount = mapStops.length;
-  const routeType = stopsCount > 2 ? 'Multi-lane routing' : 'Direct routing';
+  const stopsCount = load.routePoints.length;
 
   return (
-    <div className="detail-card">
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
+    <div className="detail-card" style={{ padding: '0', overflow: 'hidden', background: 'white', borderRadius: '12px', border: '1px solid #E6E8EE' }}>
+      
+      {/* ИСПРАВЛЕНО: Вернули верхний блок с динамической информацией */}
+      <div style={{ padding: '24px 24px 20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #E6E8EE' }}>
         <div>
-          <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#0E1116', marginBottom: '4px' }}>
-            Route: {fromTitle} → {toTitle}
-          </h3>
-          <p style={{ fontSize: '14px', color: '#5C6470', fontWeight: 500 }}>
-            {stopsCount} stops <span style={{ margin: '0 6px', color: '#E6E8EE' }}>•</span> 
-            {routeInfo?.distance ? `${routeInfo.distance} km` : '~ km'} <span style={{ margin: '0 6px', color: '#E6E8EE' }}>•</span> 
-            {routeType}
-          </p>
-        </div>
-        
-        <div className="route-tabs-container">
-          <button className="route-tab active">Driving</button>
-          <button className="route-tab">Rail</button>
-          <button className="route-tab">Sea</button>
+          <div style={{ fontSize: '16px', fontWeight: 600, color: '#0E1116', marginBottom: '4px' }}>
+            Route: 
+          </div>
+          <div style={{ fontSize: '14px', color: '#5C6470', display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <span>{stopsCount} stops</span>
+            <span>•</span>
+            <span>{routeInfo.distance !== '0 km' ? `~${routeInfo.distance}` : 'Calculating...'} km</span>
+            <span>•</span>
+            <span>Direct routing</span>
+          </div>
         </div>
       </div>
 
-      <div style={{ height: '300px', width: '100%', background: '#F6F7FB', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
-        <RoutingMap stops={mapStops} onRouteCalculated={onRouteCalculated} />
+      <div style={{ height: '400px', width: '100%', background: '#E8F0E8', position: 'relative' }}>
+         <RoutingMap 
+           stops={mapStops} 
+           hideFloatingWidget={true}
+           onRouteCalculated={onRouteCalculated}
+         />
       </div>
     </div>
   );

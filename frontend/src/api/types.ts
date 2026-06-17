@@ -17,7 +17,11 @@ export type {
   PayloadDraftVm,
   LoadDraftRoutePoint,
   LoadRoutePointVm,
-  PayloadVm
+  PayloadVm,
+  ChatDto,
+  ChatMessageDto,
+  TimelineEventDto,
+  ActiveDealDto
 };
 
 interface AuthResponse {
@@ -34,12 +38,16 @@ interface ErrorResponse {
 
 interface LoginCommand {
   login: string;
-  password: string;
+  password?: string;
 }
 
 interface RegisterCommand {
-  login: string;
-  password: string;
+  login?: string;
+  password?: string;
+  username?: string;
+  email?: string;
+  name?: string;
+  role?: string;
 }
 
 interface RefreshCommand {
@@ -77,50 +85,46 @@ interface PayloadInputDto {
   weight: number;
   volume: number;
   amount: number;
-  type: string | null;
+  type: string; 
 }
 
 interface RoutePointInputDto {
   city: string | null;
   address: string | null;
-  arrivalTime: string | null;
+  arrivalTime: string;
   orderIndex: number;
 }
 
 interface CreateLoadCommand {
-  userId: string;
-  startDate: string;
+  userId?: string;
+  startDate?: string;
   payment: number;
   insurance: number;
   hScode: string | null;
   adr: number;
-  suitableCargos: string[] | null;
+  vehicleTypes: string[]; 
+  cargoType: string;      
   about: string | null;
-  payloads: PayloadInputDto[] | null;
-  routePoints: RoutePointInputDto[] | null;
+  payloads: PayloadInputDto[];
+  routePoints: RoutePointInputDto[];
 }
 
 interface CreateLoadDraftCommand {
-  userId: string;
-  startDate: string | null;
+  userId?: string;
+  startDate?: string | null;
   payment: number | null;
   insurance: number | null;
   hScode: string | null;
   adr: number | null;
-  suitableCargos: string[] | null;
+  vihicleTypes?: string[]; 
+  cargoType?: string;
   about: string | null;
+  payloads?: PayloadInputDto[];
+  routePoints?: RoutePointInputDto[];
 }
 
-interface UpdateLoadDraftCommand {
+interface UpdateLoadDraftCommand extends CreateLoadDraftCommand {
   id: string;
-  userId: string;
-  startDate: string | null;
-  payment: number | null;
-  insurance: number | null;
-  hScode: string | null;
-  adr: number | null;
-  suitableCargos: string[] | null;
-  about: string | null;
 }
 
 interface LoadDraftVm {
@@ -130,7 +134,8 @@ interface LoadDraftVm {
   insurance: number | null;
   hScode: string | null;
   adr: number | null;
-  suitableCargos: string[] | null;
+  vihicleTypes: string[] | null;
+  cargoType: string | null;
   about: string | null;
   payloads: PayloadDraftVm[] | null;
   routePoints: RoutePointDraftVm[] | null;
@@ -155,28 +160,37 @@ interface RoutePointDraftVm {
 
 interface LoadListVm {
   id: string;
-  startDate: string | null;
-  payment: number;
-  startCity: string | null;
-  endCity: string | null;
-  totalWeight: number;
-  payloadCount: number;
+  from: string;
+  to: string;
+  dateStart: string;
+  price: number;
+  cargo: string;
+  weight: number;
+  recommendedVehicle: string;
+  status: string;
+  volumeStr?: string;
+  matchPercent?: number;
 }
 
 interface LoadDetailsVm {
   id: string;
-  payment: number;
-  insurance: number;
-  hScode: string | null;
+  from: string;
+  to: string;
+  dateStart: string;
+  price: number;
+  cargo: string;
+  weight: number;
+  volume: number;
+  recommendedVehicle: string;
+  about: string;
   adr: number;
-  suitableCargos: string[] | null;
-  about: string | null;
-  status: string | null;
-  isReviewed: boolean;
-  userId: string;
-  payloads: PayloadVm[] | null;
-  routePoints: LoadRoutePointVm[] | null;
-  photos: string[] | null;
+  hScode: string | null;
+  insurance: number;
+  status: string;
+  companyName: string;
+  payloads: PayloadInputDto[];
+  routePoints: RoutePointInputDto[];
+  distance: number | null; // ИСПРАВЛЕНО: Добавлено поле дистанции из бэкенда
 }
 
 interface PayloadVm {
@@ -209,3 +223,38 @@ interface LoadDraftRoutePoint {
   isLoad: boolean;
 }
 
+interface ChatDto {
+  id: string;
+  partnerName: string;
+  partnerCompany: string;
+  avatarInitials: string;
+  avatarColor: 'blue' | 'green';
+  loadId: string | null;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+  isOnline: boolean;
+}
+
+interface ChatMessageDto {
+  id: string;
+  senderId: string; 
+  text: string;
+  timestamp: string;
+  isSystemMessage?: boolean;
+}
+
+interface TimelineEventDto {
+  title: string;
+  time: string;
+  status: 'completed' | 'current' | 'pending';
+}
+
+interface ActiveDealDto {
+  loadId: string;
+  route: string;
+  details: string;
+  price: string;
+  status: string;
+  timeline: TimelineEventDto[];
+}

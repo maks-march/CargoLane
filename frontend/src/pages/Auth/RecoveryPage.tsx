@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import axios from 'axios';
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
+import { authService } from '../../services/auth.service';
+
+interface RouteStop {
+  address: string;
+  type: 'start' | 'end';
+}
+
+interface ApiErrorResponse {
+  error?: string;
+  details?: string;
+  message?: string;
+}
 
 export const RecoveryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -12,12 +25,13 @@ export const RecoveryPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   
   const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
   const [timer, setTimer] = useState(0);
   const [isCodeSent, setIsCodeSent] = useState(false);
 
-  const [backgroundStops, setBackgroundStops] = useState<any[]>([
+  const [backgroundStops, setBackgroundStops] = useState<RouteStop[]>([
     { address: 'Brussels', type: 'start' },
     { address: 'Frankfurt', type: 'end' }
   ]);
@@ -36,7 +50,7 @@ export const RecoveryPage: React.FC = () => {
             ]);
           }
         }
-      } catch (err) {
+      } catch {
         console.warn('Using default background route for recovery page.');
       }
     };
@@ -44,7 +58,7 @@ export const RecoveryPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (timer > 0) {
       interval = setInterval(() => {
         setTimer((prev) => prev - 1);
@@ -56,29 +70,52 @@ export const RecoveryPage: React.FC = () => {
   // Проверка: является ли введенный текст валидным Email
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  const handleSendCode = () => {
+  const handleSendCode = async () => {
     if (!isEmailValid) return;
-    setIsCodeSent(true);
-    setTimer(60); 
-    setMessage('Verification code sent to your email.');
-    // TODO: Здесь бэкендер добавит запрос API на отправку кода
+    setError('');
+    setMessage('');
+    try {
+      await authService.forgotPassword(email);
+      setIsCodeSent(true);
+      setTimer(60); 
+      setMessage('Verification code sent to your email.');
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data) {
+        const data = err.response.data as ApiErrorResponse;
+        setError(data.details || data.error || data.message || 'Failed to send code.');
+      } else {
+        setError('Failed to send code.');
+      }
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !code || !newPassword || !confirmPassword) return;
 
     if (newPassword !== confirmPassword) {
-      setMessage('Passwords do not match.');
+      setError('Passwords do not match.');
       return;
     }
 
     setLoading(true);
-    setTimeout(() => {
+    setError('');
+    setMessage('');
+
+    try {
+      await authService.resetPassword({ email, code, newPassword });
       setMessage('Password successfully reset! You can now log in.');
-      setLoading(false);
       setTimeout(() => navigate('/login'), 2000);
-    }, 1500);
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response?.data) {
+        const data = err.response.data as ApiErrorResponse;
+        setError(data.details || data.error || data.message || 'Invalid code or email.');
+      } else {
+        setError('Invalid code or email.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Проверка: заполнены ли все 4 поля для финальной кнопки
@@ -95,6 +132,14 @@ export const RecoveryPage: React.FC = () => {
           <h1 className="auth-title">Reset password</h1>
           <p className="auth-subtitle">Enter your email to receive a code and set a new password</p>
 
+          {/* ТОТ САМЫЙ ОРИГИНАЛЬНЫЙ БЛОК ОШИБКИ */}
+          {error && (
+            <div style={{ color: '#EF4444', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#FEF2F2', borderRadius: '8px', border: '1px solid #EF4444' }}>
+              {error}
+            </div>
+          )}
+
+          {/* СТАРЫЙ БЛОК УСПЕХА */}
           {message && (
             <div style={{ color: '#059669', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#ECFDF5', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
               {message}
