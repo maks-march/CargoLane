@@ -1,11 +1,15 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import useAuthStore from '../../store/auth.store';
 
 import type { ChatDto, ChatMessageDto, ActiveDealDto } from '../../services/messagesService';
 import { messagesService } from '../../services/messagesService';
 
 interface Props {
   onNavigate: (page: string) => void;
+  userId: string;
+  initialChatId: string | null;
+  initialLoadId: string | null;
 }
 
 interface State {
@@ -16,44 +20,55 @@ interface State {
   newMessage: string;
   isLoading: boolean;
   searchQuery: string;
+  currentLoadId: string | null;
 }
 
-// СТРОГАЯ КЛАССОВАЯ АРХИТЕКТУРА ДЛЯ БЭКЕНДЕРА
 class MessagesPageClass extends React.Component<Props, State> {
   private messagesEndRef = React.createRef<HTMLDivElement>();
 
   constructor(props: Props) {
     super(props);
     this.state = {
-      chats: [], // АБСОЛЮТНО ПУСТОЙ СТЕЙТ
-      activeChatId: null,
+      chats: [],
+      activeChatId: props.initialChatId,
       messages: [],
       activeDeal: null,
       newMessage: '',
       isLoading: true,
-      searchQuery: ''
+      searchQuery: '',
+      currentLoadId: props.initialLoadId
     };
   }
 
   async componentDidMount() {
     const params = new URLSearchParams(window.location.search);
     const partnerId = params.get('partnerId');
-    const loadId = params.get('loadId');
+    const loadIdFromUrl = params.get('loadId');
 
     try {
-      if (partnerId && loadId) {
-        // БЕКЕНДЕРУ: Создание или получение чата при переходе из Load Board (ИСПРАВЛЕНО: убран лишний аргумент loadId)
-        const { chatId } = await messagesService.startChat(partnerId);
-        await this.handleSelectChat(chatId);
+      if (partnerId) {
+        // Создаем чат и привязываем груз
+        const { chatId } = await messagesService.startChat(partnerId, loadIdFromUrl);
+        await this.handleSelectChat(chatId, loadIdFromUrl);
       }
 
-      // БЕКЕНДЕРУ: Загрузка всех чатов текущего пользователя
       const realChats = await messagesService.getChats();
       this.setState({ chats: realChats, isLoading: false });
-    // ИСПРАВЛЕНО: Убрана неиспользуемая переменная _error
+
+      if (this.state.activeChatId) {
+         if (realChats.some(c => c.id === this.state.activeChatId)) {
+             const activeChat = realChats.find(c => c.id === this.state.activeChatId);
+             await this.handleSelectChat(this.state.activeChatId, activeChat?.loadId || loadIdFromUrl);
+         } else {
+             this.setState({ activeChatId: null });
+         }
+      } 
+      else if (realChats.length > 0) {
+        await this.handleSelectChat(realChats[0].id, realChats[0].loadId);
+      }
     } catch {
       console.warn('Backend API missing. Database is empty or disconnected.');
-      this.setState({ isLoading: false }); // Отключаем лоадер, показываем пустую страницу
+      this.setState({ isLoading: false });
     }
   }
 
@@ -67,31 +82,49 @@ class MessagesPageClass extends React.Component<Props, State> {
     this.messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  handleSelectChat = async (chatId: string) => {
-    this.setState({ activeChatId: chatId, messages: [], activeDeal: null });
+  handleSelectChat = async (chatId: string, loadIdFromChat: string | null = null) => {
+    this.setState({ 
+        activeChatId: chatId, 
+        messages: [], 
+        activeDeal: null,
+        currentLoadId: loadIdFromChat
+    });
+
+    let url = `?chatId=${chatId}`;
+    if (loadIdFromChat) {
+        url += `&loadId=${loadIdFromChat}`;
+    }
+    window.history.replaceState(null, '', url);
 
     try {
-      // БЕКЕНДЕРУ: Параллельная загрузка истории чата и данных сделки
-      const [realMessages, realDeal] = await Promise.all([
-        messagesService.getChatHistory(chatId),
-        messagesService.getActiveDeal(chatId)
-      ]);
-      this.setState({ messages: realMessages, activeDeal: realDeal });
-    // ИСПРАВЛЕНО: Убрана неиспользуемая переменная _error
+      // Параллельно грузим сообщения и данные сделки
+      const fetchPromises: Promise<any>[] = [messagesService.getChatHistory(chatId)];
+      
+      if (loadIdFromChat) {
+          fetchPromises.push(messagesService.getActiveDeal(loadIdFromChat));
+      }
+
+      const results = await Promise.all(fetchPromises);
+      
+      this.setState({ 
+          messages: results[0], 
+          activeDeal: results.length > 1 ? results[1] : null 
+      });
     } catch {
-      console.warn('Failed to load chat history and deal from backend');
+      console.warn('Failed to load chat history from backend');
     }
   };
 
   handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     const { newMessage, activeChatId, messages } = this.state;
+    const { userId } = this.props;
+
     if (!newMessage.trim() || !activeChatId) return;
 
-    let textToSend = newMessage;
+    let textToSend = newMessage.trim();
     let isSystem = false;
 
-    // Распознавание ссылок на груз (формат CL-12345)
     const loadIdMatch = newMessage.match(/CL-\d{5,}/i);
     if (loadIdMatch) {
       isSystem = true;
@@ -103,33 +136,29 @@ class MessagesPageClass extends React.Component<Props, State> {
 
     const newMsgObj: ChatMessageDto = {
       id: Date.now().toString(),
-      senderId: isSystem ? 'system' : 'me',
+      senderId: isSystem ? 'system' : userId,
       text: textToSend,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isSystemMessage: isSystem
     };
 
-    // Оптимистичное обновление UI
     this.setState({ 
       messages: [...messages, newMsgObj],
       newMessage: '' 
     });
 
     try {
-      // БЕКЕНДЕРУ: Сохранение сообщения в БД (ИСПРАВЛЕНО: убран лишний аргумент isSystem)
       await messagesService.sendMessage(activeChatId, textToSend);
-    // ИСПРАВЛЕНО: Убрана неиспользуемая переменная _error
     } catch {
       console.error('Failed to save message to DB');
     }
   };
 
   handleViewLoad = () => {
-    const { activeChatId, chats } = this.state;
-    const activeChat = chats.find(c => c.id === activeChatId);
-    
-    if (activeChat && activeChat.loadId) {
-      this.props.onNavigate(`load-details?loadId=${activeChat.loadId}`);
+    const { currentLoadId } = this.state;
+    // ИСПРАВЛЕНО: Кнопка перенаправляет на конкретный заказ
+    if (currentLoadId) {
+      this.props.onNavigate(`orders/${currentLoadId}`);
     }
   };
 
@@ -138,7 +167,8 @@ class MessagesPageClass extends React.Component<Props, State> {
   };
 
   render() {
-    const { chats, activeChatId, messages, activeDeal, newMessage, isLoading, searchQuery } = this.state;
+    const { chats, activeChatId, messages, activeDeal, newMessage, isLoading, searchQuery, currentLoadId } = this.state;
+    const { userId } = this.props;
     
     const filteredChats = chats.filter(chat => 
       chat.partnerName.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -150,7 +180,6 @@ class MessagesPageClass extends React.Component<Props, State> {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
         
-        {/* ХЕДЕР - Заменил 5% на фиксированные 32px */}
         <header className="dash-header" style={{ borderBottom: '1px solid #E6E8EE', background: 'white', width: '100%', padding: '16px 32px', flexShrink: 0, boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
             <div>
@@ -164,7 +193,6 @@ class MessagesPageClass extends React.Component<Props, State> {
           </div>
         </header>
 
-        {/* ОСНОВНОЙ КОНТЕЙНЕР ЧАТА */}
         <div className="messages-container" style={{ display: 'flex', width: '100%', flex: 1, overflow: 'hidden', margin: 0, padding: 0 }}>
           
           <aside className="msg-list-sidebar" style={{ height: '100%', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
@@ -187,7 +215,7 @@ class MessagesPageClass extends React.Component<Props, State> {
                   <div 
                     key={chat.id} 
                     className={`msg-item ${activeChatId === chat.id ? 'active' : ''}`}
-                    onClick={() => this.handleSelectChat(chat.id)}
+                    onClick={() => this.handleSelectChat(chat.id, chat.loadId)}
                   >
                     <div className={`msg-avatar ${chat.avatarColor}`}>{chat.avatarInitials}</div>
                     <div className="msg-item-content">
@@ -219,9 +247,12 @@ class MessagesPageClass extends React.Component<Props, State> {
                   </div>
                 </div>
                 <div className="msg-chat-actions">
-                  <button className="btn-figma-secondary" onClick={this.handleViewLoad} style={{ padding: '6px 16px', fontSize: '13px' }}>
-                    <span style={{ marginRight: '6px' }}>👁</span> View load
-                  </button>
+                  {/* Кнопка View Load показывает только если есть привязанный LoadId */}
+                  {currentLoadId && (
+                    <button className="btn-figma-secondary" onClick={this.handleViewLoad} style={{ padding: '6px 16px', fontSize: '13px' }}>
+                        <span style={{ marginRight: '6px' }}>👁</span> View load
+                    </button>
+                  )}
                   <button style={{ background: 'none', border: 'none', fontSize: '18px', color: '#5C6470', cursor: 'pointer', padding: '0 8px' }}>•••</button>
                 </div>
               </div>
@@ -233,7 +264,8 @@ class MessagesPageClass extends React.Component<Props, State> {
                       <div key={msg.id} className="msg-system-badge">✓ {msg.text}</div>
                     );
                   }
-                  const isMe = msg.senderId === 'me';
+                  
+                  const isMe = msg.senderId === userId || msg.senderId === 'me';
                   return (
                     <div key={msg.id} className={`msg-bubble-row ${isMe ? 'me' : 'them'}`}>
                       <div className={`msg-bubble ${isMe ? 'me' : 'them'}`}>{msg.text}</div>
@@ -296,7 +328,6 @@ class MessagesPageClass extends React.Component<Props, State> {
           )}
         </div>
         
-        {/* CSS Хак: Скрываем системные ползунки скролла */}
         <style>{`
           ::-webkit-scrollbar {
             width: 0px;
@@ -315,7 +346,19 @@ class MessagesPageClass extends React.Component<Props, State> {
 
 export const MessagesPage: React.FC = () => {
   const navigate = useNavigate();
-  return <MessagesPageClass onNavigate={(path) => navigate(`/${path}`)} />;
+  const [searchParams] = useSearchParams();
+  const userId = useAuthStore((state) => state.user?.id || 'current-user-id');
+  const chatId = searchParams.get('chatId');
+  const loadId = searchParams.get('loadId'); 
+
+  return (
+    <MessagesPageClass 
+      onNavigate={(path) => navigate(`/${path}`)} 
+      userId={userId} 
+      initialChatId={chatId}
+      initialLoadId={loadId} 
+    />
+  );
 };
 
 export default MessagesPage;

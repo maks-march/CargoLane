@@ -1,5 +1,5 @@
 import apiClient from '../api/api-client';
-import type { LoadListVm, LoadDetailsVm, CreateLoadCommand, CreateLoadDraftCommand, PayloadInputDto } from '../api/types';
+import type { LoadListVm, LoadDetailsVm, CreateLoadCommand, CreateLoadDraftCommand } from '../api/types';
 
 interface BackendLoadResponse {
   id: string;
@@ -9,7 +9,7 @@ interface BackendLoadResponse {
   payment?: number;
   totalWeight?: number;
   cargoType?: string;
-  vehicleTypes?: string[];
+  vihicleTypes?: string[]; // ОПЕЧАТКА БЭКЕНДА
   vehicleType?: string;
 }
 
@@ -19,13 +19,14 @@ interface LoadDetailsBackendResponse {
   totalWeight?: number;
   totalVolume?: number;
   cargoType?: string;
-  vehicleTypes?: string[];
+  vihicleTypes?: string[]; // ОПЕЧАТКА БЭКЕНДА
   about?: string;
   adr?: number;
   hScode?: string;
   insurance?: number;
   status?: string;
-  payloads?: PayloadInputDto[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payloads?: any[];
   routePoints?: {
     city: string;
     address: string;
@@ -50,6 +51,19 @@ interface LoadSearchFilters {
   sortChoices?: number;
   isDescending?: boolean;
 }
+
+// СТРОГИЙ МАППИНГ: Переводим любые слова с UI в 5 разрешенных слов бэкенда
+const mapPayloadTypeToString = (typeStr: string): string => {
+  if (!typeStr) return "Pallets";
+  const type = String(typeStr).toLowerCase();
+  
+  if (type.includes('box')) return "Boxes";
+  if (type.includes('container')) return "Containers";
+  if (type.includes('refrig') || type.includes('temp')) return "Refrigirated"; // Опечатка бэкенда
+  if (type.includes('adr') || type.includes('hazmat')) return "ADR";
+  
+  return "Pallets"; 
+};
 
 export const loadsService = {
   getAllLoads: async (params?: LoadSearchFilters): Promise<LoadListVm[]> => {
@@ -76,7 +90,7 @@ export const loadsService = {
         price: item.payment || 0,
         weight: item.totalWeight || 0,
         cargo: item.cargoType || 'General Cargo', 
-        recommendedVehicle: item.vehicleTypes?.[0] || item.vehicleType || 'Any',
+        recommendedVehicle: item.vihicleTypes?.[0] || item.vehicleType || 'Any',
         status: 'Active' 
       }));
     } catch {
@@ -96,7 +110,7 @@ export const loadsService = {
         price: item.payment || 0,
         weight: item.totalWeight || 0,
         cargo: item.cargoType || 'General Cargo',
-        recommendedVehicle: item.vehicleTypes?.[0] || item.vehicleType || 'Any',
+        recommendedVehicle: item.vihicleTypes?.[0] || item.vehicleType || 'Any',
         status: 'Active'
       }));
     } catch {
@@ -117,14 +131,22 @@ export const loadsService = {
         weight: item.totalWeight || 0,
         volume: item.totalVolume || 0,
         cargo: item.cargoType || 'General Cargo',
-        recommendedVehicle: item.vehicleTypes?.[0] || 'Any',
+        recommendedVehicle: item.vihicleTypes?.[0] || 'Any',
         about: item.about || '',
         adr: item.adr || 0,
         hScode: item.hScode || '',
         insurance: item.insurance || 0,
         status: item.status || 'Active',
         companyName: 'CargoLane Partner',
-        payloads: item.payloads || [],
+        payloads: (item.payloads || []).map(p => ({
+          length: p.length || 0,
+          width: p.width || 0,
+          height: p.height || 0,
+          weight: p.weight || 0,
+          volume: p.volume || 0,
+          amount: p.amount || 0,
+          type: String(p.type || "Pallets") 
+        })),
         routePoints: (item.routePoints || []).map(rp => ({
           city: rp.city || '',
           address: rp.address || '',
@@ -139,19 +161,96 @@ export const loadsService = {
     return response.data;
   },
   
-  // Никаких костылей. Передаем ровно то, что пришло из UI
-  createLoad: async (data: CreateLoadCommand): Promise<string> => {
-    const response = await apiClient.post('/api/load', data);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  createLoad: async (uiData: any): Promise<string> => {
+    const vTypes = Array.isArray(uiData.vehicleTypes) 
+        ? uiData.vehicleTypes 
+        : (uiData.vehicleTypes ? [uiData.vehicleTypes] : (uiData.vehicle ? [uiData.vehicle] : ["Tautliner trailer"]));
+
+    const payload: CreateLoadCommand = {
+      payment: uiData.payment || 0,
+      insurance: uiData.insurance || 0,
+      hScode: uiData.hScode || null,
+      adr: uiData.adr || 0,
+      vihicleTypes: vTypes, // ОТПРАВЛЯЕМ С ОПЕЧАТКОЙ (КАК ЖДЕТ БЭКЕНД)
+      cargoType: uiData.cargoType || "General",
+      about: uiData.about || null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      payloads: (uiData.payloads || []).map((p: any) => ({
+        length: p.length || 0,
+        width: p.width || 0,
+        height: p.height || 0,
+        weight: p.weight || 0,
+        volume: p.volume || 0,
+        amount: p.amount || 0,
+        type: mapPayloadTypeToString(p.type) 
+      })),
+      routePoints: uiData.routePoints || []
+    };
+
+    const response = await apiClient.post('/api/load', payload);
     return response.data?.id || response.data;
   },
   
-  createLoadDraft: async (data: CreateLoadDraftCommand): Promise<string> => {
-    const response = await apiClient.post('/api/load/draft', data);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  createLoadDraft: async (uiData: any): Promise<string> => {
+    const vTypes = Array.isArray(uiData.vehicleTypes) 
+        ? uiData.vehicleTypes 
+        : (uiData.vehicleTypes ? [uiData.vehicleTypes] : (uiData.vehicle ? [uiData.vehicle] : ["Tautliner trailer"]));
+
+    const payload: CreateLoadDraftCommand = {
+      payment: uiData.payment || 0,
+      insurance: uiData.insurance || 0,
+      hScode: uiData.hScode || null,
+      adr: uiData.adr || 0,
+      vihicleTypes: vTypes, // С ОПЕЧАТКОЙ
+      cargoType: uiData.cargoType || "General",
+      about: uiData.about || null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      payloads: (uiData.payloads || []).map((p: any) => ({
+        length: p.length || 0,
+        width: p.width || 0,
+        height: p.height || 0,
+        weight: p.weight || 0,
+        volume: p.volume || 0,
+        amount: p.amount || 0,
+        type: mapPayloadTypeToString(p.type)
+      })),
+      routePoints: uiData.routePoints || []
+    };
+
+    const response = await apiClient.post('/api/load/draft', payload);
     return response.data?.id || response.data;
   },
 
-  updateLoadDraft: async (id: string, data: CreateLoadDraftCommand): Promise<void> => {
-    const payload = { ...data, id }; 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  updateLoadDraft: async (id: string, uiData: any): Promise<void> => {
+    const vTypes = Array.isArray(uiData.vehicleTypes) 
+        ? uiData.vehicleTypes 
+        : (uiData.vehicleTypes ? [uiData.vehicleTypes] : (uiData.vehicle ? [uiData.vehicle] : ["Tautliner trailer"]));
+
+    const payload = {
+      id: id,
+      payment: uiData.payment || 0,
+      insurance: uiData.insurance || 0,
+      hScode: uiData.hScode || null,
+      adr: uiData.adr || 0,
+      vihicleTypes: vTypes, // С ОПЕЧАТКОЙ
+      cargoType: uiData.cargoType || "General",
+      about: uiData.about || null,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      payloads: (uiData.payloads || []).map((p: any) => ({
+        length: p.length || 0,
+        width: p.width || 0,
+        height: p.height || 0,
+        weight: p.weight || 0,
+        volume: p.volume || 0,
+        amount: p.amount || 0,
+        type: mapPayloadTypeToString(p.type)
+      })),
+      routePoints: uiData.routePoints || []
+    };
+
     await apiClient.put(`/api/load/draft/${id}`, payload);
   },
   

@@ -24,9 +24,6 @@ export type {
   ActiveDealDto
 };
 
-// ==========================================
-// AUTH & USER TYPES
-// ==========================================
 interface AuthResponse {
   accessToken: string | null;
   refreshToken: string | null;
@@ -81,9 +78,6 @@ interface UserDetailsVm {
   updated: string;
 }
 
-// ==========================================
-// BACKEND COMMANDS & DTOs
-// ==========================================
 interface PayloadInputDto {
   length: number;
   width: number;
@@ -91,13 +85,13 @@ interface PayloadInputDto {
   weight: number;
   volume: number;
   amount: number;
-  type: string; // Строго string по методичке
+  type: string; 
 }
 
 interface RoutePointInputDto {
   city: string | null;
   address: string | null;
-  arrivalTime: string; // Бэкенд жестко требует строку с датой
+  arrivalTime: string;
   orderIndex: number;
 }
 
@@ -108,7 +102,7 @@ interface CreateLoadCommand {
   insurance: number;
   hScode: string | null;
   adr: number;
-  vehicleTypes: string[]; // Строго по методичке (без опечаток)
+  vihicleTypes: string[]; // ВОЗВРАЩАЕМ ОПЕЧАТКУ ПОД ТРЕБОВАНИЯ БЭКЕНДА
   cargoType: string;      
   about: string | null;
   payloads: PayloadInputDto[];
@@ -122,7 +116,7 @@ interface CreateLoadDraftCommand {
   insurance: number | null;
   hScode: string | null;
   adr: number | null;
-  vehicleTypes?: string[]; // Строго по методичке
+  vihicleTypes?: string[]; // ВОЗВРАЩАЕМ ОПЕЧАТКУ
   cargoType?: string;
   about: string | null;
   payloads?: PayloadInputDto[];
@@ -140,7 +134,7 @@ interface LoadDraftVm {
   insurance: number | null;
   hScode: string | null;
   adr: number | null;
-  vehicleTypes: string[] | null;
+  vihicleTypes: string[] | null;
   cargoType: string | null;
   about: string | null;
   payloads: PayloadDraftVm[] | null;
@@ -164,9 +158,6 @@ interface RoutePointDraftVm {
   orderIndex: number | null;
 }
 
-// ==========================================
-// UI ADAPTED MODELS
-// ==========================================
 interface LoadListVm {
   id: string;
   from: string;
@@ -201,9 +192,6 @@ interface LoadDetailsVm {
   routePoints: RoutePointInputDto[];
 }
 
-// ==========================================
-// OTHER DTOs
-// ==========================================
 interface PayloadVm {
   length: number;
   width: number;
@@ -234,16 +222,13 @@ interface LoadDraftRoutePoint {
   isLoad: boolean;
 }
 
-// ==========================================
-// CHAT & MESSAGES TYPES
-// ==========================================
 interface ChatDto {
   id: string;
   partnerName: string;
   partnerCompany: string;
   avatarInitials: string;
   avatarColor: 'blue' | 'green';
-  loadId: string;
+  loadId: string | null;
   lastMessage: string;
   lastMessageTime: string;
   unreadCount: number;

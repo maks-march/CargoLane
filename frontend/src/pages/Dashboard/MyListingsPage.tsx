@@ -281,7 +281,8 @@ export const MyListingsPage: React.FC = () => {
                     <tr
                       key={load.id}
                       style={{ borderBottom: "1px solid #F6F7FB", cursor: "pointer" }}
-                      onClick={() => navigate(`/load-details?loadId=${load.id}`)}
+                      // ИСПРАВЛЕНО: Правильный путь для страницы деталей (согласно Router.tsx)
+                      onClick={() => navigate(`/orders/${load.id}`)}
                       className="table-row-hover"
                     >
                       <td style={{ padding: "16px 24px", fontSize: "14px", color: "#0E1116" }}>
