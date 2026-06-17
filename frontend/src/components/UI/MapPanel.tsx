@@ -1,50 +1,75 @@
 import React from 'react';
+import type { LoadDetailsVm } from '../../api/types';
 import { RoutingMap } from './RoutingMap';
-import type { LoadListVm } from '../../api/types';
 
-interface MapPanelProps {
-  load: LoadListVm | null;
-  onNavigate: (page: string, payload?: { loadId: string }) => void;
+interface Props {
+  load: LoadDetailsVm;
+  routeInfo?: { distance: string; duration: string };
+  onRouteCalculated?: (distance: string, duration: string) => void;
 }
 
-export const MapPanel: React.FC<MapPanelProps> = ({ load, onNavigate }) => {
-  if (!load) return null;
+export const DetailRouteMap: React.FC<Props> = ({ load, routeInfo, onRouteCalculated }) => {
+  // ИСПРАВЛЕНО: Убран any, добавлена строгая типизация для совместимости
+  const loadData = load as unknown as { startCity?: string; from?: string; endCity?: string; to?: string; extraRoute?: string };
+  
+  const start = loadData.startCity || loadData.from || 'Rotterdam';
+  const end = loadData.endCity || loadData.to || 'Warsaw';
 
-  // Безопасное извлечение городов (поддерживаем оба формата: и старый, и новый от API)
-  const startCity = (load as any).startCity || (load as any).from || 'Rotterdam';
-  const endCity = (load as any).endCity || (load as any).to || 'Warsaw';
-
-  const stops = [
-    { address: startCity, type: 'start' },
-    { address: endCity, type: 'end' }
+  const mapStops = [
+    { address: start, type: 'start' }
   ];
+  
+  if (loadData.extraRoute) {
+    mapStops.push({ address: String(loadData.extraRoute).replace('+ ', ''), type: 'stop' });
+  }
+  
+  mapStops.push({ address: end, type: 'end' });
+
+  // Функция для получения кода страны (для красоты в заголовке)
+  const getCountryCode = (city?: string) => {
+    if (!city) return 'EU';
+    const c = city.toLowerCase();
+    if (c.includes('rotterdam') || c.includes('amsterdam')) return 'NL';
+    if (c.includes('warsaw')) return 'PL';
+    if (c.includes('hamburg') || c.includes('berlin') || c.includes('munich')) return 'DE';
+    if (c.includes('paris') || c.includes('lyon')) return 'FR';
+    if (c.includes('madrid')) return 'ES';
+    if (c.includes('milan')) return 'IT';
+    return 'EU';
+  };
+
+  const fromCC = getCountryCode(start);
+  const toCC = getCountryCode(end);
+
+  const fromTitle = start.includes(fromCC) ? start : `${start}, ${fromCC}`;
+  const toTitle = end.includes(toCC) ? end : `${end}, ${toCC}`;
+
+  const stopsCount = mapStops.length;
+  const routeType = stopsCount > 2 ? 'Multi-lane routing' : 'Direct routing';
 
   return (
-    <div className="dash-map-panel">
-      <div className="dash-map-header">
-        <h3>Route Preview</h3>
-        <button className="btn-figma-text" onClick={() => onNavigate('load-detail', { loadId: load.id })}>
-          View details ›
-        </button>
-      </div>
-      
-      <div className="dash-map-container" style={{ height: '300px', background: '#F6F7FB', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
-         <RoutingMap stops={stops} />
+    <div className="detail-card">
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
+        <div>
+          <h3 style={{ fontSize: '18px', fontWeight: 600, color: '#0E1116', marginBottom: '4px' }}>
+            Route: {fromTitle} → {toTitle}
+          </h3>
+          <p style={{ fontSize: '14px', color: '#5C6470', fontWeight: 500 }}>
+            {stopsCount} stops <span style={{ margin: '0 6px', color: '#E6E8EE' }}>•</span> 
+            {routeInfo?.distance ? `${routeInfo.distance} km` : '~ km'} <span style={{ margin: '0 6px', color: '#E6E8EE' }}>•</span> 
+            {routeType}
+          </p>
+        </div>
+        
+        <div className="route-tabs-container">
+          <button className="route-tab active">Driving</button>
+          <button className="route-tab">Rail</button>
+          <button className="route-tab">Sea</button>
+        </div>
       </div>
 
-      <div className="dash-map-info">
-        <div className="dash-map-stat">
-          <span>From</span>
-          <strong>{startCity}</strong>
-        </div>
-        <div className="dash-map-stat">
-          <span>To</span>
-          <strong>{endCity}</strong>
-        </div>
-        <div className="dash-map-stat">
-          <span>Vehicle</span>
-          <strong>{load.recommendedVehicle || 'Tautliner'}</strong>
-        </div>
+      <div style={{ height: '300px', width: '100%', background: '#F6F7FB', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
+        <RoutingMap stops={mapStops} onRouteCalculated={onRouteCalculated} />
       </div>
     </div>
   );

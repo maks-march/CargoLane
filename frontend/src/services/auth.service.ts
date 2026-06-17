@@ -8,6 +8,7 @@ export interface LoginCommand {
 
 export interface RegisterCommand {
   username?: string;
+  name?: string;
   email?: string;
   password?: string;
   role?: string;
@@ -20,7 +21,14 @@ export interface ConfirmEmailCommand {
 }
 
 export interface RefreshCommand {
+  accessToken: string;
   refreshToken: string;
+}
+
+export interface ResetPasswordCommand {
+  email: string;
+  code: string;
+  newPassword: string;
 }
 
 export interface GoogleAuthCommand {
@@ -34,10 +42,9 @@ export interface AuthResponse {
   role: string;
   username: string;
   userName?: string;
-  refreshToken?: string; // Добавлено для совместимости с api-client
+  refreshToken?: string; 
 }
 
-// Вспомогательный интерфейс для ответа от бэкенда (чтобы убрать any)
 interface ApiAuthResult {
   accessToken?: string;
   refreshToken?: string;
@@ -55,7 +62,6 @@ export const authService = {
       password: data.password
     };
     
-    // ВНИМАНИЕ: Вернул правильный путь /api/auth/login
     const response = await apiClient.post<ApiAuthResult>('/api/auth/login', payload);
     const responseData = response.data;
     
@@ -69,10 +75,8 @@ export const authService = {
       userName: responseData.userName || responseData.username || ''
     };
 
-    // ВАЖНО: api-client.ts ожидает объект 'tokens' в localStorage!
     localStorage.setItem('tokens', JSON.stringify(result));
     
-    // Оставляем старые ключи для обратной совместимости других компонентов
     if (result.token) {
       localStorage.setItem('accessToken', result.token);
       localStorage.setItem('userId', result.userId);
@@ -87,17 +91,56 @@ export const authService = {
     const payload = {
       login: data.email || data.login,
       password: data.password,
-      email: data.email,
-      username: data.username,
-      role: data.role
+      username: data.name || data.username || data.email || 'User'
     };
-    // ВНИМАНИЕ: Вернул правильный путь /api/auth/register
-    const response = await apiClient.post<AuthResponse>('/api/auth/register', payload);
-    return response.data;
+    // ИСПРАВЛЕНО: Убран any, добавлена строгая типизация ответа
+    const response = await apiClient.post<{token?: string; id?: string}>('/api/auth/register', payload);
+    return {
+      token: response.data.token || '',
+      accessToken: response.data.token || '',
+      userId: response.data.id || '',
+      role: 'Carrier', 
+      username: payload.username || ''
+    };
+  },
+
+  async refresh(data: RefreshCommand): Promise<AuthResponse> {
+    const response = await apiClient.post<ApiAuthResult>('/api/auth/refresh', data);
+    const responseData = response.data;
+    const result: AuthResponse = {
+      token: responseData.accessToken || responseData.token || '',
+      accessToken: responseData.accessToken || responseData.token || '',
+      refreshToken: responseData.refreshToken || '',
+      userId: responseData.userId,
+      role: responseData.role || 'Carrier',
+      username: responseData.userName || responseData.username || '',
+      userName: responseData.userName || responseData.username || ''
+    };
+    localStorage.setItem('tokens', JSON.stringify(result));
+    if (result.token) {
+      localStorage.setItem('accessToken', result.token);
+      localStorage.setItem('userId', result.userId);
+      if (result.username) {
+         localStorage.setItem('userName', result.username);
+      }
+    }
+    return result;
   },
 
   async confirmEmail(data: ConfirmEmailCommand): Promise<void> {
     await apiClient.post('/api/auth/confirm-email', data);
+  },
+
+  async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
+    await apiClient.post('/api/auth/change-password', { userId, currentPassword, newPassword });
+  },
+
+  async forgotPassword(email: string): Promise<void> {
+    await apiClient.post('/api/auth/forgot-password', { email });
+  },
+
+  async resetPassword(data: ResetPasswordCommand): Promise<void> {
+    await apiClient.post('/api/auth/reset-password', data);
   },
 
   logout(): void {
@@ -108,15 +151,15 @@ export const authService = {
   },
 
   getCurrentUserTokens(): AuthResponse | null {
-    // Сначала пытаемся получить из 'tokens' (как ожидает новый api-client)
     const tokensStr = localStorage.getItem('tokens');
     if (tokensStr) {
         try {
             return JSON.parse(tokensStr);
-        } catch (e) {}
+        } catch {
+            // ИСПРАВЛЕНО: Убрано объявление пустой переменной
+        }
     }
 
-    // Запасной вариант
     const accessToken = localStorage.getItem('accessToken');
     const userId = localStorage.getItem('userId');
     const userName = localStorage.getItem('userName');

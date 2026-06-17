@@ -1,27 +1,26 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { loadsService } from "../../services/loadsService";
+import type { LoadListVm } from "../../api/types";
 
 export const MyListingsPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Стейт для данных
-  const [listings, setListings] = useState<any[]>([]);
+  const [listings, setListings] = useState<LoadListVm[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchMyListings = async () => {
       setIsLoading(true);
       try {
-        // TODO ДЛЯ БЕКЕНДЕРА: Заменить getAllLoads() на метод получения только грузов текущего юзера
-        const data = await loadsService.getAllLoads();
+        const data = await loadsService.getUserLoads();
         if (data && data.length > 0) {
           setListings(data);
         }
       } catch (error) {
-        console.warn("Backend API /api/Load failed. Database is empty.", error);
+        console.warn("Backend API /api/load/me failed. Database is empty.", error);
       } finally {
         setIsLoading(false);
       }
@@ -58,7 +57,6 @@ export const MyListingsPage: React.FC = () => {
         background: "#F6F7FB",
       }}
     >
-      {/* ХЕДЕР - Заменил 5% на фиксированные 32px */}
       <header
         className="dash-header"
         style={{
@@ -107,7 +105,6 @@ export const MyListingsPage: React.FC = () => {
         </div>
       </header>
 
-      {/* ОСНОВНОЙ КОНТЕНТ - Заменил 5% на фиксированные 32px */}
       <div
         className="my-listings-layout"
         style={{

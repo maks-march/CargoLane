@@ -55,13 +55,23 @@ const geocodeCity = async (city: string): Promise<[number, number] | null> => {
     if (data && data.length > 0) {
       return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
     }
-  } catch (error) {
+  // ИСПРАВЛЕНО: Убран неиспользуемый аргумент error
+  } catch {
     console.warn("Geocoding API limited (429) for", city);
   }
   return null;
 };
 
-const RouteCalculator = ({ stops, onCalc, setRouteData, setRoutePath, setMarkers }: any) => {
+// ИСПРАВЛЕНО: Заменен any на строгий интерфейс
+interface RouteCalculatorProps {
+  stops: { address: string; type: string }[];
+  onCalc?: (distance: string, duration: string) => void;
+  setRouteData: (data: { distanceStr: string; durationStr: string }) => void;
+  setRoutePath: (path: [number, number][]) => void;
+  setMarkers: (markers: {pos: [number, number], type: string}[]) => void;
+}
+
+const RouteCalculator: React.FC<RouteCalculatorProps> = ({ stops, onCalc, setRouteData, setRoutePath, setMarkers }) => {
   const map = useMap();
   
   useEffect(() => {
@@ -70,10 +80,12 @@ const RouteCalculator = ({ stops, onCalc, setRouteData, setRoutePath, setMarkers
     const fetchRoute = async () => {
       if (!stops || stops.length < 2) return;
       
-      const validStops = stops.filter((s:any) => s.address && s.address.length > 2);
+      // ИСПРАВЛЕНО: Заменен any на строгий тип
+      const validStops = stops.filter((s: { address: string; type: string }) => s.address && s.address.length > 2);
       if (validStops.length < 2) return;
 
-      const coordsPromises = validStops.map(async (s:any) => {
+      // ИСПРАВЛЕНО: Заменен any на строгий тип
+      const coordsPromises = validStops.map(async (s: { address: string; type: string }) => {
         const coords = await geocodeCity(s.address);
         return { pos: coords, type: s.type };
       });
@@ -104,7 +116,8 @@ const RouteCalculator = ({ stops, onCalc, setRouteData, setRoutePath, setMarkers
           } else {
              setRoutePath(validMarkers.map(m => m.pos));
           }
-        } catch (e) {
+        // ИСПРАВЛЕНО: Убран неиспользуемый аргумент e
+        } catch {
           setRoutePath(validMarkers.map(m => m.pos));
         }
       }

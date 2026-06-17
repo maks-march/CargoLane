@@ -10,10 +10,13 @@ export const DetailSpecs: React.FC<Props> = ({ load }) => {
   const payloads = load.payloads || [];
   const firstPayload = payloads.length > 0 ? payloads[0] : null;
   
-  const weight = firstPayload?.weight ? `${firstPayload.weight} kg` : ((load as any).weight ? `${(load as any).weight} kg` : '24,000 kg');
-  const volume = firstPayload?.volume ? `${firstPayload.volume} m³` : ((load as any).volume ? `${(load as any).volume} m³` : '82 m³');
-  const vehicle = load.recommendedVehicle || (load as any).vehicle || 'Tautliner';
-  const commodity = firstPayload?.type || ((load as any).cargo ? String((load as any).cargo).split('·')[0].trim() : 'General Cargo');
+  // ИСПРАВЛЕНО: Убран any, добавлена строгая типизация для совместимости
+  const loadData = load as unknown as { weight?: string | number; volume?: string | number; vehicle?: string; cargo?: string | number };
+
+  const weight = firstPayload?.weight ? `${firstPayload.weight} kg` : (loadData.weight ? `${loadData.weight} kg` : '24,000 kg');
+  const volume = firstPayload?.volume ? `${firstPayload.volume} m³` : (loadData.volume ? `${loadData.volume} m³` : '82 m³');
+  const vehicle = load.recommendedVehicle || loadData.vehicle || 'Tautliner';
+  const commodity = firstPayload?.type || (loadData.cargo ? String(loadData.cargo).split('·')[0].trim() : 'General Cargo');
   const adr = load.adr ? `Class ${load.adr}` : 'None';
   const hsCode = load.hScode || '3402.20.90';
   const insurance = load.insurance ? `€ ${load.insurance.toLocaleString()}` : '€ 60,000';

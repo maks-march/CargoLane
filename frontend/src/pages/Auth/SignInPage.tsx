@@ -5,6 +5,17 @@ import useAuthStore from '../../store/auth.store';
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
 
+interface RouteStop {
+  address: string;
+  type: 'start' | 'end';
+}
+
+interface ApiErrorResponse {
+  error?: string;
+  details?: string;
+  message?: string;
+}
+
 export const SignInPage: React.FC = () => {
   const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
@@ -14,7 +25,7 @@ export const SignInPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const [backgroundStops, setBackgroundStops] = useState<any[]>([
+  const [backgroundStops, setBackgroundStops] = useState<RouteStop[]>([
     { address: 'Rotterdam', type: 'start' },
     { address: 'Warsaw', type: 'end' }
   ]);
@@ -33,7 +44,7 @@ export const SignInPage: React.FC = () => {
             ]);
           }
         }
-      } catch (err) {
+      } catch {
         console.warn('Backend is down or empty. Using default background route.');
       }
     };
@@ -52,8 +63,8 @@ export const SignInPage: React.FC = () => {
       navigate('/orders');
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data) {
-        const data = err.response.data as { error?: string, details?: string, message?: string };
-        setError(data.error || data.details || data.message || 'Invalid email or password.');
+        const data = err.response.data as ApiErrorResponse;
+        setError(data.details || data.error || data.message || 'Invalid email or password.');
       } else {
         setError('Invalid email or password.');
       }
@@ -76,11 +87,8 @@ export const SignInPage: React.FC = () => {
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-subtitle">Enter your details to sign in to your account</p>
 
-          {error && (
-            <div style={{ color: '#EF4444', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#FEF2F2', borderRadius: '8px' }}>
-              {error}
-            </div>
-          )}
+          {/* ТОТ САМЫЙ ОРИГИНАЛЬНЫЙ БЛОК ОШИБКИ ИЗ ПЕРВОЙ ВЕТКИ */}
+          {error && <div style={{ color: '#EF4444', background: '#FEF2F2', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid #EF4444' }}>{error}</div>}
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">

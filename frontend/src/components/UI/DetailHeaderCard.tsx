@@ -19,7 +19,8 @@ export const DetailHeaderCard: React.FC<Props> = ({ load, routeInfo }) => {
     return 'EU'; 
   };
 
-  const borderStr = `${getCountryCode(load.startCity)} → ${getCountryCode(load.endCity)}`;
+  // ИСПРАВЛЕНО: Заменены старые ключи бэкенда на актуальные UI ключи (from, to)
+  const borderStr = `${getCountryCode(load.from)} → ${getCountryCode(load.to)}`;
 
   // Безопасный доступ к массиву payloads (грузов)
   const cargoCategory = load.payloads && load.payloads.length > 0 ? load.payloads[0].type : 'General Cargo';
@@ -41,7 +42,8 @@ export const DetailHeaderCard: React.FC<Props> = ({ load, routeInfo }) => {
           <p className="detail-subtitle">{load.id.substring(0, 8).toUpperCase()} · Verified Company</p>
         </div>
         <div className="detail-price">
-          <div className="detail-price-value">€{load.payment || 'Request price'}</div>
+          {/* ИСПРАВЛЕНО: Заменен старый ключ payment на актуальный UI ключ price */}
+          <div className="detail-price-value">€{load.price || 'Request price'}</div>
           <div className="detail-price-note">excl. VAT · negotiable</div>
         </div>
       </div>

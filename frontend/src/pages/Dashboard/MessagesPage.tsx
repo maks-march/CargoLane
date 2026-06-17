@@ -42,15 +42,16 @@ class MessagesPageClass extends React.Component<Props, State> {
 
     try {
       if (partnerId && loadId) {
-        // БЕКЕНДЕРУ: Создание или получение чата при переходе из Load Board
-        const { chatId } = await messagesService.startChat(partnerId, loadId);
+        // БЕКЕНДЕРУ: Создание или получение чата при переходе из Load Board (ИСПРАВЛЕНО: убран лишний аргумент loadId)
+        const { chatId } = await messagesService.startChat(partnerId);
         await this.handleSelectChat(chatId);
       }
 
       // БЕКЕНДЕРУ: Загрузка всех чатов текущего пользователя
       const realChats = await messagesService.getChats();
       this.setState({ chats: realChats, isLoading: false });
-    } catch (_error) {
+    // ИСПРАВЛЕНО: Убрана неиспользуемая переменная _error
+    } catch {
       console.warn('Backend API missing. Database is empty or disconnected.');
       this.setState({ isLoading: false }); // Отключаем лоадер, показываем пустую страницу
     }
@@ -76,7 +77,8 @@ class MessagesPageClass extends React.Component<Props, State> {
         messagesService.getActiveDeal(chatId)
       ]);
       this.setState({ messages: realMessages, activeDeal: realDeal });
-    } catch (_error) {
+    // ИСПРАВЛЕНО: Убрана неиспользуемая переменная _error
+    } catch {
       console.warn('Failed to load chat history and deal from backend');
     }
   };
@@ -114,9 +116,10 @@ class MessagesPageClass extends React.Component<Props, State> {
     });
 
     try {
-      // БЕКЕНДЕРУ: Сохранение сообщения в БД
-      await messagesService.sendMessage(activeChatId, textToSend, isSystem);
-    } catch (_error) {
+      // БЕКЕНДЕРУ: Сохранение сообщения в БД (ИСПРАВЛЕНО: убран лишний аргумент isSystem)
+      await messagesService.sendMessage(activeChatId, textToSend);
+    // ИСПРАВЛЕНО: Убрана неиспользуемая переменная _error
+    } catch {
       console.error('Failed to save message to DB');
     }
   };

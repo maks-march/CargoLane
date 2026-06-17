@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom'; 
+import React, { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { PageType } from '../../utils/types'; 
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
+import type { CreateLoadCommand, CreateLoadDraftCommand } from '../../api/types';
 
 interface CreateLoadPageProps {
   onNavigate: (page: PageType) => void;
@@ -26,66 +27,121 @@ interface PackageItem {
 }
 
 interface LoadFormData {
-  listingType: string;
   stops: RouteStop[];
   cargoCategory: string;
   packages: PackageItem[];
-  stackability: string;
   temperature: string;
   insuredValue: string;
   hsCode: string;
   adrClass: string;
   vehicle: string;
   price: string;
+  about: string; 
 }
 
 export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) => {
-  const navigate = useNavigate() 
+  const [searchParams] = useSearchParams();
+  const draftIdParam = searchParams.get('draftId');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedPhotos, setUploadedPhotos] = useState<{ id: string; name: string; preview: string }[]>([]);
+  const [isDragActive, setIsDragActive] = useState(false);
 
   const [formData, setFormData] = useState<LoadFormData>({
-    listingType: '',
     stops: [
       { id: '1', type: 'start', address: '', datetime: '' },
       { id: '2', type: 'end', address: '', datetime: '' }
     ],
-    cargoCategory: '',
+    cargoCategory: 'Pallets',
     packages: [
       { id: '1', type: 'EUR pallet', length: '', width: '', height: '', weight: '', qty: '' }
     ],
-    stackability: 'Non-stackable',
     temperature: 'Ambient',
     insuredValue: '',
     hsCode: '',
     adrClass: '',
     vehicle: '',
-    price: ''
+    price: '',
+    about: '' 
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [generatedId, setGeneratedId] = useState<string>('');
-  const [draftId, setDraftId] = useState<string | null>(null); // Храним ID сохраненного черновика
+  const [draftId, setDraftId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string>('');
-  const [draftSuccessMsg, setDraftSavedMessage] = useState<string>(''); // Сообщение об успешном сохранении драфта
+  const [draftSuccessMsg, setDraftSavedMessage] = useState<string>('');
+
+  const [debouncedStops, setDebouncedStops] = useState(formData.stops);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedStops(formData.stops);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [formData.stops]);
+
+  useEffect(() => {
+    if (draftIdParam) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      loadsService.getLoadDraft(draftIdParam).then((res: any) => {
+        if (res) {
+          setDraftId(draftIdParam);
+          setFormData(prev => ({
+            ...prev,
+            price: res.payment ? String(res.payment) : prev.price,
+            insuredValue: res.insurance ? String(res.insurance) : prev.insuredValue,
+            hsCode: res.hScode || prev.hsCode,
+            adrClass: res.adr ? String(res.adr) : prev.adrClass,
+            cargoCategory: res.cargoType || prev.cargoCategory,
+            vehicle: res.vehicleTypes?.[0] || prev.vehicle,
+            about: res.about || prev.about, 
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            stops: res.routePoints?.length > 0 ? res.routePoints.map((p: any, i: number) => ({
+              id: Date.now().toString() + i,
+              type: i === 0 ? 'start' : (i === res.routePoints.length - 1 ? 'end' : 'stop'),
+              address: p.address || p.city || '',
+              datetime: p.arrivalTime ? new Date(p.arrivalTime).toISOString().slice(0, 16) : ''
+            })) : prev.stops,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            packages: res.payloads?.length > 0 ? res.payloads.map((p: any, i: number) => ({
+              id: Date.now().toString() + i,
+              type: p.type || 'EUR pallet',
+              length: p.length || '',
+              width: p.width || '',
+              height: p.height || '',
+              weight: p.weight || '',
+              qty: p.amount || ''
+            })) : prev.packages
+          }));
+        }
+      }).catch(() => console.warn("Failed to load draft data."));
+    }
+  }, [draftIdParam]);
 
   let activeStep = 1;
-  if (formData.listingType) activeStep = 2;
-  if (formData.stops[0].address && formData.stops[formData.stops.length - 1].address) activeStep = 3;
-  if (formData.packages.some(p => Number(p.qty) > 0)) activeStep = 4;
-  if (formData.vehicle) activeStep = 5;
-  if (formData.price) activeStep = 6;
+  const hasRoute = formData.stops.every(s => s.address.trim() !== '');
+  const hasCargo = formData.cargoCategory !== '' && formData.packages.some(p => Number(p.qty) > 0);
+  const hasVehicle = formData.vehicle !== '';
+  const hasPrice = formData.price !== '';
+
+  if (hasRoute) {
+    activeStep = 2;
+    if (hasCargo) {
+      activeStep = 3;
+      if (hasVehicle) {
+        activeStep = 4;
+        if (hasPrice) {
+          activeStep = 5;
+          if (formData.about.trim() !== '') {
+            activeStep = 6;
+          }
+        }
+      }
+    }
+  }
   if (isSubmitted) activeStep = 6;
 
-  const isFormValid = useMemo(() => {
-    const hasType = formData.listingType !== '';
-    const hasRoute = formData.stops.every(s => s.address.trim() !== '');
-    const hasCargoCategory = formData.cargoCategory !== '';
-    const hasPackages = formData.packages.some(p => Number(p.qty) > 0);
-    const hasVehicle = formData.vehicle !== '';
-    const hasPrice = formData.price !== '';
-
-    return hasType && hasRoute && hasCargoCategory && hasPackages && hasVehicle && hasPrice;
-  }, [formData]);
+  const isFormValid = hasRoute && hasCargo && hasVehicle && hasPrice;
 
   let totalMass = 0;
   let totalVolume = 0;
@@ -138,7 +194,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
   };
 
   const handleAddPackage = () => {
-    const newPkg: PackageItem = { id: Date.now().toString(), type: 'Custom', length: '', width: '', height: '', weight: '', qty: '' };
+    const newPkg: PackageItem = { id: Date.now().toString(), type: 'Custom Cargo', length: '', width: '', height: '', weight: '', qty: '' };
     setFormData({ ...formData, packages: [...formData.packages, newPkg] });
   };
 
@@ -156,61 +212,95 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
     setFormData({ ...formData, packages: formData.packages.filter(p => p.id !== id) });
   };
 
-  // ЛОГИКА СОХРАНЕНИЯ ЧЕРНОВИКА (ДРАФТА)
-  const handleSaveDraft = async () => {
-    setIsSubmitting(true);
-    setErrorMsg('');
-    setDraftSavedMessage('');
+  const processFiles = (files: FileList) => {
+    const newPhotos = Array.from(files).map(file => ({
+      id: Math.random().toString(36).substring(2, 9),
+      name: file.name,
+      preview: URL.createObjectURL(file)
+    }));
+    setUploadedPhotos(prev => [...prev, ...newPhotos]);
+  };
 
-    try {
-      const storedUserId = localStorage.getItem('userId');
-      const validUserId = storedUserId || "00000000-0000-0000-0000-000000000000";
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") setIsDragActive(true);
+    else if (e.type === "dragleave") setIsDragActive(false);
+  };
 
-      const safePayloads = formData.packages.map(pkg => ({
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) processFiles(e.dataTransfer.files);
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) processFiles(e.target.files);
+  };
+
+  const handleRemovePhoto = (id: string) => {
+    setUploadedPhotos(prev => prev.filter(p => p.id !== id));
+  };
+
+  const getMappedPayload = (): CreateLoadCommand => {
+    const vType = formData.vehicle ? [formData.vehicle] : [];
+
+    return {
+      payment: Number(formData.price.replace(/\D/g, '')) || 0,
+      insurance: Number(formData.insuredValue.replace(/\D/g, '')) || 0,
+      hScode: formData.hsCode.trim() !== '' ? formData.hsCode : null,
+      adr: formData.adrClass && formData.adrClass !== 'None' ? 1 : 0,
+      vehicleTypes: vType, 
+      cargoType: formData.cargoCategory || "General",
+      about: formData.about, 
+      payloads: formData.packages.map(pkg => ({
         length: Number(pkg.length) || 0,
         width: Number(pkg.width) || 0,
         height: Number(pkg.height) || 0,
         weight: Number(pkg.weight) || 0,
         volume: (Number(pkg.length) * Number(pkg.width) * Number(pkg.height)) || 0,
         amount: Number(pkg.qty) || 0,
-        type: pkg.type || "Draft Cargo"
-      }));
-
-      const mappedPayload = {
-        userId: validUserId,
-        startDate: formData.stops[0].datetime ? new Date(formData.stops[0].datetime).toISOString() : new Date().toISOString(),
-        payment: Number(formData.price.replace(/\D/g, '')) || 0,
-        insurance: Number(formData.insuredValue.replace(/\D/g, '')) || 0,
-        hScode: formData.hsCode.trim() !== '' ? formData.hsCode : null,
-        adr: formData.adrClass && formData.adrClass !== 'None' ? 1 : 0,
-        suitableCargos: [formData.cargoCategory, formData.vehicle].filter(c => c && c.trim() !== ''),
-        about: `DRAFT | Type: ${formData.listingType} | Stackability: ${formData.stackability}`,
-        payloads: safePayloads,
-        Payloads: safePayloads,
-        routePoints: formData.stops.map((stop, idx) => ({
-          city: stop.address.split(',')[0].trim() || "Draft City",
-          address: stop.address || "Draft Address",
-          arrivalTime: stop.datetime ? new Date(stop.datetime).toISOString() : null,
+        type: pkg.type || "General" 
+      })),
+      routePoints: formData.stops.map((stop, idx) => {
+        let arrTime = stop.datetime ? new Date(stop.datetime) : new Date();
+        if (arrTime.getTime() <= Date.now()) {
+          arrTime = new Date(Date.now() + (idx + 1) * 24 * 60 * 60 * 1000); 
+        }
+        return {
+          city: stop.address.split(',')[0].trim() || "Unknown",
+          address: stop.address || "Unknown",
+          arrivalTime: arrTime.toISOString(),
           orderIndex: idx
-        }))
-      };
+        };
+      })
+    };
+  };
+
+  const handleSaveDraft = async () => {
+    setIsSubmitting(true);
+    setErrorMsg('');
+    setDraftSavedMessage('');
+
+    try {
+      const payload = getMappedPayload() as CreateLoadDraftCommand;
+      let finalId = draftId;
 
       if (draftId) {
-        // БЕКЕНДЕРУ: Обновление уже существующего черновика груза в БД
-        await loadsService.updateLoadDraft(draftId, mappedPayload as any);
-        setDraftSavedMessage(`Draft ${draftId} successfully updated!`);
+        await loadsService.updateLoadDraft(draftId, payload);
       } else {
-        // БЕКЕНДЕРУ: Создание нового черновика в БД
-        const returnedId = await loadsService.createLoadDraft(mappedPayload as any);
-        const finalId = returnedId || 'DFT-' + Math.floor(1000 + Math.random() * 9000);
+        const returnedId = await loadsService.createLoadDraft(payload);
+        finalId = returnedId || 'DFT-' + Math.floor(1000 + Math.random() * 9000);
         setDraftId(finalId);
-        setDraftSavedMessage(`Draft saved successfully with ID: ${finalId}`);
       }
-    } catch (error) {
-      console.warn("Backend API for Drafts missing. Emulating local draft storage.");
-      const fakeId = draftId || 'DFT-' + Math.floor(1000 + Math.random() * 9000);
-      setDraftId(fakeId);
-      setDraftSavedMessage(`Draft locally saved with ID: ${fakeId} (Database disconnected)`);
+      
+      setDraftSavedMessage(`Draft ${finalId} saved successfully! Redirecting...`);
+      setTimeout(() => onNavigate('my-listings'), 1500);
+
+    } catch (error: unknown) {
+      const err = error as Error;
+      setErrorMsg(`Draft failed: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -222,51 +312,19 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
     setDraftSavedMessage('');
 
     try {
-      const storedUserId = localStorage.getItem('userId');
-      const validUserId = storedUserId || "00000000-0000-0000-0000-000000000000";
-
-      const safePayloads = formData.packages.map(pkg => ({
-        length: Number(pkg.length) || 0,
-        width: Number(pkg.width) || 0,
-        height: Number(pkg.height) || 0,
-        weight: Number(pkg.weight) || 1,
-        volume: (Number(pkg.length) * Number(pkg.width) * Number(pkg.height)) || 1,
-        amount: Number(pkg.qty) || 1,
-        type: pkg.type || "General"
-      }));
-
-      const mappedPayload = {
-        userId: validUserId,
-        status: "Ready", 
-        startDate: formData.stops[0].datetime ? new Date(formData.stops[0].datetime).toISOString() : new Date().toISOString(),
-        payment: Number(formData.price.replace(/\D/g, '')) || 0,
-        insurance: Number(formData.insuredValue.replace(/\D/g, '')) || 0,
-        hScode: formData.hsCode.trim() !== '' ? formData.hsCode : null,
-        adr: formData.adrClass && formData.adrClass !== 'None' ? 1 : 0,
-        suitableCargos: [formData.cargoCategory, formData.vehicle].filter(c => c && c.trim() !== ''),
-        about: `Type: ${formData.listingType} | Stackability: ${formData.stackability} | Temp: ${formData.temperature}`,
-        payloads: safePayloads,
-        Payloads: safePayloads, 
-        routePoints: formData.stops.map((stop, idx) => ({
-          city: stop.address.split(',')[0].trim() || "Unknown",
-          address: stop.address || "Unknown",
-          arrivalTime: stop.datetime ? new Date(stop.datetime).toISOString() : null,
-          orderIndex: idx
-        }))
-      };
-
-      const returnedId = await loadsService.createLoad(mappedPayload as any);
+      const payload = getMappedPayload();
+      const returnedId = await loadsService.createLoad(payload);
+      
       setGeneratedId(returnedId || '#L-' + Math.floor(1000 + Math.random() * 9000));
       setIsSubmitted(true);
+      
       if (draftId) {
-        // Если черновик был опубликован, удаляем его из таблицы черновиков
-        try { await loadsService.deleteLoadDraft(draftId); } catch {}
+        try { await loadsService.deleteLoadDraft(draftId); } catch (e) { console.warn('Skipped draft cleanup', e); }
       }
       window.scrollTo(0, 0);
-    } catch (error: any) {
-      console.error("Full error object:", error.response);
-      const serverDetails = error.response?.data?.details || error.response?.data?.title || 'Unknown backend error';
-      setErrorMsg(`Server error (500). Tell backend dev to fix AutoMapper for Payloads: ${serverDetails}`);
+    } catch (error: unknown) {
+      const err = error as Error;
+      setErrorMsg(`Failed to create load: ${err.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -275,7 +333,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', overflowY: 'auto', overflowX: 'hidden', background: '#F6F7FB' }}>
       
-      {/* ХЕДЕР - ЗНАЧОК УВЕДОМЛЕНИЙ ПУЛЕНЕПРОБИВАЕМО УДАЛЕН */}
       <header className="create-header" style={{ flexShrink: 0, padding: '16px 32px', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -301,18 +358,16 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
         </div>
       </header>
 
-      {/* ОСНОВНОЙ КОНТЕЙНЕР */}
       <div className="create-layout">
         
-        {/* СЛЕВА: ФИКСИРОВАННАЯ ПАНЕЛЬ ШАГОВ */}
         <aside className="create-steps-sidebar">
           <div className={`create-step-item ${activeStep === 1 ? 'active' : ''} ${isSubmitted ? 'step-disabled' : ''}`}>
             <div className={`step-icon ${activeStep > 1 || isSubmitted ? 'done' : activeStep === 1 ? 'active' : 'pending'}`}>
               {activeStep > 1 || isSubmitted ? '✓' : '1'}
             </div>
             <div>
-              <div className="step-info-title">Type</div>
-              <div className="step-info-sub">{formData.listingType || 'In progress'}</div>
+              <div className="step-info-title">Route</div>
+              <div className="step-info-sub">{formData.stops[0].address ? `${formData.stops.length} stops` : 'In progress'}</div>
             </div>
           </div>
 
@@ -321,8 +376,8 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
               {activeStep > 2 || isSubmitted ? '✓' : '2'}
             </div>
             <div>
-              <div className="step-info-title">Route</div>
-              <div className="step-info-sub">{formData.stops[0].address ? `${formData.stops.length} stops` : 'In progress'}</div>
+              <div className="step-info-title">Cargo</div>
+              <div className="step-info-sub">{formData.cargoCategory || 'In progress'}</div>
             </div>
           </div>
 
@@ -331,8 +386,8 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
               {activeStep > 3 || isSubmitted ? '✓' : '3'}
             </div>
             <div>
-              <div className="step-info-title">Cargo</div>
-              <div className="step-info-sub">{formData.cargoCategory || 'In progress'}</div>
+              <div className="step-info-title">Vehicle</div>
+              <div className="step-info-sub">{formData.vehicle || 'In progress'}</div>
             </div>
           </div>
 
@@ -341,8 +396,8 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
               {activeStep > 4 || isSubmitted ? '✓' : '4'}
             </div>
             <div>
-              <div className="step-info-title">Vehicle</div>
-              <div className="step-info-sub">{formData.vehicle || 'In progress'}</div>
+              <div className="step-info-title">Pricing</div>
+              <div className="step-info-sub">{formData.price ? `€ ${Number(formData.price).toLocaleString('en-US')}` : 'In progress'}</div>
             </div>
           </div>
 
@@ -351,8 +406,8 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
               {activeStep > 5 || isSubmitted ? '✓' : '5'}
             </div>
             <div>
-              <div className="step-info-title">Pricing</div>
-              <div className="step-info-sub">{formData.price ? `€ ${Number(formData.price).toLocaleString('en-US')}` : 'In progress'}</div>
+              <div className="step-info-title">Description</div>
+              <div className="step-info-sub">{formData.about ? 'Filled' : 'Optional'}</div>
             </div>
           </div>
 
@@ -367,20 +422,11 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
           </div>
         </aside>
 
-        {/* ПО ЦЕНТРУ: КОНТЕНТ */}
         <div className="create-content">
           
-          {errorMsg && (
-            <div style={{ padding: '16px', background: '#FEF2F2', border: '1px solid #EF4444', borderRadius: '12px', color: '#EF4444', fontWeight: 500, marginBottom: '24px' }}>
-              {errorMsg}
-            </div>
-          )}
+          {errorMsg && <div style={{ color: '#EF4444', background: '#FEF2F2', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid #EF4444' }}>{errorMsg}</div>}
 
-          {draftSuccessMsg && (
-            <div style={{ padding: '16px', background: '#ECFDF5', border: '1px solid #10B981', borderRadius: '12px', color: '#065F46', fontWeight: 500, marginBottom: '24px' }}>
-              ✓ {draftSuccessMsg}
-            </div>
-          )}
+          {draftSuccessMsg && <div style={{ color: '#10B981', background: '#ECFDF5', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid #10B981' }}>{draftSuccessMsg}</div>}
 
           {isSubmitted && (
             <div className="step-row">
@@ -407,26 +453,10 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
             <div className="step-main-card">
               <div className="step-title-row">
                 <div>
-                  <h2>Type</h2>
-                  <p>Choose what type of listing you want to publish</p>
-                </div>
-                <span className="step-count">Step 1 of 6</span>
-              </div>
-              <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
-                <button className={`btn-figma-secondary ${formData.listingType === 'I have cargo' ? 'active' : ''}`} style={{ flex: '1 1 150px', padding: '16px' }} onClick={() => setFormData({...formData, listingType: 'I have cargo'})}>📦 I have cargo</button>
-                <button className={`btn-figma-secondary ${formData.listingType === 'I have vehicle' ? 'active' : ''}`} style={{ flex: '1 1 150px', padding: '16px' }} onClick={() => setFormData({...formData, listingType: 'I have vehicle'})}>🚛 I have vehicle</button>
-              </div>
-            </div>
-          </div>
-
-          <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`}>
-            <div className="step-main-card">
-              <div className="step-title-row">
-                <div>
                   <h2>Route details</h2>
                   <p>Choose starting point and stops of your route</p>
                 </div>
-                <span className="step-count">Step 2 of 6</span>
+                <span className="step-count">Step 1 of 6</span>
               </div>
               
               <div className="figma-grid-labels route-grid">
@@ -475,7 +505,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
                   <h2>Cargo details</h2>
                   <p>Add packages by type. We'll calculate total metrics automatically.</p>
                 </div>
-                <span className="step-count">Step 3 of 6</span>
+                <span className="step-count">Step 2 of 6</span>
               </div>
               
               <span className="chip-label">Cargo type</span>
@@ -497,8 +527,16 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
                 </div>
 
                 {formData.packages.map((pkg) => (
-                  <div className="grid-row cargo-grid" key={pkg.id} style={{ minWidth: '600px' }}>
-                    <input type="text" className="figma-input" style={{ fontWeight: 500, border: 'none', padding: 0 }} value={pkg.type} onChange={(e) => handleUpdatePackage(pkg.id, 'type', e.target.value)} />
+                  <div className="grid-row cargo-grid" key={pkg.id} style={{ minWidth: '500px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', maxWidth: '100px' }}>
+                      <input 
+                        type="text" 
+                        className="figma-input text-editable-field" 
+                        style={{ fontWeight: 600, border: 'none', padding: '0', background: 'transparent', width: '100%', minWidth: '0', fontSize: '14px', color: '#0E1116', outline: 'none', boxShadow: 'none' }} 
+                        value={pkg.type} 
+                        onChange={(e) => handleUpdatePackage(pkg.id, 'type', e.target.value)} 
+                      />
+                    </div>
                     <input type="number" className="figma-input" placeholder="0.0" value={pkg.length} onChange={(e) => handleUpdatePackage(pkg.id, 'length', e.target.value)} />
                     <input type="number" className="figma-input" placeholder="0.0" value={pkg.width} onChange={(e) => handleUpdatePackage(pkg.id, 'width', e.target.value)} />
                     <input type="number" className="figma-input" placeholder="0.0" value={pkg.height} onChange={(e) => handleUpdatePackage(pkg.id, 'height', e.target.value)} />
@@ -512,26 +550,18 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
 
               <div style={{ display: 'flex', gap: '24px', paddingTop: '24px', borderTop: '1px solid #E6E8EE', flexWrap: 'wrap' }}>
                 <div style={{ flex: '1 1 250px', minWidth: 0 }}>
-                  <span className="chip-label">Stackability</span>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '24px' }}>
-                    {['Non-stackable', 'Stackable ×2', 'Stackable ×3'].map(opt => (
-                      <div key={opt} className={`chip ${formData.stackability === opt ? 'active dark' : ''}`} style={{ justifyContent: 'center', padding: '10px 4px', textAlign: 'center' }} onClick={() => setFormData({...formData, stackability: opt})}>{opt}</div>
-                    ))}
-                  </div>
                   <span className="chip-label">Insured value</span>
                   <input type="text" className="figma-input" placeholder="€ 60,000" value={formData.insuredValue ? `€ ${Number(formData.insuredValue.replace(/\D/g, '')).toLocaleString('en-US')}` : ''} onChange={(e) => setFormData({...formData, insuredValue: e.target.value.replace(/\D/g, '')})} />
                 </div>
                 
-                <div style={{ flex: '1 1 250px', minWidth: 0 }}>
-                  <span className="chip-label">Temperature</span>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '24px' }}>
-                    {['Ambient', '+2 to +8 °C', 'Frozen'].map(opt => (
-                      <div key={opt} className={`chip ${formData.temperature === opt ? 'active dark' : ''}`} style={{ justifyContent: 'center', padding: '10px 4px', textAlign: 'center' }} onClick={() => setFormData({...formData, temperature: opt})}>{opt}</div>
-                    ))}
+                <div style={{ flex: '1 1 250px', minWidth: 0, display: 'flex', gap: '16px' }}>
+                  <div style={{ flex: 1 }}>
+                    <span className="chip-label">HS code</span>
+                    <input type="text" className="figma-input" placeholder="3402.20.90" value={formData.hsCode} onChange={(e) => setFormData({...formData, hsCode: e.target.value})} />
                   </div>
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                    <div style={{ flex: '1 1 100px' }}><span className="chip-label">HS code</span><input type="text" className="figma-input" placeholder="3402.20.90" value={formData.hsCode} onChange={(e) => setFormData({...formData, hsCode: e.target.value})}/></div>
-                    <div style={{ flex: '1 1 100px' }}><span className="chip-label">ADR class</span><input type="text" className="figma-input" placeholder="Not applicable" value={formData.adrClass} onChange={(e) => setFormData({...formData, adrClass: e.target.value})}/></div>
+                  <div style={{ flex: 1 }}>
+                    <span className="chip-label">ADR class</span>
+                    <input type="text" className="figma-input" placeholder="Not applicable" value={formData.adrClass} onChange={(e) => setFormData({...formData, adrClass: e.target.value})} />
                   </div>
                 </div>
               </div>
@@ -540,17 +570,17 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
 
           <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`}>
             <div className="step-main-card">
-              <div className="step-title-row"><h2>Vehicle type</h2><span className="step-count">Step 4 of 6</span></div>
-              <p style={{ fontSize: '14px', color: '#5C6470', marginBottom: '16px' }}>Recommended options:</p>
-              <div className="chip-group">
-                {['Tautliner trailer', 'Mega trailer'].map(type => (
-                  <div key={type} className={`chip ${formData.vehicle === type ? 'active success' : ''}`} onClick={() => setFormData({...formData, vehicle: type})}>{type}</div>
-                ))}
-              </div>
-              <p style={{ fontSize: '14px', color: '#5C6470', marginBottom: '16px', marginTop: '16px' }}>Other variants:</p>
-              <div className="chip-group">
-                {['Box truck', 'Curtainsider', 'Container', 'Reefer'].map(type => (
-                  <div key={type} className={`chip ${formData.vehicle === type ? 'active' : ''}`} onClick={() => setFormData({...formData, vehicle: type})}>{type}</div>
+              <div className="step-title-row"><h2>Vehicle type</h2><span className="step-count">Step 3 of 6</span></div>
+              <p style={{ fontSize: '14px', color: '#5C6470', marginBottom: '16px' }}>Select target trailer category:</p>
+              <div className="chip-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {['Tautliner trailer', 'Mega trailer', 'Box truck', 'Curtainsider', 'Container', 'Reefer'].map(type => (
+                  <div 
+                    key={type} 
+                    className={`chip ${formData.vehicle === type ? 'active success' : ''}`} 
+                    onClick={() => setFormData({...formData, vehicle: type})}
+                  >
+                    {type}
+                  </div>
                 ))}
               </div>
             </div>
@@ -558,11 +588,94 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
 
           <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`}>
             <div className="step-main-card">
-              <div className="step-title-row"><h2>Pricing</h2><span className="step-count">Step 5 of 6</span></div>
+              <div className="step-title-row"><h2>Pricing</h2><span className="step-count">Step 4 of 6</span></div>
               <div className="figma-input-group" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span style={{ fontSize: '24px', color: '#5C6470' }}>€</span>
                 <input type="text" className="figma-input" style={{ fontSize: '20px', fontWeight: 600 }} value={formData.price ? Number(formData.price.replace(/\D/g, '')).toLocaleString('en-US') : ''} placeholder="0" onChange={(e) => setFormData({...formData, price: e.target.value.replace(/\D/g, '')})} />
               </div>
+            </div>
+          </div>
+
+          <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`}>
+            <div className="step-main-card">
+              <div className="step-title-row">
+                <div>
+                  <h2>Description</h2>
+                  <p style={{ margin: 0 }}>Add extra information, requirements, or loading instructions</p>
+                </div>
+                <span className="step-count">Step 5 of 6</span>
+              </div>
+              <div style={{ marginTop: '16px' }}>
+                <textarea 
+                  className="figma-input" 
+                  style={{ width: '100%', minHeight: '120px', resize: 'vertical', paddingTop: '12px', lineHeight: '1.5' }} 
+                  placeholder="e.g. Loading from the side only. Need empty pallets for exchange. Call 1 hour before arrival."
+                  value={formData.about}
+                  onChange={(e) => setFormData({...formData, about: e.target.value})}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`}>
+            <div className="step-main-card">
+              <div className="step-title-row">
+                <div>
+                  <h2>Cargo photos</h2>
+                  <p style={{ margin: 0 }}>Upload real images of your cargo package condition for carriers</p>
+                </div>
+              </div>
+              
+              <div 
+                className={`figma-dropzone ${isDragActive ? 'drag-active' : ''}`}
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  border: '2px dashed #E6E8EE',
+                  borderRadius: '12px',
+                  padding: '32px 24px',
+                  textAlign: 'center',
+                  background: isDragActive ? '#EEF1FF' : '#FAFAFA',
+                  borderColor: isDragActive ? '#3D5AFE' : '#E6E8EE',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  marginTop: '16px'
+                }}
+              >
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  multiple 
+                  accept="image/*" 
+                  onChange={handleFileSelect} 
+                />
+                <div style={{ fontSize: '28px', marginBottom: '8px' }}>📸</div>
+                <div style={{ fontSize: '14px', fontWeight: 500, color: '#0E1116', marginBottom: '4px' }}>
+                  Drag & Drop files here or <span style={{ color: '#3D5AFE', textDecoration: 'underline' }}>Browse</span>
+                </div>
+                <div style={{ fontSize: '12px', color: '#5C6470' }}>Supports JPG, PNG up to 10MB each</div>
+              </div>
+
+              {uploadedPhotos.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '12px', marginTop: '16px' }}>
+                  {uploadedPhotos.map((photo) => (
+                    <div key={photo.id} style={{ position: 'relative', width: '80px', height: '80px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #E6E8EE' }}>
+                      <img src={photo.preview} alt="preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <button 
+                        type="button" 
+                        onClick={(e) => { e.stopPropagation(); handleRemovePhoto(photo.id); }}
+                        style={{ position: 'absolute', top: '2px', right: '2px', background: 'rgba(14,17,22,0.7)', color: 'white', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -572,7 +685,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
                 <div className="step-title-row">
                   <div>
                     <h2>Review results</h2>
-                    <p>Button will activate only after fully completing steps 1 to 5.</p>
+                    <p>Button will activate only after fully completing required steps 1 to 4.</p>
                   </div>
                   <span className="step-count">Step 6 of 6</span>
                 </div>
@@ -585,12 +698,11 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
 
         </div>
 
-        {/* СПРАВА: КОЛОНКА С КАРТОЙ */}
         <aside className="create-right-sidebar">
           <div className="figma-map-card">
               <div style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, borderBottom: '1px solid #E6E8EE', background: 'white' }}>Map preview</div>
               <div style={{ flex: 1, width: '100%', position: 'relative', minHeight: '300px' }}>
-                <RoutingMap stops={formData.stops} />
+                <RoutingMap stops={debouncedStops} />
               </div>
           </div>
 
@@ -606,7 +718,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
 
       </div>
 
-      {/* ФИНАЛЬНЫЕ ПУЛЕНЕПРОБИВАЕМЫЕ СТИЛИ И ГЕОМЕТРИЯ */}
       <style>{`
         ::-webkit-scrollbar { width: 0px; height: 0px; background: transparent; }
         
@@ -629,14 +740,17 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
           min-width: 0 !important; 
         }
 
-        /* КРИТИЧЕСКИЙ ФИКС АДАПТИВА ДЛЯ БЛОКА ШАГОВ (ФОТО 1 И 2) */
+        .text-editable-field:focus {
+          border-bottom: 1px dashed #3D5AFE !important;
+          padding-bottom: 1px !important;
+        }
+
         @media (max-width: 1440px) {
           .create-layout {
             flex-direction: column !important;
             padding: 24px 32px !important; 
           }
           
-          /* Исправляем разметку контейнера шагов при переходе в горизонтальный ряд */
           .create-steps-sidebar {
             width: 100% !important;
             max-width: 100% !important;
@@ -652,7 +766,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
             white-space: nowrap !important;
           }
           
-          /* Фикс закругления, границ и центрирования каждого шага (Убирает "кривые" грани заливки) */
           .create-step-item {
             display: flex !important;
             align-items: center !important;
@@ -665,7 +778,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
             gap: 10px !important;
           }
 
-          /* Идеально ровный круг для бейджа цифры/галочки */
           .step-icon {
             display: flex !important;
             align-items: center !important;

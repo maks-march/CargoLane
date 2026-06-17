@@ -1,200 +1,184 @@
 import apiClient from '../api/api-client';
+import type { LoadListVm, LoadDetailsVm, CreateLoadCommand, CreateLoadDraftCommand, PayloadInputDto } from '../api/types';
 
-// ==========================================
-// DTOs (Data Transfer Objects)
-// ==========================================
-
-export interface RoutePointInputDto {
-  city: string;
-  address: string;
-  arrivalTime: string | null;
-  orderIndex: number;
-}
-
-export interface PayloadInputDto {
-  length: number;
-  width: number;
-  height: number;
-  weight: number;
-  volume: number;
-  amount: number;
-  type: string;
-}
-
-export interface CreateLoadCommand {
-  userId: string;
-  startDate: string;
-  payment: number;
-  insurance: number;
-  hScode: string | null;
-  adr: number;
-  suitableCargos: string[] | null;
-  about: string;
-  payloads: PayloadInputDto[];
-  routePoints: RoutePointInputDto[];
-}
-
-export interface CreateLoadDraftCommand extends Partial<CreateLoadCommand> {}
-
-export interface LoadListVm {
+interface BackendLoadResponse {
   id: string;
-  from: string;
-  to: string;
-  dateStart: string;
-  price: number;
-  cargo: string;
-  weight: number;
-  recommendedVehicle: string;
-  status: string;
+  startCity?: string;
+  endCity?: string;
+  startDate?: string;
+  payment?: number;
+  totalWeight?: number;
+  cargoType?: string;
+  vehicleTypes?: string[];
+  vehicleType?: string;
 }
 
-export interface LoadDetailsVm {
+interface LoadDetailsBackendResponse {
   id: string;
-  from: string;
-  to: string;
-  dateStart: string;
-  price: number;
-  cargo: string;
-  weight: number;
-  volume: number;
-  recommendedVehicle: string;
-  about: string;
-  adr: number;
-  hScode: string;
-  insurance: number;
-  status: string;
-  companyName: string;
-  payloads: PayloadInputDto[];
-  routePoints: RoutePointInputDto[];
+  payment?: number;
+  totalWeight?: number;
+  totalVolume?: number;
+  cargoType?: string;
+  vehicleTypes?: string[];
+  about?: string;
+  adr?: number;
+  hScode?: string;
+  insurance?: number;
+  status?: string;
+  payloads?: PayloadInputDto[];
+  routePoints?: {
+    city: string;
+    address: string;
+    arrivalTime: string | null;
+    orderIndex: number;
+  }[];
 }
 
-// ==========================================
-// API SERVICE
-// ==========================================
+interface LoadSearchFilters {
+  from?: string;
+  startCity?: string;
+  to?: string;
+  endCity?: string;
+  date?: string;
+  fromDate?: string;
+  cargoType?: string;
+  vehicle?: string;
+  vehicleType?: string;
+  mass?: string;
+  weight?: string;
+  volume?: string;
+  sortChoices?: number;
+  isDescending?: boolean;
+}
 
 export const loadsService = {
-  /**
-   * Получение списка всех грузов (Marketplace)
-   */
-  getAllLoads: async (params?: any): Promise<LoadListVm[]> => {
+  getAllLoads: async (params?: LoadSearchFilters): Promise<LoadListVm[]> => {
     try {
-      const response = await apiClient.get('/Load', { params });
-      return response.data;
+      const backendParams = {
+        startCity: params?.from || params?.startCity,
+        endCity: params?.to || params?.endCity,
+        fromDate: params?.date || params?.fromDate,
+        cargoType: params?.cargoType,
+        vehicleType: params?.vehicle || params?.vehicleType,
+        weight: params?.mass || params?.weight,
+        volume: params?.volume,
+        sortChoices: params?.sortChoices,
+        isDescending: params?.isDescending
+      };
+
+      const response = await apiClient.get<BackendLoadResponse[]>('/api/load', { params: backendParams });
+      
+      return response.data.map((item) => ({
+        id: item.id,
+        from: item.startCity || 'Unknown',
+        to: item.endCity || 'Unknown',
+        dateStart: item.startDate || new Date().toISOString(),
+        price: item.payment || 0,
+        weight: item.totalWeight || 0,
+        cargo: item.cargoType || 'General Cargo', 
+        recommendedVehicle: item.vehicleTypes?.[0] || item.vehicleType || 'Any',
+        status: 'Active' 
+      }));
     } catch {
       return [];
     }
   },
   
-  /**
-   * Получение грузов текущего пользователя (My Listings)
-   */
   getUserLoads: async (): Promise<LoadListVm[]> => {
     try {
-      const response = await apiClient.get('/Load/user');
-      return response.data;
+      const response = await apiClient.get<BackendLoadResponse[]>('/api/load/me');
+      
+      return response.data.map((item) => ({
+        id: item.id,
+        from: item.startCity || 'Unknown',
+        to: item.endCity || 'Unknown',
+        dateStart: item.startDate || new Date().toISOString(),
+        price: item.payment || 0,
+        weight: item.totalWeight || 0,
+        cargo: item.cargoType || 'General Cargo',
+        recommendedVehicle: item.vehicleTypes?.[0] || item.vehicleType || 'Any',
+        status: 'Active'
+      }));
     } catch {
       return [];
     }
   },
   
-  /**
-   * Получение деталей конкретного опубликованного груза
-   */
   getLoadById: async (id: string): Promise<LoadDetailsVm> => {
-    const response = await apiClient.get(`/Load/${id}`);
-    return response.data;
+    const response = await apiClient.get<LoadDetailsBackendResponse>(`/api/load/${id}`);
+    const item = response.data;
+    
+    return {
+        id: item.id,
+        from: item.routePoints?.[0]?.city || 'Unknown',
+        to: item.routePoints?.[(item.routePoints?.length || 1) - 1]?.city || 'Unknown',
+        dateStart: item.routePoints?.[0]?.arrivalTime || new Date().toISOString(),
+        price: item.payment || 0,
+        weight: item.totalWeight || 0,
+        volume: item.totalVolume || 0,
+        cargo: item.cargoType || 'General Cargo',
+        recommendedVehicle: item.vehicleTypes?.[0] || 'Any',
+        about: item.about || '',
+        adr: item.adr || 0,
+        hScode: item.hScode || '',
+        insurance: item.insurance || 0,
+        status: item.status || 'Active',
+        companyName: 'CargoLane Partner',
+        payloads: item.payloads || [],
+        routePoints: (item.routePoints || []).map(rp => ({
+          city: rp.city || '',
+          address: rp.address || '',
+          arrivalTime: rp.arrivalTime || new Date().toISOString(),
+          orderIndex: rp.orderIndex || 0
+        }))
+    };
   },
 
-  /**
-   * Получение деталей конкретного черновика груза
-   */
-  getLoadDraft: async (id: string): Promise<any> => {
-    const response = await apiClient.get(`/Load/draft/${id}`);
+  getLoadDraft: async (id: string): Promise<unknown> => {
+    const response = await apiClient.get(`/api/load/draft/${id}`);
     return response.data;
   },
   
-  /**
-   * Создание нового груза (публикация на доску)
-   */
+  // Никаких костылей. Передаем ровно то, что пришло из UI
   createLoad: async (data: CreateLoadCommand): Promise<string> => {
-    const response = await apiClient.post('/Load', data);
-    return response.data;
+    const response = await apiClient.post('/api/load', data);
+    return response.data?.id || response.data;
   },
   
-  /**
-   * Создание черновика груза (сохранение без публикации)
-   */
   createLoadDraft: async (data: CreateLoadDraftCommand): Promise<string> => {
-    const response = await apiClient.post('/Load/draft', data);
-    return response.data;
+    const response = await apiClient.post('/api/load/draft', data);
+    return response.data?.id || response.data;
   },
 
-  /**
-   * Обновление существующего черновика груза
-   */
   updateLoadDraft: async (id: string, data: CreateLoadDraftCommand): Promise<void> => {
-    const response = await apiClient.put(`/Load/draft/${id}`, data);
-    return response.data;
+    const payload = { ...data, id }; 
+    await apiClient.put(`/api/load/draft/${id}`, payload);
   },
   
-  /**
-   * Удаление опубликованного груза
-   */
   deleteLoad: async (id: string): Promise<void> => {
-    const response = await apiClient.delete(`/Load/${id}`);
-    return response.data;
+    await apiClient.put(`/api/load/${id}/close`);
   },
 
-  /**
-   * Удаление черновика груза
-   */
   deleteLoadDraft: async (id: string): Promise<void> => {
-    const response = await apiClient.delete(`/Load/draft/${id}`);
-    return response.data;
+    await apiClient.delete(`/api/load/draft/${id}`);
   },
 
-  /**
-   * === ДОБАВЛЕНО: Для предотвращения краша компонента FilterBar ===
-   */
-  getCities: async (query: string): Promise<string[]> => {
-    try {
-      const response = await apiClient.get('/Cities', { params: { query } });
-      return response.data;
-    } catch {
-      return [];
-    }
+  acceptLoad: async (id: string): Promise<void> => {
+    await apiClient.post(`/api/load/${id}/accept`);
   },
 
-  /**
-   * === НОВАЯ ЛОГИКА ДЛЯ SAVED SEARCHES / LOADS ===
-   */
-  
-  /**
-   * Получение сохраненных грузов текущего пользователя
-   */
-  getSavedLoads: async (params?: any): Promise<LoadListVm[]> => {
-    try {
-      // БЕКЕНДЕРУ: Заменить на реальный эндпоинт для сохраненных грузов
-      const response = await apiClient.get('/Load/saved', { params });
-      return response.data;
-    } catch {
-      return []; // Возвращаем пустой массив, пока бэкенд не готов
-    }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  getCities: async (_query: string): Promise<string[]> => {
+    return Promise.resolve([]);
   },
 
-  /**
-   * Добавление/Удаление груза из сохраненных
-   */
-  toggleSaveLoad: async (id: string, isCurrentlySaved: boolean): Promise<void> => {
-    try {
-      // БЕКЕНДЕРУ: Настроить реальные эндпоинты добавления/удаления из закладок
-      if (isCurrentlySaved) {
-        await apiClient.delete(`/Load/${id}/save`);
-      } else {
-        await apiClient.post(`/Load/${id}/save`);
-      }
-    } catch (error) {
-      console.warn("Save load endpoint not ready yet", error);
-    }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  getSavedLoads: async (_params?: unknown): Promise<LoadListVm[]> => {
+    return [];
+  },
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  toggleSaveLoad: async (_id: string, _isCurrentlySaved: boolean): Promise<void> => {
+    // do nothing
   }
 };

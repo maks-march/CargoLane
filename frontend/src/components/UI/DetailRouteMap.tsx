@@ -9,16 +9,19 @@ interface Props {
 }
 
 export const DetailRouteMap: React.FC<Props> = ({ load, routeInfo, onRouteCalculated }) => {
-  // Безопасное чтение городов (в зависимости от того, как их отдаст бэкенд: startCity или from)
-  const start = (load as any).startCity || (load as any).from || 'Rotterdam';
-  const end = (load as any).endCity || (load as any).to || 'Warsaw';
+  // ИСПРАВЛЕНО: Убран any, добавлена строгая типизация для резервных полей
+  const loadData = load as unknown as { startCity?: string; from?: string; endCity?: string; to?: string; extraRoute?: string | number };
+
+  // Безопасное чтение городов
+  const start = loadData.startCity || loadData.from || 'Rotterdam';
+  const end = loadData.endCity || loadData.to || 'Warsaw';
 
   const mapStops = [
     { address: start, type: 'start' }
   ];
   
-  if ((load as any).extraRoute) {
-    mapStops.push({ address: String((load as any).extraRoute).replace('+ ', ''), type: 'stop' });
+  if (loadData.extraRoute) {
+    mapStops.push({ address: String(loadData.extraRoute).replace('+ ', ''), type: 'stop' });
   }
   
   mapStops.push({ address: end, type: 'end' });
