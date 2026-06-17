@@ -3,15 +3,20 @@ using Application.CQRS.LoadCQ.Commands.CreateLoad;
 using Application.CQRS.LoadCQ.Commands.DeleteLoad;
 using Application.CQRS.LoadCQ.Commands.Draft;
 using Application.CQRS.LoadCQ.Commands.Draft.Create;
+using Application.CQRS.LoadCQ.Commands.SaveLoad;
 using Application.CQRS.LoadCQ.Commands.UploadFiles;
 using Application.CQRS.LoadCQ.Queries;
 using Application.CQRS.LoadCQ.Queries.Draft;
-using Application.CQRS.LoadCQ.Queries.Load;
+using Application.CQRS.LoadCQ.Queries.Load.Detail;
+using Application.CQRS.LoadCQ.Queries.Load.List;
+using Application.CQRS.LoadCQ.Queries.Load.Saved;
+using Application.CQRS.LoadCQ.Queries.Load.Users;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.DTO;
 using Application.DTO.Load;
+using Domain.Enums.Load;
 
 namespace WebApi.Common.Controllers;
 
@@ -62,16 +67,29 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     /// </summary>
     [HttpGet("me")]
     [ProducesResponseType(typeof(LoadListVm[]), StatusCodes.Status200OK)]
-    public async Task<ActionResult<LoadListVm[]>> GetMy()
+    public async Task<ActionResult<LoadListVm[]>> GetMy([FromQuery] string status = nameof(LoadStatus.Active))
     {
         return Ok(
             ChangeListVmForUser(
-                await Mediator.Send(new GetUserLoadsQuery { UserId = UserId })
+                await Mediator.Send(new GetUserLoadsQuery { UserId = UserId, Status = Enum.Parse<LoadStatus>(status)})
                 )
             );
     }
     
-    [HttpPost]
+    
+    /// <summary>
+    /// Получить список СОХРАНЕННЫХ заказов текущего авторизованного пользователя.
+    /// </summary>
+    [HttpGet("user/saved")]
+    [ProducesResponseType(typeof(LoadListVm[]), StatusCodes.Status200OK)]
+    public async Task<ActionResult<LoadListVm[]>> GetMySaved()
+    {
+        return Ok(
+            ChangeListVmForUser(
+                await Mediator.Send(new GetUserSavedQuery { UserId = UserId })
+            )
+        );
+    }
 
     /// <summary>
     /// Создать заказ (полная валидация).
@@ -102,6 +120,20 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
         return Ok(await Mediator.Send(command));
     }
 
+    /// <summary>
+    /// Сохранить заказ. Или убрать из сохраненных.
+    /// </summary>
+    [HttpPost("{id:guid}/save")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult> Save(Guid id)
+    {
+        var command = new SaveLoadCommand(id, UserId);
+        return Ok(await Mediator.Send(command));
+    }
+    
     /// <summary>
     /// Удалить заказ.
     /// </summary>

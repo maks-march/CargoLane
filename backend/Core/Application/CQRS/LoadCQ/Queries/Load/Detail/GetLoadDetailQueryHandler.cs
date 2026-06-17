@@ -6,10 +6,7 @@ using Domain.Models.Load;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
-namespace Application.CQRS.LoadCQ.Queries.Load;
-
-public record GetLoadDetailQuery(Guid Id) : IRequest<LoadDetailsVm>
-{ }
+namespace Application.CQRS.LoadCQ.Queries.Load.Detail;
 
 public class GetLoadDetailQueryHandler(IAppDbContext dbContext, IMapper mapper) 
     : IRequestHandler<GetLoadDetailQuery, LoadDetailsVm>

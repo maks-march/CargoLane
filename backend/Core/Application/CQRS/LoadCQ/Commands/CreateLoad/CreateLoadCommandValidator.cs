@@ -27,6 +27,15 @@ public class CreateLoadCommandValidator : AbstractValidator<CreateLoadCommand>
         RuleFor(x => x.About)
             .MaximumLength(2000).WithMessage("Description is too long.");
 
+        RuleFor(x => x.Duration)
+            .NotEmpty().WithMessage("Duration is required.")
+            .MaximumLength(20).WithMessage("Duration is too long.")
+            .Matches(@"^\d+:\d+:\d+$")
+            .WithMessage("Duration must be in format HH:MM:SS, e.g. 00:00:00.");
+        
+        RuleFor(x => x.Distance)
+            .GreaterThan(0).WithMessage("Distance must be positive.");
+        
         // Валидация списка грузов
         RuleFor(x => x.Payloads)
             .NotEmpty().WithMessage("At least one payload item is required.");

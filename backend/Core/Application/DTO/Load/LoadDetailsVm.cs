@@ -16,9 +16,10 @@ public record LoadDetailsVm : IMapWith<LoadEntity>
     public string CargoType { get; init; } = string.Empty;
     public string About { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
-    public bool IsReviewed { get; init; }
     public double TotalWeight { get; set; }
     public double TotalVolume { get; set; }
+    public double Distance { get; set; } = 0;
+    public string Duration { get; set; } = "00:00:00";
     public Guid UserId { get; init; }
     // Вложенные коллекции
     public IList<PayloadVm> Payloads { get; init; } = [];

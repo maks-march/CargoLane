@@ -4,5 +4,7 @@ public enum LoadStatus
 {
     Active,
     Pending,
+    Booked,
+    Rejected,
     Closed
 }

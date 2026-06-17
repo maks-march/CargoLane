@@ -28,6 +28,7 @@ public class User : Entity
     public UserFile? Avatar { get; set; } = null;
     
     public ICollection<LoadEntity> Loads { get; set; } = new List<LoadEntity>();
+    public ICollection<LoadEntity> SavedLoads { get; set; } = new List<LoadEntity>();
     public ICollection<LoadDraft> LoadsDrafts { get; set; } = new List<LoadDraft>();
 
     public virtual ICollection<ChatEntity> Chats { get; set; } = new List<ChatEntity>();

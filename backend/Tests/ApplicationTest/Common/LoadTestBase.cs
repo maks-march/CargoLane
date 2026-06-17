@@ -207,6 +207,8 @@ public abstract class LoadTestBase : BaseIntegrationTest
             VehicleTypes = new[] { "General", "Fragile" },
             CargoType = "Box",
             About = about,
+            Distance = 1,
+            Duration = "00:00:00",
             Payloads = new List<PayloadInputDto>
             {
                 new()

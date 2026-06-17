@@ -27,5 +27,10 @@ public class LoadConfiguration : IEntityTypeConfiguration<LoadEntity>
         builder.HasMany(o => o.Photos)
             .WithOne(f => f.Owner)
             .HasForeignKey(f => f.OwnerId);
+        
+        builder
+            .HasMany(l => l.UsersSaves)
+            .WithMany(u => u.SavedLoads)
+            .UsingEntity(j => j.ToTable("UserSavedLoads"));
     }
 }

@@ -18,7 +18,8 @@ public record CreateLoadCommand : IRequest<Guid>, IMapWith<LoadEntity>
     public string[] VehicleTypes { get; set; } = [];
     public string CargoType { get; set; } = string.Empty;
     public string About { get; set; } = string.Empty;
-
+    public double Distance { get; set; } = 0;
+    public string Duration { get; set; } = "00:00:00";
     public List<PayloadInputDto> Payloads { get; set; } = [];
     public List<RoutePointInputDto> RoutePoints { get; set; } = [];
     

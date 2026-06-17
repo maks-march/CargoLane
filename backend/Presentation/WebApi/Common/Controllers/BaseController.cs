@@ -1,5 +1,5 @@
 using System.Security.Claims;
-using Application.CQRS.LoadCQ.Queries.Load;
+using Application.CQRS.LoadCQ.Queries.Load.List;
 using Application.CQRS.UserCQ.Queries.GetUserDetails;
 using Application.CQRS.UserCQ.Queries.GetUserList;
 using Domain.Enums.Load;

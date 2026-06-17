@@ -9,6 +9,8 @@ public class LoadEntity : HasAuthor, IManyFiles<LoadFile>
     public double Insurance { get; set; }
     public string HScode { get; set; }
     public int Adr { get; set; } = 1;
+    public double Distance { get; set; } = 0;
+    public string Duration { get; set; } = "00:00:00";
     
     public string[] VehicleTypes { get; set; } = [];
     
@@ -22,5 +24,10 @@ public class LoadEntity : HasAuthor, IManyFiles<LoadFile>
     public IList<RoutePoint<LoadEntity>> RoutePoints { get; set; } = [];
     public IList<Payload> Payloads { get; set; } = [];
     public LoadStatus Status { get; set; }
-    public bool IsReviewed { get; set; } = false;
+    
+    public string ReviewerName  { get; set; } = string.Empty;
+    public string RejectReason { get; set; } = string.Empty;
+    public DateTime ReviewDate { get; set; } = DateTime.MinValue;
+    
+    public ICollection<User> UsersSaves { get; set; } = [];
 }
