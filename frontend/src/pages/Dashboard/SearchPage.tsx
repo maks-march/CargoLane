@@ -86,13 +86,13 @@ export const SearchPage: React.FC = () => {
   };
 
   const handleViewDetails = (loadId: string) => {
-    navigate(`/load-details?loadId=${loadId}`);
+    // ИСПРАВЛЕНО: Теперь переходит в детали маршрута, а не на главную
+    navigate(`/orders/${loadId}`);
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', overflow: 'hidden', background: '#F6F7FB' }}>
       
-      {/* ХЕДЕР */}
       <header className="dash-header" style={{ padding: '16px 32px', borderBottom: '1px solid #E6E8EE', background: 'white', flexShrink: 0, boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
           <div>
@@ -104,7 +104,6 @@ export const SearchPage: React.FC = () => {
             <h1 className="dash-title" style={{ fontSize: '24px', fontWeight: 400, color: '#0E1116', letterSpacing:'-1px',marginTop: '4px' }}>Load board</h1>
           </div>
           
-          {/* ИСПРАВЛЕНО: Кнопка убрана, инпут растянут на 100% ширины контейнера */}
           <div style={{ display: 'flex', alignItems: 'center', flex: 1, maxWidth: '800px', marginLeft: '32px' }}>
             <div style={{ position: 'relative', width: '100%' }}>
               <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#A0AAB9' }}>🔍</span>
@@ -113,17 +112,15 @@ export const SearchPage: React.FC = () => {
                 placeholder="Search lanes, cargo, ID..." 
                 value={filters.query || ''}
                 onChange={(e) => setFilters({...filters, query: e.target.value})}
-                style={{ padding: '10px 16px 10px 36px', border: '1px solid #E6E8EE', borderRadius: '8px', width: '70%', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} 
+                style={{ padding: '10px 16px 10px 36px', border: '1px solid #E6E8EE', borderRadius: '8px', width: '100%', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} 
               />
             </div>
           </div>
         </div>
       </header>
 
-      {/* АДАПТИВНЫЙ КОНТЕЙНЕР */}
       <div className="split-layout-container">
         
-        {/* ЛЕВАЯ ЧАСТЬ С ТАБЛИЦЕЙ */}
         <div className="split-layout-left">
           
           <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
@@ -210,7 +207,7 @@ export const SearchPage: React.FC = () => {
                       onDoubleClick={() => handleViewDetails(load.id)}
                     >
                       <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 500, color: '#5C6470' }}>{load.id}</div>
+                        <div style={{ fontSize: '13px', fontWeight: 500, color: '#5C6470' }}>{load.id.substring(0, 8).toUpperCase()}</div>
                       </td>
                       <td style={{ padding: '16px', verticalAlign: 'top' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500, color: '#0E1116', marginBottom: '4px' }}>
@@ -220,7 +217,7 @@ export const SearchPage: React.FC = () => {
                           <span style={{ width: '6px', height: '6px', background: '#00C48C', borderRadius: '50%', display: 'inline-block' }}></span> {load.to.split(',')[0]}
                         </div>
                       </td>
-                      <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '13px', color: '#0E1116' }}>{load.dateStart}</td>
+                      <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '13px', color: '#0E1116' }}>{new Date(load.dateStart).toLocaleDateString()}</td>
                       <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '14px', color: '#0E1116' }}>{load.cargo}</td>
                       <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '14px', color: '#0E1116' }}>{load.weight} t</td>
                       <td style={{ padding: '16px', verticalAlign: 'top' }}>
@@ -232,9 +229,9 @@ export const SearchPage: React.FC = () => {
                       <td style={{ padding: '16px', verticalAlign: 'top' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '40px', height: '4px', background: '#E6E8EE', borderRadius: '2px', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${load.matchPercent}%`, background: (load.matchPercent || 0) > 90 ? '#00C48C' : '#3D5AFE', borderRadius: '2px' }}></div>
+                            <div style={{ height: '100%', width: `${load.matchPercent || 95}%`, background: (load.matchPercent || 95) > 90 ? '#00C48C' : '#3D5AFE', borderRadius: '2px' }}></div>
                           </div>
-                          <span style={{ fontSize: '13px', fontWeight: 500, color: '#5C6470' }}>{load.matchPercent}%</span>
+                          <span style={{ fontSize: '13px', fontWeight: 500, color: '#5C6470' }}>{load.matchPercent || 95}%</span>
                         </div>
                       </td>
                       <td style={{ padding: '16px', verticalAlign: 'top', textAlign: 'right' }}>
@@ -291,7 +288,7 @@ export const SearchPage: React.FC = () => {
         </aside>
 
       </div>
-      
+
       <style>{`
         .table-row-hover:hover { background-color: #FAFAFA !important; }
         .table-row-selected { background-color: #EEF1FF !important; }

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom'; // ИСПРАВЛЕНО
 import type { PageType } from '../../utils/types'; 
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
@@ -42,6 +42,7 @@ interface LoadFormData {
 export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) => {
   const [searchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draftId');
+  const navigate = useNavigate(); // ИСПРАВЛЕНО
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedPhotos, setUploadedPhotos] = useState<{ id: string; name: string; preview: string }[]>([]);
@@ -296,7 +297,8 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
       }
       
       setDraftSavedMessage(`Draft ${finalId} saved successfully! Redirecting...`);
-      setTimeout(() => onNavigate('my-listings'), 1500);
+      // ИСПРАВЛЕНО: Редирект в личный кабинет
+      setTimeout(() => navigate('/my-listings'), 1500);
 
     } catch (error: unknown) {
       const err = error as Error;
@@ -352,7 +354,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
                 Save draft
               </button>
             )}
-            <button className="btn-figma-secondary" onClick={() => onNavigate('dashboard')}>{isSubmitted ? 'Close' : 'Cancel'}</button>
+            <button className="btn-figma-secondary" onClick={() => navigate('/orders')}>{isSubmitted ? 'Close' : 'Cancel'}</button>
             {!isSubmitted && <button className="btn-figma-primary" disabled={!isFormValid || isSubmitting} onClick={handleSave}>{isSubmitting ? 'Sending...' : 'Continue ›'}</button>}
           </div>
         </div>
@@ -442,8 +444,9 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
                   <div className="status-badge pending">Moderation pending</div>
                 </div>
                 <div className="success-actions">
-                  <button className="btn-figma-secondary" onClick={() => onNavigate('dashboard')}>Back to Dashboard</button>
-                  <button className="btn-figma-primary" onClick={() => onNavigate('dashboard')}>View my listings</button>
+                  {/* ИСПРАВЛЕНО: Кнопки на странице успеха теперь работают через роутер! */}
+                  <button className="btn-figma-secondary" onClick={() => navigate('/orders')}>Back to Dashboard</button>
+                  <button className="btn-figma-primary" onClick={() => navigate('/my-listings')}>View my listings</button>
                 </div>
               </div>
             </div>

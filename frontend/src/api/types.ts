@@ -102,7 +102,7 @@ interface CreateLoadCommand {
   insurance: number;
   hScode: string | null;
   adr: number;
-  vihicleTypes: string[]; // ВОЗВРАЩАЕМ ОПЕЧАТКУ ПОД ТРЕБОВАНИЯ БЭКЕНДА
+  vehicleTypes: string[]; 
   cargoType: string;      
   about: string | null;
   payloads: PayloadInputDto[];
@@ -116,7 +116,7 @@ interface CreateLoadDraftCommand {
   insurance: number | null;
   hScode: string | null;
   adr: number | null;
-  vihicleTypes?: string[]; // ВОЗВРАЩАЕМ ОПЕЧАТКУ
+  vihicleTypes?: string[]; 
   cargoType?: string;
   about: string | null;
   payloads?: PayloadInputDto[];
@@ -190,6 +190,7 @@ interface LoadDetailsVm {
   companyName: string;
   payloads: PayloadInputDto[];
   routePoints: RoutePointInputDto[];
+  distance: number | null; // ИСПРАВЛЕНО: Добавлено поле дистанции из бэкенда
 }
 
 interface PayloadVm {

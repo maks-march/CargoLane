@@ -15,7 +15,7 @@ export const LoadDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [routeInfo, setRouteInfo] = useState({ distance: '', duration: '' });
+  const [routeInfo, setRouteInfo] = useState({ distance: '0 km', duration: '0h 0m' });
 
   useEffect(() => {
     const fetchLoad = async () => {
@@ -64,13 +64,27 @@ export const LoadDetailPage: React.FC = () => {
     );
   }
 
+  const startCity = load.routePoints?.[0]?.city || load.from?.split(',')[0] || 'Origin';
+  const endCity = load.routePoints?.[(load.routePoints?.length || 1) - 1]?.city || load.to?.split(',')[0] || 'Destination';
+
+  // ИСПРАВЛЕНО: Вытаскиваем все типы грузов из массива без дубликатов и соединяем через точку
+  const payloadNames = load.payloads && load.payloads.length > 0 
+    ? Array.from(new Set(load.payloads.map(p => p.type).filter(Boolean))).join(' • ') 
+    : 'Custom Cargo';
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', overflowY: 'auto', background: '#F6F7FB' }}>
       <header className="dash-header" style={{ padding: '16px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', borderBottom: '1px solid #E6E8EE', flexShrink: 0 }}>
-        <div className="dash-breadcrumb">
-          <span className="dash-detail-breadcrumb-clickable" onClick={() => navigate('/orders')}>Marketplace</span>
-          <span className="dash-detail-breadcrumb-arrow"> › </span>
-          <strong className="dash-detail-breadcrumb-current">{load.id.substring(0, 8).toUpperCase()}</strong>
+        <div>
+          <div className="dash-breadcrumb">
+            <span className="dash-detail-breadcrumb-clickable" onClick={() => navigate('/orders')}>Marketplace</span>
+            <span className="dash-detail-breadcrumb-arrow"> › </span>
+            <strong className="dash-detail-breadcrumb-current">{load.id.substring(0, 8).toUpperCase()}</strong>
+          </div>
+          {/* ИСПРАВЛЕНО: Мульти-вывод кастомных грузов • Категория • Маршрут */}
+          <h1 className="dash-title" style={{ fontSize: '24px', fontWeight: 600, color: '#0E1116', marginTop: '4px', marginBottom: 0 }}>
+            {payloadNames} <span style={{ color: '#A0AAB9' }}>•</span> {load.cargo || 'General Cargo'} <span style={{ color: '#A0AAB9' }}>•</span> <span style={{ color: '#5C6470', fontWeight: 400 }}>{startCity} → {endCity}</span>
+          </h1>
         </div>
 
         <div className="detail-actions" style={{ display: 'flex', gap: '12px' }}>
@@ -90,8 +104,8 @@ export const LoadDetailPage: React.FC = () => {
 
       <div style={{ display: 'flex', gap: '24px', padding: successMsg ? '24px 48px 48px 48px' : '48px', alignItems: 'flex-start' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
-          <DetailHeaderCard load={load} routeInfo={routeInfo} />
-          <DetailRouteMap load={load} onRouteCalculated={(dist, dur) => setRouteInfo({ distance: dist, duration: dur })} />
+          <DetailHeaderCard load={load} />
+          <DetailRouteMap load={load} onRouteCalculated={(dist, dur) => setRouteInfo({ distance: dist, duration: dur })} routeInfo={routeInfo} />
           <DetailSpecs load={load} />
         </div>
         <DetailRightPanel load={load} />
