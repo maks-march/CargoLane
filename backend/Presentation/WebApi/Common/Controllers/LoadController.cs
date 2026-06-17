@@ -21,6 +21,9 @@ namespace WebApi.Common.Controllers;
 [Authorize]
 public class LoadController(IMediator mediator) : BaseController(mediator)
 {
+    protected double ToFt = 1 / 0.3048;
+    protected double ToMeter = 0.3048;
+        
     #region Основные грузы (LoadEntity)
 
     /// <summary>
@@ -87,9 +90,9 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
         {
             foreach (var payload in command.Payloads)
             {
-                payload.Height *= 1.609;
-                payload.Width *= 1.609;
-                payload.Length *= 1.609;
+                payload.Height *= ToMeter;
+                payload.Width *= ToMeter;
+                payload.Length *= ToMeter;
 
                 payload.Weight *= 0.4536;
             }
@@ -142,9 +145,9 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
         {
             foreach (var payload in command.Payloads ?? [])
             {
-                payload.Height *= 1.609;
-                payload.Width *= 1.609;
-                payload.Length *= 1.609;
+                payload.Height *= ToMeter;
+                payload.Width *= ToMeter;
+                payload.Length *= ToMeter;
 
                 payload.Weight *= 0.4536;
             }
@@ -158,7 +161,8 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     public async Task<ActionResult<LoadDraftVm[]>> GetMyDrafts()
     {
         var command = new GetUserLoadDraftQuery(UserId);
-        return await Mediator.Send(command);
+        var vms = await Mediator.Send(command);
+        return vms.Select(vm => ChangeDraftVmForUser(vm)).ToArray();
     }
     
     /// <summary>
@@ -170,25 +174,8 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     public async Task<ActionResult<LoadDraftVm>> GetDraft(Guid id)
     {
         var vm = await Mediator.Send(new GetLoadDraftQuery { Id = id, UserId = UserId });
-        if (UserId == Guid.Empty) return vm;
-        var settings = UserSettings;
-        foreach (var route in vm.RoutePoints)
-        {
-            route.ArrivalTime = route.ArrivalTime.AddHours(settings.timezone);
-        }
-
-        if (!settings.isMetric)
-        {
-            foreach (var payload in vm.Payloads)
-            {
-                payload.Height /= 1.609;
-                payload.Width /= 1.609;
-                payload.Length /= 1.609;
-
-                payload.Weight *= 2.20462;
-            }
-        }
-        return Ok(vm);
+        
+        return Ok(ChangeDraftVmForUser(vm));
     }
 
     /// <summary>
@@ -227,13 +214,13 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
 
         if (!settings.isMetric)
         {
-            vm.TotalWeight /= 1.609;
-            vm.TotalVolume /= 1.609;
+            vm.TotalWeight *= ToFt;
+            vm.TotalVolume *= ToFt;
             foreach (var payload in vm.Payloads)
             {
-                payload.Height /= 1.609;
-                payload.Width /= 1.609;
-                payload.Length /= 1.609;
+                payload.Height *= ToFt;
+                payload.Width *= ToFt;
+                payload.Length *= ToFt;
 
                 payload.Weight *= 2.20462;
             }
@@ -251,11 +238,35 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
             vm.StartDate = vm.StartDate.AddHours(settings.timezone);
             if (!settings.isMetric)
             {
-                vm.TotalWeight /= 1.609;
-                vm.TotalVolume /= 1.609;
+                vm.TotalWeight *= ToFt;
+                vm.TotalVolume *= ToFt;
             }
         }
 
         return vms;
+    }
+    
+    private LoadDraftVm ChangeDraftVmForUser(LoadDraftVm vm)
+    {
+        if (UserId == Guid.Empty) return vm;
+        var settings = UserSettings;
+        foreach (var route in vm.RoutePoints)
+        {
+            route.ArrivalTime = route.ArrivalTime.AddHours(settings.timezone);
+        }
+
+        if (!settings.isMetric)
+        {
+            foreach (var payload in vm.Payloads)
+            {
+                payload.Height *= ToFt;
+                payload.Width *= ToFt;
+                payload.Length *= ToFt;
+
+                payload.Weight *= 2.20462;
+            }
+        }
+
+        return vm;
     }
 }
