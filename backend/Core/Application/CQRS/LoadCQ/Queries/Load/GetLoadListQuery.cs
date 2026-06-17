@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using Application.Common.Extensions;
 using Application.DTO.Load;
 using Application.Interfaces;
@@ -19,6 +20,9 @@ public class GetLoadListQuery : IRequest<LoadListVm[]>
     public string? VehicleType { get; set; }
     public double? Weight { get; set; }
     public double? Volume { get; set; }
+    
+    [DefaultValue("Active")]
+    public string? Status { get; set; } = nameof(LoadStatus.Active);
 
     public SortChoices SortBy { get; set; } = SortChoices.PublicationDate;
     public bool IsDescending = false;
@@ -40,7 +44,7 @@ public class GetLoadListQueryHandler(IAppDbContext dbContext, IMapper mapper)
             .AsNoTracking()
             .Include(l => l.RoutePoints)
             .Include(l => l.Payloads)
-            .Where(l => l.Status == LoadStatus.Active);
+            .Where(l => request.Status == null || nameof(l.Status) == request.Status);
 
         if (!string.IsNullOrEmpty(request.StartCity))
             query = query

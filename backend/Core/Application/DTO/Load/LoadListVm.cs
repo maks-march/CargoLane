@@ -20,6 +20,7 @@ public record LoadListVm : IMapWith<LoadEntity>
     public string[] VehicleTypes { get; set; } = [];
     public string CargoType { get; set; } = string.Empty;
     public int PayloadCount { get; init; }
+    public string Status { get; init; } = string.Empty;
 
     public void Mapping(Profile profile)
     {
@@ -37,6 +38,7 @@ public record LoadListVm : IMapWith<LoadEntity>
             .ForMember(d => d.PayloadCount, opt => opt.MapFrom(s => 
                 s.Payloads.Select(p => p.Amount).Sum()))
             // Derive StartDate from first RoutePoint's ArrivalTime (common pattern for list cards)
+            .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()))
             .ForMember(d => d.StartDate, opt => opt.MapFrom(s => 
                 s.RoutePoints.OrderBy(rp => rp.OrderIndex).First().ArrivalTime));
     }

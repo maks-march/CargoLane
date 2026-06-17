@@ -70,6 +70,8 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
                 )
             );
     }
+    
+    [HttpPost]
 
     /// <summary>
     /// Создать заказ (полная валидация).

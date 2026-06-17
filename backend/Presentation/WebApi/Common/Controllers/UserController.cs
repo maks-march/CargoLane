@@ -19,6 +19,7 @@ public class UserController(IMediator mediator) : BaseController(mediator)
 {
     #region old
     
+    [Authorize(Roles = "Admin")]
     [HttpGet]
     public async Task<ActionResult<ICollection<UserDetailsVm>>> Get()
     {
@@ -27,13 +28,13 @@ public class UserController(IMediator mediator) : BaseController(mediator)
         return Ok(vm);
     }
 
-    [HttpPost]
     [Authorize(Roles = "Admin")]
+    [HttpPost]
     public async Task<ActionResult<Guid>> Post([FromBody] CreateUserCommand command)
         => Ok(await Mediator.Send(command));
     
-    [HttpDelete("{id:guid}")]
     [Authorize(Roles = "Admin")]
+    [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await Mediator.Send(new DeleteUserCommand { Id = id });
