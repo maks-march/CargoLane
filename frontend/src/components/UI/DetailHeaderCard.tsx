@@ -3,10 +3,9 @@ import type { LoadDetailsVm } from '../../api/types';
 
 interface Props {
   load: LoadDetailsVm;
-  routeInfo?: { distance: string; duration: string };
 }
 
-export const DetailHeaderCard: React.FC<Props> = ({ load, routeInfo }) => {
+export const DetailHeaderCard: React.FC<Props> = ({ load }) => {
   const getCountryCode = (city?: string) => {
     if (!city) return 'EU';
     const c = city.toLowerCase();
@@ -19,51 +18,67 @@ export const DetailHeaderCard: React.FC<Props> = ({ load, routeInfo }) => {
     return 'EU'; 
   };
 
-  // ИСПРАВЛЕНО: Заменены старые ключи бэкенда на актуальные UI ключи (from, to)
-  const borderStr = `${getCountryCode(load.from)} → ${getCountryCode(load.to)}`;
+  // Безопасный доступ к массиву routePoints для получения стран
+  const startCity = load.routePoints?.[0]?.city || load.from?.split(',')[0] || 'Origin';
+  const endCity = load.routePoints?.[(load.routePoints?.length || 1) - 1]?.city || load.to?.split(',')[0] || 'Destination';
+  const borderStr = `${getCountryCode(startCity)} → ${getCountryCode(endCity)}`;
 
-  // Безопасный доступ к массиву payloads (грузов)
-  const cargoCategory = load.payloads && load.payloads.length > 0 ? load.payloads[0].type : 'General Cargo';
-  const cargoPallets = load.payloads && load.payloads.length > 0 ? `${load.payloads[0].amount} items` : 'Full Truckload';
+  // Подсчет количества и выбор имени груза из БД
+  let totalItems = 0;
+  let payloadType = 'General Cargo';
+  if (load.payloads && load.payloads.length > 0) {
+    payloadType = load.payloads[0].type || 'General Cargo';
+    load.payloads.forEach(pkg => {
+      totalItems += Number(pkg.amount) || 0;
+    });
+  }
+  const cargoPallets = totalItems > 0 ? `${totalItems} ${payloadType}` : payloadType;
+
+  // Умное форматирование цены (без .00 если число круглое)
+  let priceStr = 'Request price';
+  if (load.price) {
+    priceStr = load.price % 1 === 0 
+      ? `€${load.price.toLocaleString('en-US')}` 
+      : `€${load.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }
+
+  // Транспорт берем из бэкенда с подстраховкой на разные варианты свойств API
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const loadAny = load as any;
+  const vehicleType = loadAny.vehicleTypes?.[0] || loadAny.vihicleTypes?.[0] || load.recommendedVehicle || 'Any';
+
+  // Статистика СТРОГО ИЗ БАЗЫ ДАННЫХ
+  const distanceVal = loadAny.distance ? `${loadAny.distance} km` : '0 km';
+  const durationVal = loadAny.duration ? loadAny.duration : '0h 0m';
+  const stopsCount = load.routePoints ? load.routePoints.length : 0;
+  const stopsVal = stopsCount > 2 ? `${stopsCount - 1} + final` : (stopsCount === 2 ? '1 + final' : `${stopsCount}`);
 
   return (
     <div className="detail-card">
       <div className="detail-header-top">
-        <div>
-          <div className="detail-badges">
-            <span className="detail-badge verified">✓ Verified shipper</span>
-            <span className="detail-badge document">Document attached</span>
-          </div>
-          
+        <div>       
           <h2 className="detail-title">
-            {cargoPallets} <span style={{ color: '#E6E8EE', margin: '0 4px' }}>•</span> <span style={{ color: '#5C6470', fontWeight: 500 }}>{cargoCategory}</span>
-          </h2>
-          
-          <p className="detail-subtitle">{load.id.substring(0, 8).toUpperCase()} · Verified Company</p>
+            {cargoPallets} <span style={{ color: 'rgb(160, 170, 185)', margin: '0 4px' }}>•</span> <span style={{ color: '#0E1116', fontWeight: 400 }}>{vehicleType}</span>
+          </h2>  
+          <p className="detail-subtitle">{load.id.substring(0, 8).toUpperCase()} · {load.companyName || 'Unknown Company'}</p>
         </div>
         <div className="detail-price">
-          {/* ИСПРАВЛЕНО: Заменен старый ключ payment на актуальный UI ключ price */}
-          <div className="detail-price-value">€{load.price || 'Request price'}</div>
-          <div className="detail-price-note">excl. VAT · negotiable</div>
+          <div className="detail-price-value">{priceStr}</div>
         </div>
       </div>
       
       <div className="detail-stats-row">
         <div className="detail-stat">
           <div className="detail-stat-label">Distance</div>
-          <div className="detail-stat-value">{routeInfo?.distance ? `${routeInfo.distance} km` : '~ Auto'}</div>
+          <div className="detail-stat-value">{distanceVal}</div>
         </div>
         <div className="detail-stat">
           <div className="detail-stat-label">Drive time</div>
-          <div className="detail-stat-value">{routeInfo?.duration || '~ Auto'}</div>
+          <div className="detail-stat-value">{durationVal}</div>
         </div>
         <div className="detail-stat">
           <div className="detail-stat-label">Stops</div>
-          <div className="detail-stat-value">1 + final</div>
-        </div>
-        <div className="detail-stat">
-          <div className="detail-stat-label">Border crossing</div>
-          <div className="detail-stat-value">{borderStr}</div>
+          <div className="detail-stat-value">{stopsVal}</div>
         </div>
       </div>
     </div>

@@ -14,8 +14,7 @@ export const DetailRouteMap: React.FC<Props> = ({ load, onRouteCalculated, route
     type: i === 0 ? 'start' : (i === load.routePoints.length - 1 ? 'end' : 'stop') as 'start' | 'stop' | 'end'
   }));
 
-  const startCity = load.routePoints?.[0]?.city || load.from?.split(',')[0] || 'Origin';
-  const endCity = load.routePoints?.[(load.routePoints?.length || 1) - 1]?.city || load.to?.split(',')[0] || 'Destination';
+
   const stopsCount = load.routePoints.length;
 
   return (
@@ -25,7 +24,7 @@ export const DetailRouteMap: React.FC<Props> = ({ load, onRouteCalculated, route
       <div style={{ padding: '24px 24px 20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #E6E8EE' }}>
         <div>
           <div style={{ fontSize: '16px', fontWeight: 600, color: '#0E1116', marginBottom: '4px' }}>
-            Route: {startCity} → {endCity}
+            Route: 
           </div>
           <div style={{ fontSize: '14px', color: '#5C6470', display: 'flex', gap: '8px', alignItems: 'center' }}>
             <span>{stopsCount} stops</span>

@@ -67,11 +67,6 @@ export const LoadDetailPage: React.FC = () => {
   const startCity = load.routePoints?.[0]?.city || load.from?.split(',')[0] || 'Origin';
   const endCity = load.routePoints?.[(load.routePoints?.length || 1) - 1]?.city || load.to?.split(',')[0] || 'Destination';
 
-  // ИСПРАВЛЕНО: Вытаскиваем все типы грузов из массива без дубликатов и соединяем через точку
-  const payloadNames = load.payloads && load.payloads.length > 0 
-    ? Array.from(new Set(load.payloads.map(p => p.type).filter(Boolean))).join(' • ') 
-    : 'Custom Cargo';
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', overflowY: 'auto', background: '#F6F7FB' }}>
       <header className="dash-header" style={{ padding: '16px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', borderBottom: '1px solid #E6E8EE', flexShrink: 0 }}>
@@ -81,9 +76,9 @@ export const LoadDetailPage: React.FC = () => {
             <span className="dash-detail-breadcrumb-arrow"> › </span>
             <strong className="dash-detail-breadcrumb-current">{load.id.substring(0, 8).toUpperCase()}</strong>
           </div>
-          {/* ИСПРАВЛЕНО: Мульти-вывод кастомных грузов • Категория • Маршрут */}
-          <h1 className="dash-title" style={{ fontSize: '24px', fontWeight: 600, color: '#0E1116', marginTop: '4px', marginBottom: 0 }}>
-            {payloadNames} <span style={{ color: '#A0AAB9' }}>•</span> {load.cargo || 'General Cargo'} <span style={{ color: '#A0AAB9' }}>•</span> <span style={{ color: '#5C6470', fontWeight: 400 }}>{startCity} → {endCity}</span>
+          {/* ИСПРАВЛЕНО: Выводится только Cargo type • Маршрут */}
+          <h1 className="dash-title" style={{ fontSize: '24px', fontWeight: 400, color: '#0E1116', marginTop: '7px', letterSpacing: '-0.64px', marginBottom: 0 }}>
+            {load.cargo || 'General Cargo'} <span style={{ color: '#A0AAB9' }}>•</span> <span style={{ color: '#0E1116', fontWeight: 400 }}>{startCity} → {endCity}</span>
           </h1>
         </div>
 

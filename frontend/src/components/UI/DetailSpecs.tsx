@@ -31,93 +31,144 @@ export const DetailSpecs: React.FC<Props> = ({ load }) => {
     if (!totalWeight) totalWeight = calcWeight;
   }
 
-  // Расчёт LDM и перевод килограммов в тонны
-  const calculatedLdm = floorFootprint > 0 ? (floorFootprint / 2.4).toFixed(1) : '0.0';
-  const weightInTons = totalWeight > 0 ? (totalWeight / 1000).toFixed(1) : '0.0';
+  // Функция для вывода чисел без нулей на конце (20.0 -> 20)
+  const formatNum = (num: number) => {
+    return Number.isInteger(num) ? num.toString() : Number(num.toFixed(1)).toString();
+  };
+
+  // Расчёт метрик
+  const calculatedLdmStr = floorFootprint > 0 ? formatNum(floorFootprint / 2.4) : '0';
+  const weightInTonsStr = totalWeight > 0 ? formatNum(totalWeight / 1000) : '0';
+  const floorFootprintStr = formatNum(floorFootprint);
+  const totalVolumeStr = formatNum(totalVolume);
   
   // Собираем типы грузов без дубликатов
   const commodity = load.payloads && load.payloads.length > 0 
     ? Array.from(new Set(load.payloads.map(p => p.type).filter(Boolean))).join(' • ')
     : (load.cargo || 'General Cargo');
 
-  const vehicle = load.recommendedVehicle || 'Any';
+  // Читаем vehicleTypes из бэкенда с проверкой на разные варианты поля
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const loadAny = load as any;
+  const vehicle = loadAny.vehicleTypes?.[0] || loadAny.vihicleTypes?.[0] || load.recommendedVehicle || 'Any';
+  
   const adr = load.adr ? `Class ${load.adr}` : 'None';
   const hsCode = load.hScode || 'None';
   const insurance = load.insurance ? `€ ${load.insurance.toLocaleString('en-US')}` : 'Not insured';
 
   return (
-    <div className="detail-card">
-      {/* Переименовали заголовок строго по макету */}
-      <h3 className="dash-detail-specs-title">Cargo Details</h3>
-      
-      {/* Твоя оригинальная сетка для квадратных блоков под цифры */}
-      <div className="figma-specs-grid">
+    <>
+      {/* Основной блок характеристик груза */}
+      <div className="detail-card">
+        <h3 className="dash-detail-specs-title">Cargo Details</h3>
         
-        <div className="spec-card">
-          <div className="spec-label">Total mass</div>
-          <div className="spec-value">{weightInTons} t</div>
-        </div>
+        <div className="figma-specs-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
+          
+          {/* === ПЕРВЫЙ РЯД (Цифры) === */}
+          <div className="spec-card">
+            <div className="spec-label">Total weight</div>
+            <div className="spec-value" style={{ fontSize: '24px', marginTop: '4px' }}>{weightInTonsStr} t</div>
+            {load.payloads && load.payloads.length > 0 && (
+              <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                {load.payloads.map((pkg, idx) => (
+                  <div key={idx} style={{ fontSize: '13px', color: '#5C6470' }}>
+                    {pkg.amount || 0} x {pkg.weight || 0} kg
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
-        <div className="spec-card">
-          <div className="spec-label">Total volume</div>
-          <div className="spec-value">{totalVolume > 0 ? totalVolume.toFixed(1) : '0.0'} m³</div>
-        </div>
+          <div className="spec-card">
+            <div className="spec-label">Total volume</div>
+            <div className="spec-value" style={{ fontSize: '24px', marginTop: '4px' }}>{totalVolumeStr} m³</div>
+            <div style={{ fontSize: '13px', color: '#5C6470', marginTop: '8px' }}>
+              {totalItems} {commodity}
+            </div>
+          </div>
 
-        <div className="spec-card">
-          <div className="spec-label">Loading metres</div>
-          <div className="spec-value">{calculatedLdm} LDM</div>
-        </div>
+          <div className="spec-card">
+            <div className="spec-label">Loading metres</div>
+            <div className="spec-value" style={{ fontSize: '24px', marginTop: '4px' }}>{calculatedLdmStr} LDM</div>
+            <div style={{ fontSize: '13px', color: '#5C6470', marginTop: '8px' }}>
+              {floorFootprintStr} / 2.4 m
+            </div>
+          </div>
 
-        <div className="spec-card">
-          <div className="spec-label">Floor footprint</div>
-          <div className="spec-value">{floorFootprint > 0 ? floorFootprint.toFixed(1) : '0.0'} m²</div>
-        </div>
+          <div className="spec-card">
+            <div className="spec-label">Floor footprint</div>
+            <div className="spec-value" style={{ fontSize: '24px', marginTop: '4px' }}>{floorFootprintStr} m²</div>
+            {load.payloads && load.payloads.length > 0 && (
+              <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                {load.payloads.map((pkg, idx) => {
+                  const l = pkg.length || 0;
+                  const w = pkg.width || 0;
+                  const q = pkg.amount || 0;
+                  if (l > 0 || w > 0 || q > 0) {
+                    return (
+                      <div key={idx} style={{ fontSize: '13px', color: '#5C6470' }}>
+                        {formatNum(l)} x {formatNum(w)} x {q} m
+                      </div>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
+          </div>
 
-        <div className="spec-card">
-          <div className="spec-label">Total items</div>
-          <div className="spec-value">{totalItems} units</div>
-        </div>
+          <div className="spec-card">
+            <div className="spec-label">Total items</div>
+            <div className="spec-value" style={{ fontSize: '24px', marginTop: '4px' }}>{totalItems} units</div>
+          </div>
 
+          {/* === ВТОРОЙ РЯД (Текстовые значения) === */}
+          <div className="spec-card">
+            <div className="spec-label">Cargo type</div>
+            <div className="spec-value" style={{ fontSize: '20px', marginTop: '4px', lineHeight: '1.2' }}>{commodity}</div>
+          </div>
+          
+          <div className="spec-card">
+            <div className="spec-label">Vehicle type</div>
+            <div className="spec-value" style={{ fontSize: '20px', marginTop: '4px', lineHeight: '1.2' }}>{vehicle}</div>
+          </div>
+
+          <div className="spec-card">
+            <div className="spec-label">ADR</div>
+            <div className="spec-value" style={{ fontSize: '20px', marginTop: '4px', lineHeight: '1.2' }}>{adr}</div>
+          </div>
+
+          <div className="spec-card">
+            <div className="spec-label">Insured value</div>
+            <div className="spec-value" style={{ fontSize: '20px', marginTop: '4px', lineHeight: '1.2' }}>{insurance}</div>
+          </div>
+
+          <div className="spec-card">
+            <div className="spec-label">HS code</div>
+            <div className="spec-value" style={{ fontSize: '20px', marginTop: '4px', lineHeight: '1.2' }}>{hsCode}</div>
+          </div>
+
+        </div>
       </div>
 
-      {/* Текстовые поля выводятся аккуратно ниже сетки */}
-      <div style={{ display: 'flex', gap: '48px', borderTop: '1px solid #E6E8EE', paddingTop: '20px', marginTop: '20px', flexWrap: 'wrap' }}>
-        <div>
-          <div style={{ fontSize: '13px', color: '#5C6470', marginBottom: '4px' }}>Cargo type</div>
-          <div style={{ fontSize: '15px', fontWeight: 500, color: '#0E1116' }}>{commodity}</div>
-        </div>
-        
-        <div>
-          <div style={{ fontSize: '13px', color: '#5C6470', marginBottom: '4px' }}>Vehicle type</div>
-          <div style={{ fontSize: '15px', fontWeight: 500, color: '#0E1116' }}>{vehicle}</div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: '13px', color: '#5C6470', marginBottom: '4px' }}>ADR</div>
-          <div style={{ fontSize: '15px', fontWeight: 500, color: '#0E1116' }}>{adr}</div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: '13px', color: '#5C6470', marginBottom: '4px' }}>Insured value</div>
-          <div style={{ fontSize: '15px', fontWeight: 500, color: '#0E1116' }}>{insurance}</div>
-        </div>
-
-        <div>
-          <div style={{ fontSize: '13px', color: '#5C6470', marginBottom: '4px' }}>HS code</div>
-          <div style={{ fontSize: '15px', fontWeight: 500, color: '#0E1116' }}>{hsCode}</div>
-        </div>
-      </div>
-
-      {/* Блок описания выводится снизу, забирая текст из about */}
+      {/* ИСПРАВЛЕНО: Описание теперь является абсолютно отдельной карточкой detail-card с чистым сквозным отступом */}
       {load.about && (
-        <div style={{ borderTop: '1px solid #E6E8EE', paddingTop: '20px', marginTop: '20px' }}>
-          <div style={{ fontSize: '13px', color: '#5C6470', marginBottom: '8px' }}>Description</div>
-          <div style={{ fontSize: '14px', lineHeight: '1.5', color: '#0E1116', whiteSpace: 'pre-wrap' }}>
+        <div className="detail-card">
+          <h3 className="dash-detail-specs-title">Description</h3>
+          <div style={{ 
+            padding: '16px', 
+            background: '#F6F7FB', 
+            borderRadius: '8px', 
+            fontSize: '14px', 
+            lineHeight: '1.6', 
+            color: '#0E1116', 
+            whiteSpace: 'pre-wrap',
+            border: '1px solid #E6E8EE'
+          }}>
             {load.about}
           </div>
         </div>
       )}
-
-    </div>
+    </>
   );
 };
