@@ -44,6 +44,7 @@ public class ChatController(IMediator mediator) : BaseController(mediator)
     [HttpGet("{id:guid}/messages")]
     public async Task<ActionResult<MessageVm[]>> GetHistory(Guid id, [FromQuery] int skip = 0, [FromQuery] int take = 50)
     {
+        
         return Ok(await Mediator.Send(new GetChatHistoryQuery 
         { 
             ChatId = id, 

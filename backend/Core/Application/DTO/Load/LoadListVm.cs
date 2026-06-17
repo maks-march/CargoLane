@@ -7,6 +7,7 @@ namespace Application.DTO.Load;
 public record LoadListVm : IMapWith<LoadEntity>
 {
     public Guid Id { get; init; }
+    public int Article { get; init; }
     public DateTime StartDate { get; set; }
     public double Payment { get; init; }
     
@@ -24,6 +25,7 @@ public record LoadListVm : IMapWith<LoadEntity>
     {
         profile.CreateMap<LoadEntity, LoadListVm>()
             // Берем города из первой и последней точек маршрута (safe against empty collections)
+            .ForMember(d => d.Article, opt => opt.MapFrom(s => s.Id.GetHashCode()%1000000))
             .ForMember(d => d.StartCity, opt => opt.MapFrom(s => 
                 s.RoutePoints.Any()
                     ? s.RoutePoints.OrderBy(rp => rp.OrderIndex).First().City 
