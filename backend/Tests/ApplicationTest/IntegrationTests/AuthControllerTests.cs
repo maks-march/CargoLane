@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using Application.CQRS.AuthCQ;
 using Application.CQRS.AuthCQ.ChangePassword;
 using Application.CQRS.AuthCQ.ConfirmEmail;
 using Application.CQRS.AuthCQ.ForgotPassword;
@@ -62,7 +61,7 @@ public class AuthControllerTests : BaseIntegrationTest
         };
         
         var response = await Client.PostAsJsonAsync("/api/Auth/login", loginCommand);
-        response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
     
     [Test]
@@ -78,7 +77,7 @@ public class AuthControllerTests : BaseIntegrationTest
         };
         
         var response = await Client.PostAsJsonAsync("/api/Auth/login", loginCommand);
-        response.StatusCode.Should().Be(System.Net.HttpStatusCode.NotFound);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Test]
@@ -118,9 +117,9 @@ public class AuthControllerTests : BaseIntegrationTest
         var responseInvalidRefresh = await Client.PostAsJsonAsync("/api/Auth/refresh", refreshCommandInvalidRefresh);
         
         responseInvalidAccess.IsSuccessStatusCode.Should().BeFalse();
-        responseInvalidAccess.StatusCode.Should().Be(System.Net.HttpStatusCode.Unauthorized);
+        responseInvalidAccess.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         responseInvalidRefresh.IsSuccessStatusCode.Should().BeFalse();
-        responseInvalidRefresh.StatusCode.Should().Be(System.Net.HttpStatusCode.Unauthorized);
+        responseInvalidRefresh.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
     
     [Test]
@@ -145,9 +144,9 @@ public class AuthControllerTests : BaseIntegrationTest
         var response2 = await Client.PostAsJsonAsync("/api/Auth/refresh", refreshCommand2);
         
         response.IsSuccessStatusCode.Should().BeFalse();
-        response.StatusCode.Should().Be(System.Net.HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         response2.IsSuccessStatusCode.Should().BeFalse();
-        response2.StatusCode.Should().Be(System.Net.HttpStatusCode.Unauthorized);
+        response2.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     #endregion
@@ -179,10 +178,11 @@ public class AuthControllerTests : BaseIntegrationTest
         var login = $"confirm-post-{Guid.NewGuid()}@test.com";
 
         // Register via Mediator (unconfirmed user + token)
-        var registerResult = await Mediator.Send(new RegisterCommand 
-        { 
-            Login = login, 
-            Password = Password 
+        var registerResult = await Mediator.Send(new RegisterCommand
+        {
+            Login = login,
+            Password = Password,
+            Username = ""
         });
 
         var confirmCommand = new ConfirmEmailCommand(registerResult.Id, registerResult.Token);
@@ -226,7 +226,7 @@ public class AuthControllerTests : BaseIntegrationTest
         var auth = await Register(login);
 
         // Fresh client with proper auth header
-        var client = _factory.CreateClient();
+        var client = Factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = 
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", auth.AccessToken);
 
@@ -262,7 +262,7 @@ public class AuthControllerTests : BaseIntegrationTest
         var login = $"changepass-bad-{Guid.NewGuid()}@test.com";
         var auth = await Register(login);
 
-        var client = _factory.CreateClient();
+        var client = Factory.CreateClient();
         client.DefaultRequestHeaders.Authorization = 
             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", auth.AccessToken);
 
@@ -322,7 +322,7 @@ public class AuthControllerTests : BaseIntegrationTest
         await Client.PostAsJsonAsync("/api/Auth/forgot-password", new ForgotPasswordCommand { Email = login });
 
         // 2. Obtain a real reset token the same way the email would have contained it
-        var userManager = _factory.Services.GetRequiredService<UserManager<ApplicationUser>>();
+        var userManager = Factory.Services.GetRequiredService<UserManager<ApplicationUser>>();
         var appUser = await userManager.FindByEmailAsync(login);
         appUser.Should().NotBeNull();
 

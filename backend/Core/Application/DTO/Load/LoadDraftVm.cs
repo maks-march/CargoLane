@@ -1,6 +1,7 @@
 using Application.Common.Mappings;
 using Domain.Models.Load;
 using AutoMapper;
+using Domain.Enums.Load;
 
 namespace Application.DTO.Load;
 
@@ -27,7 +28,7 @@ public record LoadDraftVm : IMapWith<LoadDraft>
             .ForMember(d => d.Type, opt =>
             {
                 opt.Condition(s => s.Type != null);
-                opt.MapFrom(s => s.Type.ToString());
+                opt.MapFrom(s => s.Type == null ? PayloadType.Boxes.ToString() : s.Type.ToString());
             });
     }
 }

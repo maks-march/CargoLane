@@ -7,5 +7,5 @@ public record UploadLoadFilesCommand : IRequest<string[]>
 {
     public Guid LoadId { get; set; }
     public Guid UserId { get; set; }
-    public IFormFile[] Files { get; set; }
+    public IFormFile[] Files { get; set; } = [];
 }

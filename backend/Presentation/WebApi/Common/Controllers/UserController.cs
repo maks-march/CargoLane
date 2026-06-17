@@ -10,6 +10,7 @@ using Application.DTO.User;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Common.Controllers.Abstract;
 using WebApi.DTO;
 
 namespace WebApi.Common.Controllers;

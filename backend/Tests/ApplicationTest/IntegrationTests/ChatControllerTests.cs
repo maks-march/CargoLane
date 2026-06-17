@@ -101,4 +101,57 @@ public class ChatTests : ChatTestBase
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
+    
+    
+    #region Previously untested: GET /{userId} and start with loadId
+
+    [Test]
+    public async Task GetChatsForSpecificUser_ShouldReturnUserChats()
+    {
+        // Arrange: A starts chat with B
+        SetAuth(AuthA);
+        var chatId = await StartChat(AuthB.UserId);
+        await SendMessage(chatId, "Hello from A");
+
+        // Act: query chats for B using the previously untested endpoint
+        SetAuth(AuthB);
+        var chatsForB = await GetChatsForUser(AuthB.UserId);
+
+        // Assert
+        chatsForB.Should().NotBeEmpty();
+        chatsForB.Should().Contain(c => c.Id == chatId);
+    }
+
+    [Test]
+    public async Task StartChat_WithLoadId_ShouldSucceed()
+    {
+        // Arrange: create a load owned by B (so the chat can be associated)
+        SetAuth(AuthB);
+        var loadId = await CreateLoadForChat(); // we'll add a minimal helper below if needed, or reuse logic
+
+        SetAuth(AuthA);
+        // Act
+        var chatId = await StartChatWithLoad(AuthB.UserId, loadId);
+
+        // Assert
+        chatId.Should().NotBeEmpty();
+
+        // Verify chat exists in my list
+        var myChats = await GetMyChats();
+        myChats.Should().Contain(c => c.Id == chatId);
+    }
+
+    [Test]
+    public async Task GetChatsForAnotherUser_WhenNotParticipant_ShouldStillReturnIfPublicOrEmpty()
+    {
+        // Current behavior: the endpoint just returns chats for that userId (no strict auth check in controller)
+        // We mainly ensure it doesn't crash and returns data for the requested user
+        SetAuth(AuthA);
+        var chats = await GetChatsForUser(AuthC.UserId);
+        chats.Should().NotBeNull(); // at minimum doesn't throw
+    }
+
+    #endregion
+
+
 }

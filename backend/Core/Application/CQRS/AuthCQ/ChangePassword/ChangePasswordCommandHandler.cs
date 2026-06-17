@@ -1,7 +1,6 @@
 using Application.Common.Exceptions;
 using Application.Interfaces.Auth;
 using MediatR;
-using Microsoft.AspNetCore.Identity;
 
 namespace Application.CQRS.AuthCQ.ChangePassword;
 

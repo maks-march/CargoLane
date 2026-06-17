@@ -101,7 +101,7 @@ public class LoadControllerTests : LoadTestBase
     [Test]
     public async Task GetMyLoads_ShouldReturnUnauthorized_WhenAnonymous()
     {
-        var anonymousClient = _factory.CreateClient();
+        var anonymousClient = Factory.CreateClient();
 
         var response = await anonymousClient.GetAsync($"{LoadBaseUrl}/me");
 
@@ -153,7 +153,7 @@ public class LoadControllerTests : LoadTestBase
     [Test]
     public async Task Create_ShouldReturnUnauthorized_WhenAnonymous()
     {
-        var anonymousClient = _factory.CreateClient();
+        var anonymousClient = Factory.CreateClient();
         var command = CreateValidLoadCommand("Anonymous load");
 
         var response = await anonymousClient.PostAsJsonAsync(LoadBaseUrl, command);
@@ -260,7 +260,7 @@ public class LoadControllerTests : LoadTestBase
         SetAuth(AuthA);
         var loadId = await CreateLoad(CreateValidLoadCommand("Load anonymous upload"));
         var fileBytes = CreateFakeJpegBytes();
-        var anonymousClient = _factory.CreateClient();
+        var anonymousClient = Factory.CreateClient();
 
         using var content = new MultipartFormDataContent();
         var fileContent = new ByteArrayContent(fileBytes);
@@ -315,6 +315,145 @@ public class LoadControllerTests : LoadTestBase
             userDetails.Payloads[0].Length.Should().BeApproximately(rawDetails.Payloads[0].Length, 0.01);
             userDetails.Payloads[0].Weight.Should().BeApproximately(rawDetails.Payloads[0].Weight, 0.01);
         }
+    }
+
+    #endregion
+
+    #region Save / Unsave functionality (previously untested)
+
+    [Test]
+    public async Task SaveLoad_ShouldAddToSaved_AndReturnTrue()
+    {
+        // Arrange
+        SetAuth(AuthA);
+        var loadId = await CreateLoad(CreateValidLoadCommand("Load to save"));
+
+        // Act
+        var result = await SaveLoad(loadId);
+
+        // Assert
+        result.Should().BeTrue(); // first save returns true (was added)
+
+        var saved = await GetMySavedLoads();
+        saved.Should().Contain(l => l.Id == loadId);
+    }
+
+    [Test]
+    public async Task SaveLoad_Twice_ShouldToggle_AndReturnFalseOnSecond()
+    {
+        SetAuth(AuthA);
+        var loadId = await CreateLoad(CreateValidLoadCommand("Toggle save"));
+
+        var first = await SaveLoad(loadId);
+        first.Should().BeTrue();
+
+        var second = await SaveLoad(loadId);
+        second.Should().BeFalse(); // removed
+
+        var saved = await GetMySavedLoads();
+        saved.Should().NotContain(l => l.Id == loadId);
+    }
+
+    [Test]
+    public async Task GetMySavedLoads_ShouldReturnOnlySavedForCurrentUser()
+    {
+        SetAuth(AuthA);
+        var loadA = await CreateLoad(CreateValidLoadCommand("A's load"));
+        await SaveLoad(loadA);
+
+        SetAuth(AuthB);
+        var loadB = await CreateLoad(CreateValidLoadCommand("B's load"));
+        await SaveLoad(loadB);
+
+        SetAuth(AuthA);
+        var savedA = await GetMySavedLoads();
+
+        savedA.Should().Contain(l => l.Id == loadA);
+        savedA.Should().NotContain(l => l.Id == loadB);
+    }
+
+    [Test]
+    public async Task SaveLoad_NonExistent_ShouldReturnNotFound()
+    {
+        SetAuth(AuthA);
+        var nonExistent = Guid.NewGuid();
+
+        var response = await Client.PostAsync($"{LoadBaseUrl}/{nonExistent}/save", null);
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task SaveLoad_Anonymous_ShouldBeUnauthorized()
+    {
+        SetAuth(AuthA);
+        var loadId = await CreateLoad(CreateValidLoadCommand("Anon save test"));
+
+        var anonClient = Factory.CreateClient();
+        var response = await anonClient.PostAsync($"{LoadBaseUrl}/{loadId}/save", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    #endregion
+
+    #region Stats endpoint (previously untested)
+
+    [Test]
+    public async Task Stats_ShouldReturnValidStatsDto()
+    {
+        SetAuth(AuthA);
+        await CreateLoad(CreateValidLoadCommand("Stats load 1"));
+        await CreateLoad(CreateValidLoadCommand("Stats load 2"));
+
+        // Call via Load controller (stats is inherited from BaseController)
+        var response = await Client.GetAsync($"{LoadBaseUrl}/stats");
+        response.IsSuccessStatusCode.Should().BeTrue();
+
+        var stats = await response.Content.ReadFromJsonAsync<dynamic>();
+        stats?.Should().NotBeNull();
+        // At least check some fields exist
+        ((int)(stats?.uploads ?? 0)).Should().BeGreaterThanOrEqualTo(2);
+        ((int)(stats?.users ?? 0)).Should().BeGreaterThanOrEqualTo(1);
+    }
+
+    #endregion
+
+
+    #region Load list filter coverage (previously very limited)
+
+    [Test]
+    public async Task GetList_ShouldFilterBySearchBy()
+    {
+        SetAuth(AuthA);
+        var expectedId = await CreateLoad(CreateValidLoadCommand("UniqueSearchTerm123 Cargo"));
+        await CreateLoad(CreateValidLoadCommand("Other load"));
+
+        var result = await GetAllLoadsWithFullFilter(searchBy: "UniqueSearchTerm123", status: "Pending");
+        result.Should().Contain(l => l.Id == expectedId);
+    }
+
+    [Test]
+    public async Task GetList_ShouldSupportDifferentStatuses()
+    {
+        SetAuth(AuthA);
+        var loadId = await CreateLoad(CreateValidLoadCommand("Status test"));
+
+        var pending = await GetAllLoadsWithFilter(status: "Pending");
+        pending.Should().Contain(l => l.Id == loadId);
+
+        var closed = await GetAllLoadsWithFilter(status: "Closed");
+        closed.Should().NotContain(l => l.Id == loadId);
+    }
+
+    [Test]
+    public async Task GetList_ShouldSupportSortBy()
+    {
+        SetAuth(AuthA);
+        await CreateLoad(CreateValidLoadCommandWithPayment("Sort test low", 100));
+        await CreateLoad(CreateValidLoadCommandWithPayment("Sort test high", 9999));
+
+        var byPaymentDesc = await Client.GetAsync($"{LoadBaseUrl}?sortBy=Payment&isDescending=true");
+        byPaymentDesc.IsSuccessStatusCode.Should().BeTrue();
     }
 
     #endregion

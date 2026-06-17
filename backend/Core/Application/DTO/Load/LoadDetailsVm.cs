@@ -21,6 +21,10 @@ public record LoadDetailsVm : IMapWith<LoadEntity>
     public double Distance { get; set; } = 0;
     public string Duration { get; set; } = "00:00:00";
     public Guid UserId { get; init; }
+    
+    public string ReviewerName  { get; set; } = string.Empty;
+    public string RejectReason { get; set; } = string.Empty;
+    public DateTime ReviewDate { get; set; } = DateTime.MinValue;
     // Вложенные коллекции
     public IList<PayloadVm> Payloads { get; init; } = [];
     public IList<LoadRoutePointVm> RoutePoints { get; init; } = [];

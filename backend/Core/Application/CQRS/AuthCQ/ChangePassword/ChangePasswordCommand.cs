@@ -1,6 +1,3 @@
-/// <summary>
-/// Смена пароля авторизованного пользователя.
-/// </summary>
 using MediatR;
 
 namespace Application.CQRS.AuthCQ.ChangePassword;

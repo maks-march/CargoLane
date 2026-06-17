@@ -1,5 +1,6 @@
 using FluentValidation;
-using Domain.Enums.Load; // Подключи свои enum, чтобы проверить валидность строк
+
+// Подключи свои enum, чтобы проверить валидность строк
 
 namespace Application.CQRS.LoadCQ.Commands.CreateLoad;
 

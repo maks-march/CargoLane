@@ -18,5 +18,5 @@ public record RegisterCommand : IRequest<RegisterResponse>
     /// <summary>
     /// Отображаемое имя пользователя.
     /// </summary>
-    public string Username { get; init; }
+    public required string Username { get; init; }
 }

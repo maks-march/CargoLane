@@ -1,7 +1,5 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text.Json;
-using Application.CQRS.AuthCQ;
 using Application.CQRS.AuthCQ.ConfirmEmail;
 using Application.CQRS.AuthCQ.Login;
 using Application.CQRS.AuthCQ.Refresh;
@@ -10,6 +8,7 @@ using Application.DTO.Auth;
 using Application.Interfaces;
 using FluentAssertions;
 using MediatR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using WebApi.DTO;
 
@@ -18,28 +17,45 @@ namespace ApplicationTest.Common;
 [TestFixture]
 public abstract class BaseIntegrationTest
 {
-    protected TestWebApplicationFactory<Program> _factory;
+    protected TestWebApplicationFactory<Program> Factory;
     protected HttpClient Client;
     protected IFileService FileService;
     protected IMediator Mediator;
+    public IConfiguration Configuration;
     
     protected const string Password = "Password123!";
     protected string Login = "RequestAuthor@mail.ru";
     protected AuthResponse Tokens;
+    protected AuthResponse AdminTokens;
 
     [OneTimeSetUp]
     public void OneTimeSetUp()
     {
-        _factory = new TestWebApplicationFactory<Program>();
-        Client = _factory.CreateClient();
-        Mediator = _factory.Services.GetService<IMediator>() ?? new MediatR.Mediator(_factory.Services);
-        FileService = _factory.Services.GetService<IFileService>() 
+        Factory = new TestWebApplicationFactory<Program>();
+        Client = Factory.CreateClient();
+        Configuration = Factory.Services.GetRequiredService<IConfiguration>();
+        Mediator = Factory.Services.GetService<IMediator>() ?? new MediatR.Mediator(Factory.Services);
+        FileService = Factory.Services.GetService<IFileService>() 
             ?? throw new NullReferenceException("File service not found in DI");
         
-        Tokens = Register(Login).Result!;
+        var response = Client.PostAsJsonAsync("/api/Auth/login", new LoginCommand()
+        {
+            Login = Configuration["Admin:Login"] ?? "",
+            Password = Configuration["Admin:Password"] ?? ""
+        });
+        AdminTokens = ExtractFromResponse<AuthResponse>(response.Result).Result ?? throw new InvalidOperationException();
+        
+        Tokens = Register(Login).Result;
         Tokens.Should().NotBeNull();
         Client.DefaultRequestHeaders.Authorization = 
             new AuthenticationHeaderValue("Bearer", Tokens.AccessToken);
+    }
+
+
+    protected void SetAuth(AuthResponse auth)
+    {
+        Client.DefaultRequestHeaders.Authorization = 
+            new AuthenticationHeaderValue("Bearer", auth.AccessToken);
     }
     
     protected async Task<AuthResponse> Register(string login)
@@ -47,11 +63,12 @@ public abstract class BaseIntegrationTest
         var registerCommand = new RegisterCommand
         {
             Login = login,
-            Password = Password
+            Password = Password,
+            Username = ""
         };
         var registerResult = await Mediator.Send(registerCommand);
         var confirmCommand = new ConfirmEmailCommand(registerResult.Id, registerResult.Token);
-        var confirmResult = await Mediator.Send(confirmCommand);
+        await Mediator.Send(confirmCommand);
         
         var loginCommand = new LoginCommand
         {
@@ -68,15 +85,19 @@ public abstract class BaseIntegrationTest
     
     protected async Task<AuthResponse?> Refresh(AuthResponse? authResponse)
     {
-        var command = new RefreshCommand
+        if (authResponse?.AccessToken != null)
         {
-            AccessToken = authResponse!.AccessToken,
-            RefreshToken = authResponse.RefreshToken,
-        };
-        var response = await Client.PostAsJsonAsync("/api/Auth/refresh", command);
+            var command = new RefreshCommand
+            {
+                AccessToken = authResponse.AccessToken,
+                RefreshToken = authResponse.RefreshToken,
+            };
+            var response = await Client.PostAsJsonAsync("/api/Auth/refresh", command);
         
-        response.IsSuccessStatusCode.Should().BeTrue();
-        return await response.Content.ReadFromJsonAsync<AuthResponse>();
+            response.IsSuccessStatusCode.Should().BeTrue();
+            return await response.Content.ReadFromJsonAsync<AuthResponse>();
+        }
+        throw new InvalidOperationException();
     }
     
     protected static async Task<T?> ExtractFromResponse<T>(HttpResponseMessage response)
@@ -141,6 +162,6 @@ public abstract class BaseIntegrationTest
     public void OneTimeTearDown()
     {
         Client.Dispose();
-        _factory.Dispose();
+        Factory.Dispose();
     }
 }

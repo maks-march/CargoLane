@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using Application.CQRS.AuthCQ.Login;
 using Application.CQRS.UserCQ.Commands.Update;
 using Application.DTO.User;
 using ApplicationTest.Common;
@@ -61,6 +62,7 @@ public class UserControllerTests : BaseIntegrationTest
     [Test]
     public async Task GetList_WithValidCredentials_ShouldBeOk()
     {
+        SetAuth(AdminTokens);
         var response = await Client.GetAsync(BaseUrl);
         
         response.IsSuccessStatusCode.Should().BeTrue();
@@ -263,4 +265,67 @@ public class UserControllerTests : BaseIntegrationTest
         // Assert
         response.IsSuccessStatusCode.Should().BeTrue();
     }
+    #region DeleteMe & Deactivate (previously untested)
+
+    [Test]
+    public async Task DeleteMe_ShouldRemoveUser_AndReturnNoContent()
+    {
+        // Arrange: register a fresh user
+        var login = $"delete-me-{Guid.NewGuid()}@test.com";
+        var auth = await Register(login);  // uses Mediator + login inside base
+
+        var client = Factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = 
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", auth.AccessToken);
+
+        // Act
+        var response = await client.DeleteAsync($"{BaseUrl}me");
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // Verify user is gone (should 404 now)
+        var getResponse = await client.GetAsync($"{BaseUrl}{auth.UserId}"); // if id available
+        // Note: AuthResponse may not expose Id directly in all cases, so we just check that GET me would fail
+        // Better: try to login again
+        var loginResp = await Client.PostAsJsonAsync("/api/Auth/login", new LoginCommand
+        {
+            Login = login,
+            Password = Password
+        });
+        // After deletion login should fail (user gone)
+        loginResp.IsSuccessStatusCode.Should().BeFalse();
+    }
+
+    [Test]
+    public async Task Deactivate_ShouldLockUser_Out()
+    {
+        var login = $"deactivate-{Guid.NewGuid()}@test.com";
+        var auth = await Register(login);
+
+        var client = Factory.CreateClient();
+        client.DefaultRequestHeaders.Authorization = 
+            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", auth.AccessToken);
+
+        var deactivateResp = await client.PostAsync($"{BaseUrl}deactivate", null);
+        deactivateResp.IsSuccessStatusCode.Should().BeTrue();
+
+        // After deactivate, login should fail (locked)
+        var loginResp = await Client.PostAsJsonAsync("/api/Auth/login", new Application.CQRS.AuthCQ.Login.LoginCommand
+        {
+            Login = login,
+            Password = Password
+        });
+        loginResp.IsSuccessStatusCode.Should().BeFalse();
+    }
+
+    [Test]
+    public async Task Deactivate_WithoutAuth_ShouldBeUnauthorized()
+    {
+        var unauth = Factory.CreateClient();
+        var resp = await unauth.PostAsync($"{BaseUrl}deactivate", null);
+        resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    #endregion
 }

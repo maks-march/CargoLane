@@ -1,4 +1,3 @@
-using Application.CQRS.ChatCQ.Commands;
 using Application.Interfaces.Auth;
 using MediatR;
 

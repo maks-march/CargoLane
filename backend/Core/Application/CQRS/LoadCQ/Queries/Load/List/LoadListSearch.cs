@@ -1,6 +1,4 @@
 using Application.Common.Extensions;
-using Application.Interfaces;
-using AutoMapper;
 using Domain.Models.Load;
 
 namespace Application.CQRS.LoadCQ.Queries.Load.List;

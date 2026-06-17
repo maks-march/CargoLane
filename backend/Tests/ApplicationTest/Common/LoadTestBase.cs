@@ -1,15 +1,10 @@
-using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Application.CQRS.LoadCQ.Commands;
 using Application.CQRS.LoadCQ.Commands.CreateLoad;
 using Application.CQRS.LoadCQ.Commands.Draft.Create;
 using Application.DTO.Auth;
 using Application.DTO.Load;
-using ApplicationTest.Common;
-using Domain.Models.Load;
-using FluentAssertions;
 
 namespace ApplicationTest.Common;
 
@@ -29,23 +24,11 @@ public abstract class LoadTestBase : BaseIntegrationTest
         AuthC = await Register("LoadUserC_2026@mail.ru");
     }
 
-    protected void SetAuth(AuthResponse auth)
-    {
-        Client.DefaultRequestHeaders.Authorization = 
-            new AuthenticationHeaderValue("Bearer", auth.AccessToken);
-    }
-
-    [TearDown]
-    public void ResetLoadAuth()
-    {
-        Client.DefaultRequestHeaders.Authorization = 
-            new AuthenticationHeaderValue("Bearer", Tokens.AccessToken);
-    }
 
     // --- Public list (GET /api/Load) ---
     protected async Task<LoadListVm[]> GetAllLoads(bool anonymous = false)
     {
-        var client = anonymous ? _factory.CreateClient() : Client;
+        var client = anonymous ? Factory.CreateClient() : Client;
         var response = await client.GetAsync(LoadBaseUrl + "?status=Pending");
         return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
     }
@@ -75,16 +58,16 @@ public abstract class LoadTestBase : BaseIntegrationTest
     // --- Details (public) ---
     protected async Task<LoadDetailsVm> GetLoadDetails(Guid id, bool anonymous = false)
     {
-        var client = anonymous ? _factory.CreateClient() : Client;
+        var client = anonymous ? Factory.CreateClient() : Client;
         var response = await client.GetAsync($"{LoadBaseUrl}/{id}");
-        return await ExtractFromResponse<LoadDetailsVm>(response);
+        return await ExtractFromResponse<LoadDetailsVm>(response) ?? new();
     }
 
     // --- Drafts ---
     protected async Task<LoadDraftVm> GetDraft(Guid id)
     {
         var response = await Client.GetAsync($"{LoadBaseUrl}/draft/{id}");
-        return await ExtractFromResponse<LoadDraftVm>(response);
+        return await ExtractFromResponse<LoadDraftVm>(response) ?? new();
     }
 
     // --- Create ---
@@ -134,7 +117,7 @@ public abstract class LoadTestBase : BaseIntegrationTest
     /// </summary>
     protected async Task<string[]> GetLoadFilePaths(Guid loadId, bool anonymous = false)
     {
-        var client = anonymous ? _factory.CreateClient() : Client;
+        var client = anonymous ? Factory.CreateClient() : Client;
         var response = await client.GetAsync($"{LoadBaseUrl}/{loadId}");
         response.EnsureSuccessStatusCode();
 
@@ -146,9 +129,9 @@ public abstract class LoadTestBase : BaseIntegrationTest
             if (root.TryGetProperty(propName, out var prop) && prop.ValueKind == JsonValueKind.Array)
             {
                 return prop.EnumerateArray()
-                    .Select(x => x.GetString())
+                    .Select(x => x.GetString() ?? "")
                     .Where(s => !string.IsNullOrEmpty(s))
-                    .ToArray()!;
+                    .ToArray();
             }
         }
 
@@ -265,4 +248,49 @@ public abstract class LoadTestBase : BaseIntegrationTest
             }
         };
     }
+    
+    // --- Save / Unsave helpers ---
+    protected async Task<bool> SaveLoad(Guid loadId)
+    {
+        var response = await Client.PostAsync($"{LoadBaseUrl}/{loadId}/save", null);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadFromJsonAsync<bool>();
+    }
+
+    protected async Task<LoadListVm[]> GetMySavedLoads()
+    {
+        var response = await Client.GetAsync($"{LoadBaseUrl}/user/saved");
+        return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
+    }
+
+    protected CreateLoadCommand CreateValidLoadCommandWithPayment(string about, double payment)
+    {
+        var cmd = CreateValidLoadCommand(about);
+        cmd.Payment = payment;
+        return cmd;
+    }
+
+    // Enhanced filter helper supporting more params
+    protected async Task<LoadListVm[]> GetAllLoadsWithFullFilter(
+        string? searchBy = null,
+        string? startCity = null,
+        string? endCity = null,
+        string? status = null,
+        string? sortBy = null,
+        bool isDescending = false)
+    {
+        var queryParams = new List<string>();
+        if (!string.IsNullOrEmpty(searchBy)) queryParams.Add($"searchBy={Uri.EscapeDataString(searchBy)}");
+        if (!string.IsNullOrEmpty(startCity)) queryParams.Add($"StartCity={Uri.EscapeDataString(startCity)}");
+        if (!string.IsNullOrEmpty(endCity)) queryParams.Add($"EndCity={Uri.EscapeDataString(endCity)}");
+        if (!string.IsNullOrEmpty(status)) queryParams.Add($"Status={status}");
+        if (!string.IsNullOrEmpty(sortBy)) queryParams.Add($"SortBy={sortBy}");
+        if (isDescending) queryParams.Add("IsDescending=true");
+
+        var query = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
+        var response = await Client.GetAsync($"{LoadBaseUrl}{query}");
+        return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
+    }
 }
+
+

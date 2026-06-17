@@ -33,7 +33,7 @@ public class SwaggerJsonDefault : Attribute
     /// <param name="count">количество элементов</param>
     public SwaggerJsonDefault(Type exampleType, int count = 0)
     {
-        if (exampleType == typeof(DateOnly))
+        if (exampleType == typeof(DateOnly) || exampleType == typeof(DateTime) )
         {
             ExampleJson = DateTime.Now.AddDays(1).ToDateOnly().ToString("yyyy-MM-dd");
             return;

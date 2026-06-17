@@ -1,4 +1,3 @@
-using Domain.Enums.Load;
 using Domain.Models.Abstract;
 
 namespace Domain.Models.Load;

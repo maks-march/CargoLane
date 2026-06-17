@@ -1,6 +1,5 @@
 using Application.CQRS.LoadCQ.Commands.CreateLoad;
 using FluentValidation;
-using Domain.Enums.Load;
 
 namespace Application.CQRS.LoadCQ.Commands.Draft.Create;
 

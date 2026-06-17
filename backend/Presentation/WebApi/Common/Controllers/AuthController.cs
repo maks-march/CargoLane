@@ -1,4 +1,3 @@
-using Application.CQRS.AuthCQ;
 using Application.CQRS.AuthCQ.ChangePassword;
 using Application.CQRS.AuthCQ.ConfirmEmail;
 using Application.CQRS.AuthCQ.ForgotPassword;
@@ -12,6 +11,7 @@ using Application.Interfaces.Auth;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Common.Controllers.Abstract;
 using WebApi.DTO;
 
 namespace WebApi.Common.Controllers;

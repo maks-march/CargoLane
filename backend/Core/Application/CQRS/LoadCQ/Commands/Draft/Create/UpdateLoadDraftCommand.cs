@@ -1,7 +1,6 @@
 using Application.Common.Mappings;
 using Application.CQRS.LoadCQ.Commands.CreateLoad;
 using AutoMapper;
-using Domain.Enums.Load;
 using Domain.Models.Abstract;
 using Domain.Models.Load;
 

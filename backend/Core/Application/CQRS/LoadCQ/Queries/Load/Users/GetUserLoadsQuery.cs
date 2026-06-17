@@ -1,5 +1,4 @@
 using Application.DTO.Load;
-using Domain.Enums.Load;
 using MediatR;
 
 namespace Application.CQRS.LoadCQ.Queries.Load.Users;

@@ -1,11 +1,9 @@
-using Application.CQRS.LoadCQ.Commands;
 using Application.CQRS.LoadCQ.Commands.CreateLoad;
 using Application.CQRS.LoadCQ.Commands.DeleteLoad;
 using Application.CQRS.LoadCQ.Commands.Draft;
 using Application.CQRS.LoadCQ.Commands.Draft.Create;
 using Application.CQRS.LoadCQ.Commands.SaveLoad;
 using Application.CQRS.LoadCQ.Commands.UploadFiles;
-using Application.CQRS.LoadCQ.Queries;
 using Application.CQRS.LoadCQ.Queries.Draft;
 using Application.CQRS.LoadCQ.Queries.Load.Detail;
 using Application.CQRS.LoadCQ.Queries.Load.List;
@@ -16,7 +14,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.DTO;
 using Application.DTO.Load;
-using Domain.Enums.Load;
+using WebApi.Common.Controllers.Abstract;
 
 namespace WebApi.Common.Controllers;
 
@@ -24,11 +22,8 @@ namespace WebApi.Common.Controllers;
 /// Контроллер по управлению грузами (Load) и черновиками (Draft)
 /// </summary>
 [Authorize]
-public class LoadController(IMediator mediator) : BaseController(mediator)
+public class LoadController(IMediator mediator) : BaseLoadController(mediator)
 {
-    protected double ToFt = 1 / 0.3048;
-    protected double ToMeter = 0.3048;
-        
     #region Основные грузы (LoadEntity)
 
     /// <summary>
@@ -236,71 +231,4 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     }
 
     #endregion
-
-    private LoadDetailsVm ChangeVmForUser(LoadDetailsVm vm)
-    {
-        if (UserId == Guid.Empty) return vm;
-        var settings = UserSettings;
-        foreach (var route in vm.RoutePoints)
-        {
-            route.ArrivalTime = route.ArrivalTime.AddHours(settings.timezone);
-        }
-
-        if (!settings.isMetric)
-        {
-            vm.TotalWeight *= ToFt;
-            vm.TotalVolume *= ToFt;
-            foreach (var payload in vm.Payloads)
-            {
-                payload.Height *= ToFt;
-                payload.Width *= ToFt;
-                payload.Length *= ToFt;
-
-                payload.Weight *= 2.20462;
-            }
-        }
-
-        return vm;
-    }
-    
-    private LoadListVm[] ChangeListVmForUser(LoadListVm[] vms)
-    {
-        if (UserId == Guid.Empty) return vms;
-        var settings = UserSettings;
-        foreach (var vm in vms)
-        {
-            vm.StartDate = vm.StartDate.AddHours(settings.timezone);
-            if (!settings.isMetric)
-            {
-                vm.TotalWeight *= ToFt;
-                vm.TotalVolume *= ToFt;
-            }
-        }
-
-        return vms;
-    }
-    
-    private LoadDraftVm ChangeDraftVmForUser(LoadDraftVm vm)
-    {
-        if (UserId == Guid.Empty) return vm;
-        var settings = UserSettings;
-        foreach (var route in vm.RoutePoints)
-        {
-            route.ArrivalTime = route.ArrivalTime.AddHours(settings.timezone);
-        }
-
-        if (!settings.isMetric)
-        {
-            foreach (var payload in vm.Payloads)
-            {
-                payload.Height *= ToFt;
-                payload.Width *= ToFt;
-                payload.Length *= ToFt;
-
-                payload.Weight *= 2.20462;
-            }
-        }
-
-        return vm;
-    }
 }

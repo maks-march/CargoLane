@@ -1,5 +1,5 @@
+using Application.Common.Exceptions;
 using Application.DTO.Auth;
-using Domain.Models;
 using Microsoft.AspNetCore.Identity;
 using WebApi.DTO;
 
@@ -20,6 +20,8 @@ public class UserStatusMiddleware
         if (context.User.Identity?.IsAuthenticated == true)
         {
             var userId = userManager.GetUserId(context.User);
+            if (userId == null)
+                throw new ForbiddenException("User not found", Guid.Empty);
             var user = await userManager.FindByIdAsync(userId);
 
             // Если пользователя нет или он заблокирован

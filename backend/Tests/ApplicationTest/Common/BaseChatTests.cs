@@ -1,5 +1,6 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Application.CQRS.LoadCQ.Commands.CreateLoad;
 using Application.DTO.Auth;
 using Application.DTO.Chat;
 
@@ -25,13 +26,6 @@ public abstract class ChatTestBase : BaseIntegrationTest
         AuthC = await Register(LoginC);
     }
     
-    // Хелпер для смены токена
-    protected void SetAuth(AuthResponse auth)
-    {
-        Client.DefaultRequestHeaders.Authorization = 
-            new AuthenticationHeaderValue("Bearer", auth.AccessToken);
-    }
-
     // Сброс на базового юзера из BaseIntegrationTest
     [TearDown]
     public void ResetAuth()
@@ -64,5 +58,47 @@ public abstract class ChatTestBase : BaseIntegrationTest
     {
         var response = await Client.GetAsync($"{BaseUrl}/{chatId}/messages?skip={skip}&take={take}");
         return await ExtractFromResponse<MessageVm[]>(response) ?? Array.Empty<MessageVm>();
+    }
+
+    // New helper for GET /api/Chat/{userId} (previously untested)
+    protected async Task<ChatVm[]> GetChatsForUser(Guid userId)
+    {
+        var response = await Client.GetAsync($"{BaseUrl}/{userId}");
+        return await ExtractFromResponse<ChatVm[]>(response) ?? Array.Empty<ChatVm>();
+    }
+
+    // Helper to start chat with loadId (previously untested path)
+    protected async Task<Guid> StartChatWithLoad(Guid targetUserId, Guid loadId)
+    {
+        var response = await Client.PostAsync($"{BaseUrl}/start/{targetUserId}?loadId={loadId}", null);
+        return await ExtractFromResponse<Guid>(response);
+    }
+
+    // Minimal helper to create a load for chat association tests (reuses LoadController logic)
+    protected async Task<Guid> CreateLoadForChat(
+        string about = "Chat load",
+        string startCity = "Yekaterinburg",
+        string endCity = "Moscow")
+    {
+        var command = new CreateLoadCommand
+        {
+            Payment = 1000,
+            About = about,
+            CargoType = about,
+            VehicleTypes = [about],
+            Distance = 1,
+            Payloads = new List<PayloadInputDto>
+            {
+                new() { Length = 100, Width = 50, Height = 40, Weight = 200, Amount = 1, Type = "Boxes" }
+            },
+            RoutePoints = new List<RoutePointInputDto>
+            {
+                new() { City = startCity, Address = "Start", ArrivalTime = DateTime.UtcNow.AddDays(1) },
+                new() { City = endCity, Address = "End", ArrivalTime = DateTime.UtcNow.AddDays(3) }
+            }
+        };
+
+        var response = await Client.PostAsJsonAsync("/api/Load", command);
+        return await ExtractFromResponse<Guid>(response);
     }
 }

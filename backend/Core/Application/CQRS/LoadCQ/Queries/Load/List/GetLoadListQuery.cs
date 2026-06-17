@@ -18,7 +18,7 @@ public record GetLoadListQuery : IRequest<LoadListVm[]>
     public double? Volume { get; set; }
     
     [DefaultValue("Active")]
-    public string? Status { get; set; } = nameof(LoadStatus.Active);
+    public string? Status { get; set; } = LoadStatus.Active.ToString();
 
     public SortChoices SortBy { get; set; } = SortChoices.PublicationDate;
     public bool IsDescending = false;

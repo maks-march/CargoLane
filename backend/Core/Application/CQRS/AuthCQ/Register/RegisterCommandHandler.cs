@@ -7,7 +7,6 @@ namespace Application.CQRS.AuthCQ.Register;
 
 public class RegisterCommandHandler(
     IIdentityService identityService,
-    IJwtProvider jwtProvider,
     IEmailService emailService,
     UserManager<ApplicationUser> userManager)
     : IRequestHandler<RegisterCommand, RegisterResponse>

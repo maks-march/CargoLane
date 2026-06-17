@@ -4,6 +4,7 @@ using Application.DTO.Chat;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using WebApi.Common.Controllers.Abstract;
 
 namespace WebApi.Common.Controllers;
 

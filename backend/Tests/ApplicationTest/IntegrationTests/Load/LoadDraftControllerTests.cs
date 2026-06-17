@@ -1,6 +1,5 @@
 using System.Net;
 using System.Net.Http.Json;
-using Application.CQRS.LoadCQ.Commands.CreateLoad;
 using Application.CQRS.LoadCQ.Commands.Draft.Create;
 using Application.DTO.Load;
 using ApplicationTest.Common;
@@ -31,9 +30,9 @@ public class LoadDraftControllerTests : LoadTestBase
     
         // ПРОВЕРКА Payload и RoutePoints
         draft.Payloads.Should().NotBeEmpty();
-        draft.Payloads.First().Weight.Should().Be(command.Payloads.First().Weight);
+        draft.Payloads.First().Weight.Should().Be(command.Payloads?.First().Weight);
         draft.RoutePoints.Should().NotBeEmpty();
-        draft.RoutePoints.First().City.Should().Be(command.RoutePoints.First().City);
+        draft.RoutePoints.First().City.Should().Be(command.RoutePoints?.First().City);
     }
 
     [Test]
@@ -41,7 +40,7 @@ public class LoadDraftControllerTests : LoadTestBase
     {
         // Arrange
         var command = CreateValidDraftCommand("Unauthorized draft");
-        var client = _factory.CreateClient(); // Анонимный клиент
+        var client = Factory.CreateClient(); // Анонимный клиент
 
         // Act
         var response = await client.PostAsJsonAsync($"{LoadBaseUrl}/draft", command);
@@ -101,7 +100,7 @@ public class LoadDraftControllerTests : LoadTestBase
     [Test]
     public async Task GetMyDrafts_ShouldReturnUnauthorized_WhenAnonymous()
     {
-        var anonymousClient = _factory.CreateClient();
+        var anonymousClient = Factory.CreateClient();
 
         var response = await anonymousClient.GetAsync($"{LoadBaseUrl}/draft/me");
 
@@ -163,7 +162,7 @@ public class LoadDraftControllerTests : LoadTestBase
         // Arrange
         SetAuth(AuthA);
         var draftId = await CreateDraft(CreateValidDraftCommand("Draft auth"));
-        var anonymousClient = _factory.CreateClient();
+        var anonymousClient = Factory.CreateClient();
 
         // Act
         var response = await anonymousClient.GetAsync($"{LoadBaseUrl}/draft/{draftId}");
@@ -350,22 +349,24 @@ public class LoadDraftControllerTests : LoadTestBase
     {
         // Arrange
         SetAuth(AuthA);
-        var (timezone, isMetric) = await GetCurrentUserSettings();
+        await GetCurrentUserSettings();
         var command = CreateValidDraftCommand("Draft conversion");
-        command.RoutePoints[0].ArrivalTime = new DateTime(2026, 6, 15, 12, 0, 0, DateTimeKind.Utc);
+        command.RoutePoints?[0].ArrivalTime = new DateTime(2026, 6, 15, 12, 0, 0, DateTimeKind.Utc);
 
         // Act
         var draftId = await CreateDraft(command);
         var draft = await GetDraft(draftId);
 
         // Assert: время всегда приводится к таймзоне и обратно
-        draft.RoutePoints[0].ArrivalTime.Should().BeCloseTo(command.RoutePoints[0].ArrivalTime, TimeSpan.FromSeconds(1));
+        if (command.RoutePoints != null)
+            draft.RoutePoints[0].ArrivalTime.Should()
+                .BeCloseTo(command.RoutePoints[0].ArrivalTime, TimeSpan.FromSeconds(1));
 
         // Для черновика нет анонимного доступа, поэтому проверяем только round-trip стабильность
-        draft.Payloads[0].Height.Should().BeApproximately(command.Payloads[0].Height, 0.01);
-        draft.Payloads[0].Width.Should().BeApproximately(command.Payloads[0].Width, 0.01);
-        draft.Payloads[0].Length.Should().BeApproximately(command.Payloads[0].Length, 0.01);
-        draft.Payloads[0].Weight.Should().BeApproximately(command.Payloads[0].Weight, 0.01);
+        draft.Payloads[0].Height.Should().BeApproximately(command.Payloads?[0].Height, 0.01);
+        draft.Payloads[0].Width.Should().BeApproximately(command.Payloads?[0].Width, 0.01);
+        draft.Payloads[0].Length.Should().BeApproximately(command.Payloads?[0].Length, 0.01);
+        draft.Payloads[0].Weight.Should().BeApproximately(command.Payloads?[0].Weight, 0.01);
     }
 
     #endregion
