@@ -53,8 +53,7 @@ public class LoadListSearch
 
     protected IQueryable<LoadEntity> Filter(IQueryable<LoadEntity> query, GetLoadListQuery request)
     {
-        query = query.Where(l => request.Status == null || nameof(l.Status) == request.Status);
-        
+        query = query.Where(l => request.Status == null || l.Status.ToString() == request.Status);
         if (!string.IsNullOrEmpty(request.StartCity))
             query = query
                 .Where(l => l.RoutePoints.Any() && l.RoutePoints

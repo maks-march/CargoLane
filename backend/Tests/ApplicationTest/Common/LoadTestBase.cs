@@ -46,7 +46,7 @@ public abstract class LoadTestBase : BaseIntegrationTest
     protected async Task<LoadListVm[]> GetAllLoads(bool anonymous = false)
     {
         var client = anonymous ? _factory.CreateClient() : Client;
-        var response = await client.GetAsync(LoadBaseUrl);
+        var response = await client.GetAsync(LoadBaseUrl + "?status=Pending");
         return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
     }
 
@@ -66,15 +66,9 @@ public abstract class LoadTestBase : BaseIntegrationTest
     }
 
     // --- User loads ---
-    protected async Task<LoadListVm[]> GetUserLoads()
-    {
-        var response = await Client.GetAsync($"{LoadBaseUrl}/me");
-        return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
-    }
-
     protected async Task<LoadListVm[]> GetMyLoads()
     {
-        var response = await Client.GetAsync($"{LoadBaseUrl}/me");
+        var response = await Client.GetAsync($"{LoadBaseUrl}/me?status=Pending");
         return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
     }
 

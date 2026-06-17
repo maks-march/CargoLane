@@ -8,5 +8,5 @@ public class GetUserLoadsQuery : IRequest<LoadListVm[]>
 {
     public Guid UserId { get; set; }
     
-    public LoadStatus Status { get; set; } = LoadStatus.Active;
+    public string Status { get; set; } = "Active";
 }

@@ -69,7 +69,7 @@ public class LoadControllerTests : LoadTestBase
         await CreateLoad(CreateValidLoadCommand("Other load", "Kazan", "Novosibirsk"));
 
         // Act
-        var filtered = await GetAllLoadsWithFilter(startCity: "Yekaterinburg", endCity: "Moscow");
+        var filtered = await GetAllLoadsWithFilter(startCity: "Yekaterinburg", endCity: "Moscow", status: "Pending");
 
         // Assert
         filtered.Should().Contain(l => l.Id == matchedId);

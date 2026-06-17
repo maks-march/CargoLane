@@ -67,11 +67,11 @@ public class LoadController(IMediator mediator) : BaseController(mediator)
     /// </summary>
     [HttpGet("me")]
     [ProducesResponseType(typeof(LoadListVm[]), StatusCodes.Status200OK)]
-    public async Task<ActionResult<LoadListVm[]>> GetMy([FromQuery] string status = nameof(LoadStatus.Active))
+    public async Task<ActionResult<LoadListVm[]>> GetMy([FromQuery] string status = "Active")
     {
         return Ok(
             ChangeListVmForUser(
-                await Mediator.Send(new GetUserLoadsQuery { UserId = UserId, Status = Enum.Parse<LoadStatus>(status)})
+                await Mediator.Send(new GetUserLoadsQuery { UserId = UserId, Status = status})
                 )
             );
     }
