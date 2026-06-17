@@ -1,3 +1,5 @@
+using Application.CQRS.ChatCQ.Commands;
+using Application.CQRS.LoadCQ.Commands.BookLoad;
 using Application.CQRS.LoadCQ.Commands.CreateLoad;
 using Application.CQRS.LoadCQ.Commands.DeleteLoad;
 using Application.CQRS.LoadCQ.Commands.Draft;
@@ -140,6 +142,28 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
     {
         await Mediator.Send(new DeleteLoadCommand(id, UserId));
         return NoContent();
+    }
+
+    [HttpPost("{id:guid}/book")]
+    public async Task<ActionResult<Guid>> BookLoad(Guid id)
+    {
+        var command = new BookLoadCommand(id, UserId);
+        var (bookerName, article, ownerId) = await Mediator.Send(command);
+        var chatCommand = new StartChatCommand()
+        {
+            CurrentUserId = command.UserId,
+            TargetUserId = ownerId,
+            LoadId = id
+        };
+        var chatId = await Mediator.Send(chatCommand);
+        var messageCommand = new SendMessageCommand
+        {
+            ChatId = chatId,
+            SenderId = command.UserId,
+            Text = $"{bookerName} has been booked load {article}."
+        };
+        await Mediator.Send(messageCommand);
+        return Ok(chatId);
     }
 
     [HttpPut("{id:guid}/files")]

@@ -23,6 +23,7 @@ public class ChangeLoadStatusHandler(IAppDbContext dbContext) : IRequestHandler<
         
         
         load.Status = request.Status;
+        load.Updated = DateTime.UtcNow;
         load.ReviewDate = DateTime.UtcNow;
         load.RejectReason = request.Reason;
         load.ReviewerName = user.DisplayName;

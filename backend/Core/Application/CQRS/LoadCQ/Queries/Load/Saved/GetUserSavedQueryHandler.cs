@@ -15,13 +15,14 @@ public class GetUserSavedQueryHandler(IAppDbContext dbContext, IMapper mapper)
 {
     public async Task<LoadListVm[]> Handle(GetUserSavedQuery request, CancellationToken cancellationToken)
     {
+        request.Status = null;
         var user = await dbContext.BusinessUsers
             .AsNoTracking()
             .Include(u => u.SavedLoads)
                 .ThenInclude(l => l.RoutePoints)
             .Include(u => u.SavedLoads)
                 .ThenInclude(l => l.Payloads)
-            .FirstOrDefaultAsync(u => u.Id == request.UserId);
+            .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken: cancellationToken);
         
         if (user == null)
             throw new NotFoundException(nameof(User), request.UserId);
@@ -31,8 +32,8 @@ public class GetUserSavedQueryHandler(IAppDbContext dbContext, IMapper mapper)
         query = Filter(query, request);
         query = Sort(query, request);
         
-        return await query
+        return query
             .ProjectTo<LoadListVm>(mapper.ConfigurationProvider)
-            .ToArrayAsync(cancellationToken);
+            .ToArray();
     }
 }

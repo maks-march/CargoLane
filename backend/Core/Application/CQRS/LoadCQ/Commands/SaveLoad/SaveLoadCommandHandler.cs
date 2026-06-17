@@ -30,6 +30,6 @@ public class SaveLoadCommandHandler(IAppDbContext dbContext) : IRequestHandler<S
             user.SavedLoads.Add(load);
         }
         await dbContext.SaveChangesAsync(cancellationToken);
-        return flag;
+        return !flag;
     }
 }

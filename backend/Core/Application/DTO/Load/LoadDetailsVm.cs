@@ -33,7 +33,7 @@ public record LoadDetailsVm : IMapWith<LoadEntity>
     public void Mapping(Profile profile)
     {
         profile.CreateMap<LoadEntity, LoadDetailsVm>()
-            .ForMember(d => d.Article, opt => opt.MapFrom(s => s.Id.GetHashCode()%1000000))
+            .ForMember(d => d.Article, opt => opt.MapFrom(s => s.Article))
             .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()))
             .ForMember(d => d.Files, opt => opt.MapFrom(s => s.Photos.Select(p => p.FilePath)))
             .ForMember(d => d.RoutePoints, opt => opt.MapFrom(s => s.RoutePoints.OrderBy(rp => rp.OrderIndex)));

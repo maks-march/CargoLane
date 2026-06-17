@@ -1,8 +1,10 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using Application.DTO.Load;
 using ApplicationTest.Common;
 using FluentAssertions;
+using WebApi.Common.Controllers.Abstract;
 using WebApi.DTO;
 
 namespace ApplicationTest.IntegrationTests.Load;
@@ -17,7 +19,7 @@ public class LoadControllerTests : LoadTestBase
         // Arrange: Создаем груз от имени пользователя A
         SetAuth(AuthA);
         var command = CreateValidLoadCommand("Test Load for GetById");
-        var loadId = await CreateLoad(command);
+        var loadId = await CreateLoadAndApprove(command);
 
         // Act: Получаем детали груза (можно анонимно, так как [AllowAnonymous])
         var result = await GetLoadDetails(loadId, anonymous: true);
@@ -51,10 +53,10 @@ public class LoadControllerTests : LoadTestBase
     {
         // Arrange
         SetAuth(AuthA);
-        var loadId = await CreateLoad(CreateValidLoadCommand("Public load in list"));
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Public load in list"));
 
         // Act
-        var loads = await GetAllLoads(anonymous: true);
+        var loads = await GetAllLoads(anonymous: true, status: "Active");
 
         // Assert
         loads.Should().Contain(l => l.Id == loadId);
@@ -65,11 +67,11 @@ public class LoadControllerTests : LoadTestBase
     {
         // Arrange
         SetAuth(AuthA);
-        var matchedId = await CreateLoad(CreateValidLoadCommand("Filtered load", "Yekaterinburg", "Moscow"));
-        await CreateLoad(CreateValidLoadCommand("Other load", "Kazan", "Novosibirsk"));
+        var matchedId = await CreateLoadAndApprove(CreateValidLoadCommand("Filtered load", "Yekaterinburg", "Moscow"));
+        await CreateLoadAndApprove(CreateValidLoadCommand("Other load", "Kazan", "Novosibirsk"));
 
         // Act
-        var filtered = await GetAllLoadsWithFilter(startCity: "Yekaterinburg", endCity: "Moscow", status: "Pending");
+        var filtered = await GetAllLoadsWithFilter(startCity: "Yekaterinburg", endCity: "Moscow", status: "Active");
 
         // Assert
         filtered.Should().Contain(l => l.Id == matchedId);
@@ -84,14 +86,14 @@ public class LoadControllerTests : LoadTestBase
     {
         // Arrange
         SetAuth(AuthA);
-        var idA = await CreateLoad(CreateValidLoadCommand("Load A"));
+        var idA = await CreateLoadAndApprove(CreateValidLoadCommand("Load A"));
 
         SetAuth(AuthB);
-        var idB = await CreateLoad(CreateValidLoadCommand("Load B"));
+        var idB = await CreateLoadAndApprove(CreateValidLoadCommand("Load B"));
 
         // Act
         SetAuth(AuthA);
-        var myLoads = await GetMyLoads();
+        var myLoads = await GetMyLoads("Active");
 
         // Assert
         myLoads.Should().Contain(l => l.Id == idA);
@@ -125,21 +127,21 @@ public class LoadControllerTests : LoadTestBase
         // Assert
         loadId.Should().NotBeEmpty();
         
-        // Проверяем, что груз действительно создался и доступен
+        // Проверяем, что груз действительно создался и доступен по ID (даже если Pending)
         var details = await GetLoadDetails(loadId);
         details.About.Should().Be("Newly Created Load");
     }
 
     [Test]
-    [Explicit]
     public async Task Create_ShouldReturnBadRequest_WhenPayloadTypeIsInvalid()
     {
         // Arrange
         SetAuth(AuthA);
         var invalidCommand = CreateValidLoadCommand();
-        // В CreateLoadCommand.cs используется Enum.Parse для типа груза. 
-        // Некорректное значение должно привести к ошибке.
-        invalidCommand.Payloads[0].Type = "UnknownType123"; 
+
+        // Некорректное значение Type — валидатор PayloadInputDtoValidator
+        // использует .IsEnumName(typeof(PayloadType)) и вернёт ошибку валидации.
+        invalidCommand.Payloads[0].Type = "UnknownType123";
 
         // Act
         var response = await Client.PostAsJsonAsync(LoadBaseUrl, invalidCommand);
@@ -148,6 +150,10 @@ public class LoadControllerTests : LoadTestBase
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         err.Should().NotBeNull();
+
+        // Сообщение об ошибке должно содержать упоминание неверного типа груза
+        var errorText = (err!.Error ?? "") + " " + (err.Details ?? "");
+        errorText.Should().Contain("Payload type");
     }
 
     [Test]
@@ -170,7 +176,7 @@ public class LoadControllerTests : LoadTestBase
     {
         // Arrange
         SetAuth(AuthA);
-        var loadId = await CreateLoad(CreateValidLoadCommand("Load to be deleted"));
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Load to be deleted"));
 
         // Act
         var response = await DeleteLoad(loadId);
@@ -188,7 +194,7 @@ public class LoadControllerTests : LoadTestBase
     {
         // Arrange: Пользователь A создает груз
         SetAuth(AuthA);
-        var loadId = await CreateLoad(CreateValidLoadCommand("Owner A Load"));
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Owner A Load"));
 
         // Act: Пользователь B пытается его удалить
         SetAuth(AuthB);
@@ -223,7 +229,7 @@ public class LoadControllerTests : LoadTestBase
     {
         // Arrange
         SetAuth(AuthA);
-        var loadId = await CreateLoad(CreateValidLoadCommand("Load with files"));
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Load with files"));
         var fileBytes = CreateFakeJpegBytes();
 
         // Act
@@ -242,7 +248,7 @@ public class LoadControllerTests : LoadTestBase
     {
         // Arrange
         SetAuth(AuthA);
-        var loadId = await CreateLoad(CreateValidLoadCommand("Protected load"));
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Protected load"));
         var fileBytes = CreateFakeJpegBytes();
 
         // Act
@@ -258,7 +264,7 @@ public class LoadControllerTests : LoadTestBase
     {
         // Arrange
         SetAuth(AuthA);
-        var loadId = await CreateLoad(CreateValidLoadCommand("Load anonymous upload"));
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Load anonymous upload"));
         var fileBytes = CreateFakeJpegBytes();
         var anonymousClient = Factory.CreateClient();
 
@@ -287,7 +293,7 @@ public class LoadControllerTests : LoadTestBase
 
         var command = CreateValidLoadCommand("Conversion test");
         command.RoutePoints[0].ArrivalTime = DateTime.UtcNow.AddDays(1);
-        var loadId = await CreateLoad(command);
+        var loadId = await CreateLoadAndApprove(command);
 
         // Act: авторизованный пользователь получает данные в своих единицах
         var userDetails = await GetLoadDetails(loadId);
@@ -326,7 +332,7 @@ public class LoadControllerTests : LoadTestBase
     {
         // Arrange
         SetAuth(AuthA);
-        var loadId = await CreateLoad(CreateValidLoadCommand("Load to save"));
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Load to save"));
 
         // Act
         var result = await SaveLoad(loadId);
@@ -342,7 +348,7 @@ public class LoadControllerTests : LoadTestBase
     public async Task SaveLoad_Twice_ShouldToggle_AndReturnFalseOnSecond()
     {
         SetAuth(AuthA);
-        var loadId = await CreateLoad(CreateValidLoadCommand("Toggle save"));
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Toggle save"));
 
         var first = await SaveLoad(loadId);
         first.Should().BeTrue();
@@ -358,11 +364,11 @@ public class LoadControllerTests : LoadTestBase
     public async Task GetMySavedLoads_ShouldReturnOnlySavedForCurrentUser()
     {
         SetAuth(AuthA);
-        var loadA = await CreateLoad(CreateValidLoadCommand("A's load"));
+        var loadA = await CreateLoadAndApprove(CreateValidLoadCommand("A's load"));
         await SaveLoad(loadA);
 
         SetAuth(AuthB);
-        var loadB = await CreateLoad(CreateValidLoadCommand("B's load"));
+        var loadB = await CreateLoadAndApprove(CreateValidLoadCommand("B's load"));
         await SaveLoad(loadB);
 
         SetAuth(AuthA);
@@ -386,7 +392,7 @@ public class LoadControllerTests : LoadTestBase
     public async Task SaveLoad_Anonymous_ShouldBeUnauthorized()
     {
         SetAuth(AuthA);
-        var loadId = await CreateLoad(CreateValidLoadCommand("Anon save test"));
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Anon save test"));
 
         var anonClient = Factory.CreateClient();
         var response = await anonClient.PostAsync($"{LoadBaseUrl}/{loadId}/save", null);
@@ -402,18 +408,17 @@ public class LoadControllerTests : LoadTestBase
     public async Task Stats_ShouldReturnValidStatsDto()
     {
         SetAuth(AuthA);
-        await CreateLoad(CreateValidLoadCommand("Stats load 1"));
-        await CreateLoad(CreateValidLoadCommand("Stats load 2"));
+        await CreateLoadAndApprove(CreateValidLoadCommand("Stats load 1"));
+        await CreateLoadAndApprove(CreateValidLoadCommand("Stats load 2"));
 
-        // Call via Load controller (stats is inherited from BaseController)
-        var response = await Client.GetAsync($"{LoadBaseUrl}/stats");
+        // New dedicated Stats endpoint
+        var response = await Client.GetAsync("/api/Stats");
         response.IsSuccessStatusCode.Should().BeTrue();
 
-        var stats = await response.Content.ReadFromJsonAsync<dynamic>();
-        stats?.Should().NotBeNull();
-        // At least check some fields exist
-        ((int)(stats?.uploads ?? 0)).Should().BeGreaterThanOrEqualTo(2);
-        ((int)(stats?.users ?? 0)).Should().BeGreaterThanOrEqualTo(1);
+        var stats = await response.Content.ReadFromJsonAsync<StatsDto>();
+        stats.Should().NotBeNull();
+        stats.Uploads.Should().BeGreaterThanOrEqualTo(2);
+        stats.Users.Should().BeGreaterThanOrEqualTo(1);
     }
 
     #endregion
@@ -425,10 +430,10 @@ public class LoadControllerTests : LoadTestBase
     public async Task GetList_ShouldFilterBySearchBy()
     {
         SetAuth(AuthA);
-        var expectedId = await CreateLoad(CreateValidLoadCommand("UniqueSearchTerm123 Cargo"));
-        await CreateLoad(CreateValidLoadCommand("Other load"));
+        var expectedId = await CreateLoadAndApprove(CreateValidLoadCommand("UniqueSearchTerm123 Cargo"));
+        await CreateLoadAndApprove(CreateValidLoadCommand("Other load"));
 
-        var result = await GetAllLoadsWithFullFilter(searchBy: "UniqueSearchTerm123", status: "Pending");
+        var result = await GetAllLoadsWithFullFilter(searchBy: "UniqueSearchTerm123", status: "Active");
         result.Should().Contain(l => l.Id == expectedId);
     }
 
@@ -436,10 +441,10 @@ public class LoadControllerTests : LoadTestBase
     public async Task GetList_ShouldSupportDifferentStatuses()
     {
         SetAuth(AuthA);
-        var loadId = await CreateLoad(CreateValidLoadCommand("Status test"));
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Status test"));
 
-        var pending = await GetAllLoadsWithFilter(status: "Pending");
-        pending.Should().Contain(l => l.Id == loadId);
+        var active = await GetAllLoadsWithFilter(status: "Active");
+        active.Should().Contain(l => l.Id == loadId);
 
         var closed = await GetAllLoadsWithFilter(status: "Closed");
         closed.Should().NotContain(l => l.Id == loadId);
@@ -449,11 +454,82 @@ public class LoadControllerTests : LoadTestBase
     public async Task GetList_ShouldSupportSortBy()
     {
         SetAuth(AuthA);
-        await CreateLoad(CreateValidLoadCommandWithPayment("Sort test low", 100));
-        await CreateLoad(CreateValidLoadCommandWithPayment("Sort test high", 9999));
+        await CreateLoadAndApprove(CreateValidLoadCommandWithPayment("Sort test low", 100));
+        await CreateLoadAndApprove(CreateValidLoadCommandWithPayment("Sort test high", 9999));
 
         var byPaymentDesc = await Client.GetAsync($"{LoadBaseUrl}?sortBy=Payment&isDescending=true");
         byPaymentDesc.IsSuccessStatusCode.Should().BeTrue();
+    }
+
+    #endregion
+
+    #region Admin moderation flow (new after admin review feature)
+
+    [Test]
+    public async Task PendingLoad_ShouldNotAppearInPublicList()
+    {
+        SetAuth(AuthA);
+        var loadId = await CreateLoad(CreateValidLoadCommand("Pending load"));
+
+        var publicList = await GetAllLoads(anonymous: true, status: "Active");
+        publicList.Should().NotContain(l => l.Id == loadId);
+    }
+
+    [Test]
+    public async Task ApproveFlow_ShouldMakeLoadPublic()
+    {
+        SetAuth(AuthA);
+        var loadId = await CreateLoad(CreateValidLoadCommand("To be approved"));
+
+        // Before approve - not public
+        var before = await GetAllLoads(anonymous: true, status: "Active");
+        before.Should().NotContain(l => l.Id == loadId);
+
+        // Approve
+        await ApproveLoad(loadId);
+
+        // After approve - public
+        var after = await GetAllLoads(anonymous: true, status: "Active");
+        after.Should().Contain(l => l.Id == loadId);
+    }
+
+    [Test]
+    public async Task AdminReviews_ShouldContainPendingLoads()
+    {
+        SetAuth(AuthA);
+        var loadId = await CreateLoad(CreateValidLoadCommand("For review"));
+
+        var reviews = await GetAdminReviews();
+        reviews.Should().Contain(l => l.Id == loadId);
+    }
+
+    [Test]
+    public async Task RejectFlow_ShouldMoveLoadToRejected()
+    {
+        SetAuth(AuthA);
+        var loadId = await CreateLoad(CreateValidLoadCommand("To be rejected"));
+
+        await RejectLoad(loadId, "bad cargo");
+
+        var rejected = await GetAllLoadsWithFilter(status: "Rejected"); // or use admin helper if needed
+        // We can also check via admin
+        SetAuth(AdminTokens);
+        var rejectedAdmin = await Client.GetAsync("/api/LoadAdmin/rejected");
+        var list = await rejectedAdmin.Content.ReadFromJsonAsync<LoadListVm[]>();
+        list.Should().Contain(l => l.Id == loadId);
+    }
+
+    [Test]
+    public async Task NonAdmin_CannotAccessAdminEndpoints()
+    {
+        SetAuth(AuthA);
+        var loadId = await CreateLoad(CreateValidLoadCommand("Protected"));
+
+        var resp = await Client.GetAsync("/api/LoadAdmin/reviews");
+        resp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+
+        var approveResp = await Client.PostAsync($"/api/LoadAdmin/{loadId}/approve", null);
+        approveResp.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     #endregion

@@ -26,7 +26,7 @@ public record LoadListVm : IMapWith<LoadEntity>
     {
         profile.CreateMap<LoadEntity, LoadListVm>()
             // Берем города из первой и последней точек маршрута (safe against empty collections)
-            .ForMember(d => d.Article, opt => opt.MapFrom(s => s.Id.GetHashCode()%1000000))
+            .ForMember(d => d.Article, opt => opt.MapFrom(s => s.Article))
             .ForMember(d => d.StartCity, opt => opt.MapFrom(s => 
                 s.RoutePoints.Any()
                     ? s.RoutePoints.OrderBy(rp => rp.OrderIndex).First().City 

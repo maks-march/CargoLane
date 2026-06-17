@@ -30,4 +30,6 @@ public class LoadEntity : HasAuthor, IManyFiles<LoadFile>
     public DateTime ReviewDate { get; set; } = DateTime.MinValue;
     
     public ICollection<User> UsersSaves { get; set; } = [];
+
+    public int Article => Math.Abs(Id.GetHashCode()) % 1000000;
 }

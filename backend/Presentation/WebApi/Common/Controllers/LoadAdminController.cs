@@ -60,13 +60,13 @@ public class LoadAdminController(IMediator mediator) : BaseLoadController(mediat
     public async Task<ActionResult<Guid>> Approve(Guid id)
     {
         var command = new ChangeLoadStatus(id, UserId, LoadStatus.Active);
-        return Ok();
+        return Ok(await Mediator.Send(command));
     }
     
     [HttpPost("{id:guid}/reject")]
     public async Task<ActionResult<Guid>> Reject(Guid id, [FromBody] string reason)
     {
         var command = new ChangeLoadStatus(id, UserId, LoadStatus.Rejected, reason);
-        return Ok();
+        return Ok(await Mediator.Send(command));
     }
 }

@@ -26,10 +26,11 @@ public abstract class LoadTestBase : BaseIntegrationTest
 
 
     // --- Public list (GET /api/Load) ---
-    protected async Task<LoadListVm[]> GetAllLoads(bool anonymous = false)
+    protected async Task<LoadListVm[]> GetAllLoads(bool anonymous = false, string status = "Active")
     {
         var client = anonymous ? Factory.CreateClient() : Client;
-        var response = await client.GetAsync(LoadBaseUrl + "?status=Pending");
+        var query = string.IsNullOrEmpty(status) ? "" : $"?status={status}";
+        var response = await client.GetAsync(LoadBaseUrl + query);
         return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
     }
 
@@ -49,9 +50,9 @@ public abstract class LoadTestBase : BaseIntegrationTest
     }
 
     // --- User loads ---
-    protected async Task<LoadListVm[]> GetMyLoads()
+    protected async Task<LoadListVm[]> GetMyLoads(string status = "Pending")
     {
-        var response = await Client.GetAsync($"{LoadBaseUrl}/me?status=Pending");
+        var response = await Client.GetAsync($"{LoadBaseUrl}/me?status={status}");
         return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
     }
 
@@ -290,6 +291,45 @@ public abstract class LoadTestBase : BaseIntegrationTest
         var query = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
         var response = await Client.GetAsync($"{LoadBaseUrl}{query}");
         return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
+    }
+
+    // ============================================
+    // Admin moderation helpers (new after admin review flow)
+    // ============================================
+
+    protected async Task<Guid> CreateLoadAndApprove(CreateLoadCommand command)
+    {
+        var id = await CreateLoad(command);
+        await ApproveLoad(id);
+        return id;
+    }
+
+    protected async Task ApproveLoad(Guid loadId)
+    {
+        SetAuth(AdminTokens);
+        await Client.PostAsync($"/api/LoadAdmin/{loadId}/approve", null);
+        SetAuth(Tokens);
+    }
+
+    protected async Task RejectLoad(Guid loadId, string reason = "test reject")
+    {
+        SetAuth(AdminTokens);
+        await Client.PostAsJsonAsync($"/api/LoadAdmin/{loadId}/reject", reason);
+        SetAuth(Tokens);
+    }
+
+    protected async Task<LoadListVm[]> GetAdminReviews()
+    {
+        SetAuth(AdminTokens);
+        var resp = await Client.GetAsync("/api/LoadAdmin/reviews");
+        return await ExtractFromResponse<LoadListVm[]>(resp) ?? Array.Empty<LoadListVm>();
+    }
+
+    protected async Task<LoadDetailsVm> GetAdminReview(Guid id)
+    {
+        SetAuth(AdminTokens);
+        var resp = await Client.GetAsync($"/api/LoadAdmin/{id}/review");
+        return await ExtractFromResponse<LoadDetailsVm>(resp) ?? new();
     }
 }
 
