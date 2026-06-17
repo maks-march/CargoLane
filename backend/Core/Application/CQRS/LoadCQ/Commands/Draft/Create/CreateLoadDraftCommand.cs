@@ -31,13 +31,13 @@ public class CreateLoadDraftCommand : IRequest<Guid>, IMapWith<LoadDraft>
             // Маппим коллекции (AutoMapper автоматически обработает null, если настроено)
             .ForMember(dest => dest.RoutePoints, opt => opt.MapFrom(src => src.RoutePoints))
             .ForMember(dest => dest.Payloads, opt => opt.MapFrom(src => src.Payloads));
-        
-        profile.CreateMap<PayloadDraftInputDto, PayloadDraft>()
-            .ForMember(dest => dest.Type, opt =>
-                {
-                    opt.Condition(src => src.Type != null);
-                    opt.MapFrom(src => Enum.Parse<PayloadType>(src.Type, true));
-                });
+
+        profile.CreateMap<PayloadDraftInputDto, PayloadDraft>();
+            // .ForMember(dest => dest.Type, opt =>
+            //     {
+            //         opt.Condition(src => src.Type != null);
+            //         opt.MapFrom(src => Enum.Parse<PayloadType>(src.Type, true));
+            //     });
         
         profile.CreateMap<RoutePointInputDto, RoutePoint<LoadDraft>>()
             .ForMember(dest => dest.City, opt => opt.MapFrom(src => src.City))

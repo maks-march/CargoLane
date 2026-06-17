@@ -42,7 +42,7 @@ public class CreateLoadCommandValidator : AbstractValidator<CreateLoadCommand>
         RuleForEach(x => x.RoutePoints)
             .SetValidator(new RoutePointInputDtoValidator());
         
-        RuleFor(x => x.VihicleTypes)
+        RuleFor(x => x.VehicleTypes)
             .NotEmpty().WithMessage("At least one vehicle type must be selected.");
     }
 }
@@ -52,10 +52,10 @@ public class PayloadInputDtoValidator : AbstractValidator<PayloadInputDto>
     public PayloadInputDtoValidator()
     {
         RuleFor(x => x.Type)
-            .NotEmpty().WithMessage("Payload type is required.")
+            .NotEmpty().WithMessage("Payload type is required.");
             // Если PayloadType - это Enum, можно добавить проверку:
-            .IsEnumName(typeof(PayloadType), caseSensitive: false)
-            .WithMessage("Payload type one of suggested.");
+            // .IsEnumName(typeof(PayloadType), caseSensitive: false)
+            // .WithMessage("Payload type one of suggested.");
 
         RuleFor(x => x.Length)
             .GreaterThan(0).WithMessage("Length must be greater than 0.");

@@ -35,6 +35,7 @@ public class StartChatCommandHandler(IAppDbContext dbContext) : IRequestHandler<
             Id = Guid.NewGuid(),
             Created = DateTime.UtcNow,
             Updated = DateTime.UtcNow,
+            LoadId = request.LoadId,
             // LoadId можно сохранить в будущем (пока не добавляем в модель, чтобы не ломать миграции)
         };
         newChat.Participants.Add(currentUser);

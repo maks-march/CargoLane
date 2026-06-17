@@ -27,7 +27,7 @@ public class GetChatQueryHandler(IAppDbContext dbContext)
 
                 LastMessageText = c.LastMessage != null ? c.LastMessage.Text : "No messages",
                 LastMessageTime = c.LastMessage != null ? c.LastMessage.Created : null,
-                
+                LoadId =c.LoadId,
                 // Считаем непрочитанные сообщения, где отправитель не я
                 UnreadCount = c.Messages.Count(m => !m.IsRead && m.SenderId != request.UserId)
             })

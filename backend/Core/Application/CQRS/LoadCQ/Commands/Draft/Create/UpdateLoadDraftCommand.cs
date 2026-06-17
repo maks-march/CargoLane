@@ -26,11 +26,11 @@ public class UpdateLoadDraftCommand : CreateLoadDraftCommand, IMapWith<LoadDraft
                     srcMember != null));
         
         profile.CreateMap<PayloadDraftUpdateDto, PayloadDraft>()
-            .ForMember(dest => dest.Type, opt =>
-            {
-                opt.Condition(src => src.Type != null);
-                opt.MapFrom(src => Enum.Parse<PayloadType>(src.Type, true));
-            })
+            // .ForMember(dest => dest.Type, opt =>
+            // {
+            //     opt.Condition(src => src.Type != null);
+            //     opt.MapFrom(src => Enum.Parse<PayloadType>(src.Type, true));
+            // })
             .ForAllMembers(opts => 
                 opts.Condition((src, dest, srcMember) => 
                     srcMember != null));

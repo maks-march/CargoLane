@@ -15,7 +15,7 @@ public record CreateLoadCommand : IRequest<Guid>, IMapWith<LoadEntity>
     public double Insurance { get; set; }
     public string HScode { get; set; } = string.Empty;
     public int Adr { get; set; }
-    public string[] VihicleTypes { get; set; } = [];
+    public string[] VehicleTypes { get; set; } = [];
     public string CargoType { get; set; } = string.Empty;
     public string About { get; set; } = string.Empty;
 
@@ -34,9 +34,9 @@ public record CreateLoadCommand : IRequest<Guid>, IMapWith<LoadEntity>
             .ForMember(dest => dest.TotalVolume, opt => 
                 opt.Ignore());
 
-        profile.CreateMap<PayloadInputDto, Payload>()
-            .ForMember(dest => dest.Type, opt => 
-                opt.MapFrom(src => Enum.Parse<PayloadType>(src.Type, true)));
+        profile.CreateMap<PayloadInputDto, Payload>();
+            // .ForMember(dest => dest.Type, opt => 
+            //     opt.MapFrom(src => Enum.Parse<PayloadType>(src.Type, true)));
         
         profile.CreateMap<RoutePointInputDto, RoutePoint<LoadEntity>>()
             .ForMember(dest => dest.City, opt => opt.MapFrom(src => src.City))

@@ -13,4 +13,6 @@ public class ChatEntity : Entity
     // Ссылка на последнее сообщение для оптимизации списка чатов
     public Guid? LastMessageId { get; set; }
     public ChatMessageEntity? LastMessage { get; set; }
+    
+    public Guid? LoadId { get; set; }
 }
