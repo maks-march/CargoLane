@@ -14,19 +14,20 @@ public class ChatController(IMediator mediator) : BaseController(mediator)
     /// Создать чат с пользователем или вернуть существующий
     /// </summary>
     [HttpPost("start/{userId:guid}")]
-    public async Task<ActionResult<Guid>> StartChat(Guid userId)
+    public async Task<ActionResult<Guid>> StartChat(Guid userId, [FromQuery] Guid loadId)
     {
         return Ok(await Mediator.Send(new StartChatCommand 
         { 
             CurrentUserId = UserId, 
-            TargetUserId = userId 
+            TargetUserId = userId,
+            LoadId = loadId == Guid.Empty ? null : loadId
         }));
     }
 
     /// <summary>
     /// Отправить сообщение в чат
     /// </summary>
-    [HttpPost("{id:guid}/messages")]
+    [HttpPost("{id:guid}/message")]
     public async Task<ActionResult<Guid>> SendMessage(Guid id, [FromBody] string text)
     {
         return Ok(await Mediator.Send(new SendMessageCommand 

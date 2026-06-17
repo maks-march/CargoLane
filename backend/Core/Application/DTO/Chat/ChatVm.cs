@@ -12,5 +12,7 @@ public record ChatVm
     public string LastMessageText { get; set; } = string.Empty;
     public DateTime? LastMessageTime { get; set; }
     
+    public Guid? LoadId {  get; set; }
+    
     public int UnreadCount { get; set; }
 }

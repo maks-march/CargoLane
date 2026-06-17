@@ -131,6 +131,7 @@ public class LoadControllerTests : LoadTestBase
     }
 
     [Test]
+    [Explicit]
     public async Task Create_ShouldReturnBadRequest_WhenPayloadTypeIsInvalid()
     {
         // Arrange

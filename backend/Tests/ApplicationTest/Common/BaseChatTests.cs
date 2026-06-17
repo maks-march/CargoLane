@@ -2,9 +2,8 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Application.DTO.Auth;
 using Application.DTO.Chat;
-using ApplicationTest.Common;
 
-namespace ApplicationTest.IntegrationTests.Chat;
+namespace ApplicationTest.Common;
 
 public abstract class ChatTestBase : BaseIntegrationTest
 {
@@ -51,7 +50,7 @@ public abstract class ChatTestBase : BaseIntegrationTest
     protected async Task<Guid> SendMessage(Guid chatId, string text)
     {
         // Передаем строку как JSON ("текст")
-        var response = await Client.PostAsJsonAsync($"{BaseUrl}/{chatId}/messages", text);
+        var response = await Client.PostAsJsonAsync($"{BaseUrl}/{chatId}/message", text);
         return await ExtractFromResponse<Guid>(response);
     }
 

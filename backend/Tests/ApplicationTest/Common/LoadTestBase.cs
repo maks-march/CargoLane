@@ -204,7 +204,7 @@ public abstract class LoadTestBase : BaseIntegrationTest
             Insurance = 250,
             HScode = "8471.30",
             Adr = 2,
-            VihicleTypes = new[] { "General", "Fragile" },
+            VehicleTypes = new[] { "General", "Fragile" },
             CargoType = "Box",
             About = about,
             Payloads = new List<PayloadInputDto>

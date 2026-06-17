@@ -1,8 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
+using ApplicationTest.Common;
 using FluentAssertions;
 
-namespace ApplicationTest.IntegrationTests.Chat;
+namespace ApplicationTest.IntegrationTests;
 
 public class ChatTests : ChatTestBase
 {
@@ -95,7 +96,7 @@ public class ChatTests : ChatTestBase
     {
         // Act: Юзер А шлет сообщение в случайный Guid
         SetAuth(AuthA);
-        var response = await Client.PostAsJsonAsync($"{BaseUrl}/{Guid.NewGuid()}/messages", "Hello");
+        var response = await Client.PostAsJsonAsync($"{BaseUrl}/{Guid.NewGuid()}/message", "Hello");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);

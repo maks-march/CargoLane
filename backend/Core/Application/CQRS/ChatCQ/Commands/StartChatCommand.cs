@@ -6,4 +6,5 @@ public class StartChatCommand : IRequest<Guid>
 {
     public Guid CurrentUserId { get; set; }
     public Guid TargetUserId { get; set; }
+    public Guid? LoadId { get; set; }
 }
