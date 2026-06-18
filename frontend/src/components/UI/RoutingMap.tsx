@@ -26,22 +26,18 @@ const ICONS = {
 
 // Расширенный кэш городов — карта не будет спамить внешний API
 const GEO_CACHE: Record<string, [number, number]> = {
-  'surgut': [61.25, 73.4167],
-  'ufa': [54.7388, 55.9721],
-  'rotterdam': [51.9225, 4.47927],
-  'warsaw': [52.2297, 21.0122],
-  'berlin': [52.5200, 13.4050],
-  'munich': [48.1351, 11.5820],
-  'hamburg': [53.5511, 9.9937],
-  'milan': [45.4642, 9.1900],
-  'paris': [48.8566, 2.3522],
-  'madrid': [40.4168, -3.7038],
-  'antwerp': [51.2194, 4.4025],
-  'vienna': [48.2082, 16.3738],
-  'lyon': [45.7640, 4.8357],
-  'copenhagen': [55.6761, 12.5683],
-  'gdańsk': [54.3520, 18.6466]
+  'surgut': [61.25, 73.4167], 'ufa': [54.7388, 55.9721],
+  'rotterdam': [51.9225, 4.47927], 'warsaw': [52.2297, 21.0122],
+  'berlin': [52.5200, 13.4050], 'munich': [48.1351, 11.5820],
+  'hamburg': [53.5511, 9.9937], 'milan': [45.4642, 9.1900],
+  'paris': [48.8566, 2.3522], 'madrid': [40.4168, -3.7038],
+  'moscow': [55.7558, 37.6173], 'москва': [55.7558, 37.6173],
+  'ekaterinburg': [56.8389, 60.6057], 'екатеринбург': [56.8389, 60.6057],
+  'omsk': [54.9885, 73.3242], 'омск': [54.9885, 73.3242],
+  'lviv': [49.8397, 24.0297], 'львов': [49.8397, 24.0297]
 };
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const geocodeCity = async (city: string): Promise<[number, number] | null> => {
   if (!city || city.length < 2) return null;
@@ -83,18 +79,23 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({ stops, onCalc, setRou
 
       const coordsPromises = validStops.map(async (s: { address: string; type: string }) => {
         const coords = await geocodeCity(s.address);
-        return { pos: coords, type: s.type };
+        
+        if (coords) {
+          resolvedCoords.push({ pos: coords, type: s.type });
+        }
+        
+        // Ждем 2000 мс (2 секунды) перед следующим запросом (если город не из кэша)
+        if (i < validStops.length - 1 && !GEO_CACHE[s.address.toLowerCase().split(',')[0].trim()]) {
+          await delay(2000);
+        }
       });
-      
-      const resolvedCoords = await Promise.all(coordsPromises);
-      const validMarkers = resolvedCoords.filter(c => c.pos !== null) as { pos: [number, number], type: string }[];
 
-      if (validMarkers.length >= 2 && isMounted) {
-        setMarkers(validMarkers);
-        const bounds = L.latLngBounds(validMarkers.map(m => m.pos));
+      if (resolvedCoords.length >= 2 && isMounted) {
+        setMarkers(resolvedCoords);
+        const bounds = L.latLngBounds(resolvedCoords.map(m => m.pos));
         map.fitBounds(bounds, { padding: [50, 50] });
 
-        const coordsString = validMarkers.map(c => `${c.pos[1]},${c.pos[0]}`).join(';');
+        const coordsString = resolvedCoords.map(c => `${c.pos[1]},${c.pos[0]}`).join(';');
         try {
           const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordsString}?overview=full&geometries=geojson`);
           const data = await res.json();
@@ -110,10 +111,10 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({ stops, onCalc, setRou
             const path = route.geometry.coordinates.map((c: [number, number]) => [c[1], c[0]]);
             setRoutePath(path);
           } else {
-             setRoutePath(validMarkers.map(m => m.pos));
+             setRoutePath(resolvedCoords.map(m => m.pos));
           }
         } catch {
-          setRoutePath(validMarkers.map(m => m.pos));
+          setRoutePath(resolvedCoords.map(m => m.pos));
         }
       }
     };

@@ -1,363 +1,336 @@
-import React from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import useAuthStore from '../../store/auth.store';
+import React, { useState, useEffect, useRef } from "react";
+import { useSearchParams, useLocation } from "react-router-dom";
+// ИСПРАВЛЕННЫЙ ИМПОРТ: Точное название твоего файла (с буквой 's')
+import { messagesService, type ChatDto, type ChatMessageDto, type ActiveDealDto } from "../../services/messagesService";
+import useAuthStore from "../../store/auth.store";
 
-import type { ChatDto, ChatMessageDto, ActiveDealDto } from '../../services/messagesService';
-import { messagesService } from '../../services/messagesService';
+export const MessagesPage: React.FC = () => {
+  const location = useLocation();
+  const user = useAuthStore((state) => state.user);
+  
+  // URL-параметры для сохранения открытого чата при F5
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeChatId = searchParams.get('chatId');
 
-interface Props {
-  onNavigate: (page: string) => void;
-  userId: string;
-  initialChatId: string | null;
-  initialLoadId: string | null;
-}
+  const [chats, setChats] = useState<ChatDto[]>([]);
+  const [messages, setMessages] = useState<ChatMessageDto[]>([]);
+  const [activeDeal, setActiveDeal] = useState<ActiveDealDto | null>(null);
+  
+  const [inputText, setInputText] = useState("");
+  const [isLoadingChats, setIsLoadingChats] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
-interface State {
-  chats: ChatDto[];
-  activeChatId: string | null;
-  messages: ChatMessageDto[];
-  activeDeal: ActiveDealDto | null;
-  newMessage: string;
-  isLoading: boolean;
-  searchQuery: string;
-  currentLoadId: string | null;
-}
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-class MessagesPageClass extends React.Component<Props, State> {
-  private messagesEndRef = React.createRef<HTMLDivElement>();
+  // Определяем, админ это или обычный пользователь по URL
+  const isAdmin = location.pathname.startsWith('/admin');
 
-  constructor(props: Props) {
-    super(props);
-    this.state = {
-      chats: [],
-      activeChatId: props.initialChatId,
-      messages: [],
-      activeDeal: null,
-      newMessage: '',
-      isLoading: true,
-      searchQuery: '',
-      currentLoadId: props.initialLoadId
-    };
-  }
-
-  async componentDidMount() {
-    const params = new URLSearchParams(window.location.search);
-    const partnerId = params.get('partnerId');
-    const loadIdFromUrl = params.get('loadId');
-
+  // 1. Загрузка списка чатов
+  const fetchChats = async () => {
+    setIsLoadingChats(true);
     try {
-      if (partnerId) {
-        // Создаем чат и привязываем груз
-        const { chatId } = await messagesService.startChat(partnerId, loadIdFromUrl);
-        await this.handleSelectChat(chatId, loadIdFromUrl);
-      }
-
-      const realChats = await messagesService.getChats();
-      this.setState({ chats: realChats, isLoading: false });
-
-      if (this.state.activeChatId) {
-         if (realChats.some(c => c.id === this.state.activeChatId)) {
-             const activeChat = realChats.find(c => c.id === this.state.activeChatId);
-             await this.handleSelectChat(this.state.activeChatId, activeChat?.loadId || loadIdFromUrl);
-         } else {
-             this.setState({ activeChatId: null });
-         }
-      } 
-      else if (realChats.length > 0) {
-        await this.handleSelectChat(realChats[0].id, realChats[0].loadId);
-      }
-    } catch {
-      console.warn('Backend API missing. Database is empty or disconnected.');
-      this.setState({ isLoading: false });
-    }
-  }
-
-  componentDidUpdate(_prevProps: Props, prevState: State) {
-    if (prevState.messages.length !== this.state.messages.length) {
-      this.scrollToBottom();
-    }
-  }
-
-  scrollToBottom = () => {
-    this.messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  handleSelectChat = async (chatId: string, loadIdFromChat: string | null = null) => {
-    this.setState({ 
-        activeChatId: chatId, 
-        messages: [], 
-        activeDeal: null,
-        currentLoadId: loadIdFromChat
-    });
-
-    let url = `?chatId=${chatId}`;
-    if (loadIdFromChat) {
-        url += `&loadId=${loadIdFromChat}`;
-    }
-    window.history.replaceState(null, '', url);
-
-    try {
-      // Параллельно грузим сообщения и данные сделки
-      const fetchPromises: Promise<any>[] = [messagesService.getChatHistory(chatId)];
-      
-      if (loadIdFromChat) {
-          fetchPromises.push(messagesService.getActiveDeal(loadIdFromChat));
-      }
-
-      const results = await Promise.all(fetchPromises);
-      
-      this.setState({ 
-          messages: results[0], 
-          activeDeal: results.length > 1 ? results[1] : null 
-      });
-    } catch {
-      console.warn('Failed to load chat history from backend');
+      const data = await messagesService.getChats();
+      setChats(data);
+    } catch (error) {
+      console.error("Failed to load chats", error);
+    } finally {
+      setIsLoadingChats(false);
     }
   };
 
-  handleSendMessage = async (e: React.FormEvent) => {
+  useEffect(() => {
+    fetchChats();
+  }, []);
+
+  // 2. Загрузка истории сообщений и сделки при выборе чата
+  useEffect(() => {
+    if (activeChatId) {
+      const loadChatData = async () => {
+        setIsLoadingMessages(true);
+        try {
+          const history = await messagesService.getChatHistory(activeChatId);
+          setMessages(history);
+
+          const chat = chats.find(c => c.id === activeChatId);
+          if (chat && chat.loadId) {
+            const deal = await messagesService.getActiveDeal(chat.loadId);
+            setActiveDeal(deal);
+          } else {
+            setActiveDeal(null);
+          }
+        } catch (error) {
+          console.error("Failed to load messages", error);
+        } finally {
+          setIsLoadingMessages(false);
+        }
+      };
+      loadChatData();
+    } else {
+      setMessages([]);
+      setActiveDeal(null);
+    }
+  }, [activeChatId, chats]);
+
+  // 3. Автоскролл вниз при новых сообщениях
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // 4. Отправка сообщения
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { newMessage, activeChatId, messages } = this.state;
-    const { userId } = this.props;
+    if (!inputText.trim() || !activeChatId) return;
 
-    if (!newMessage.trim() || !activeChatId) return;
-
-    let textToSend = newMessage.trim();
-    let isSystem = false;
-
-    const loadIdMatch = newMessage.match(/CL-\d{5,}/i);
-    if (loadIdMatch) {
-      isSystem = true;
-      const isNewChat = messages.length === 0;
-      textToSend = isNewChat 
-        ? `You shared ${loadIdMatch[0]} • Chat started` 
-        : `You shared ${loadIdMatch[0]} • View route details`;
-    }
-
-    const newMsgObj: ChatMessageDto = {
-      id: Date.now().toString(),
-      senderId: isSystem ? 'system' : userId,
-      text: textToSend,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isSystemMessage: isSystem
-    };
-
-    this.setState({ 
-      messages: [...messages, newMsgObj],
-      newMessage: '' 
-    });
+    const textToSend = inputText.trim();
+    setInputText(""); // Очищаем инпут сразу для UX
 
     try {
       await messagesService.sendMessage(activeChatId, textToSend);
-    } catch {
-      console.error('Failed to save message to DB');
+      // После отправки сразу запрашиваем обновленную историю из БД
+      const updatedHistory = await messagesService.getChatHistory(activeChatId);
+      setMessages(updatedHistory);
+      // Обновляем список чатов, чтобы подтянулось lastMessage
+      fetchChats();
+    } catch (error) {
+      console.error("Failed to send message", error);
     }
   };
 
-  handleViewLoad = () => {
-    const { currentLoadId } = this.state;
-    // ИСПРАВЛЕНО: Кнопка перенаправляет на конкретный заказ
-    if (currentLoadId) {
-      this.props.onNavigate(`orders/${currentLoadId}`);
-    }
-  };
+  const filteredChats = chats.filter(chat => 
+    chat.partnerName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    chat.partnerCompany.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    this.setState({ searchQuery: e.target.value });
-  };
+  const activeChat = chats.find(c => c.id === activeChatId);
 
-  render() {
-    const { chats, activeChatId, messages, activeDeal, newMessage, isLoading, searchQuery, currentLoadId } = this.state;
-    const { userId } = this.props;
-    
-    const filteredChats = chats.filter(chat => 
-      chat.partnerName.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      chat.partnerCompany.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    const activeChat = chats.find(c => c.id === activeChatId);
-
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100%', width: '100%', overflow: 'hidden' }}>
-        
-        <header className="dash-header" style={{ borderBottom: '1px solid #E6E8EE', background: 'white', width: '100%', padding: '16px 32px', flexShrink: 0, boxSizing: 'border-box' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-            <div>
-              <div className="dash-breadcrumb">
-                <span style={{ color: '#A0AAB9', cursor: 'default' }}>Workspace</span>
-                <span className="dash-detail-breadcrumb-arrow" style={{ margin: '0 8px' }}>›</span>
-                <strong style={{ color: '#0E1116', fontWeight: 500 }}>Messages</strong>
-              </div>
-              <h1 className="dash-title" style={{ fontSize: '24px', fontWeight: 400, color: '#0E1116', letterSpacing:'-1px',marginTop: '4px' }}>Messages</h1>
-            </div>
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", overflow: "hidden", background: "#FFFFFF" }}>
+      
+      {/* ХЕДЕР С ДИНАМИЧЕСКИМИ КРОШКАМИ */}
+      <header className="dash-header" style={{ padding: "16px 32px", borderBottom: "1px solid #E6E8EE", background: "white", flexShrink: 0 }}>
+        <div>
+          <div className="dash-breadcrumb" style={{ fontSize: "13px", marginBottom: "4px" }}>
+            <span style={{ color: "#A0AAB9", cursor: "default" }}>{isAdmin ? 'Other' : 'Workspace'}</span>
+            <span style={{ margin: "0 8px", color: "#E6E8EE" }}>›</span>
+            <strong style={{ color: "#0E1116", fontWeight: 500 }}>Messages</strong>
           </div>
-        </header>
+          <h1 className="dash-title" style={{ fontSize: "24px", fontWeight: 500, color: "#0E1116", letterSpacing: "-0.5px", margin: 0 }}>Messages</h1>
+        </div>
+      </header>
 
-        <div className="messages-container" style={{ display: 'flex', width: '100%', flex: 1, overflow: 'hidden', margin: 0, padding: 0 }}>
+      {/* СПЛИТ-ЛЕЙАУТ МЕССЕНДЖЕРА */}
+      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+        
+        {/* ЛЕВАЯ ПАНЕЛЬ: СПИСОК ЧАТОВ */}
+        <div style={{ width: "340px", borderRight: "1px solid #E6E8EE", display: "flex", flexDirection: "column", background: "white" }}>
           
-          <aside className="msg-list-sidebar" style={{ height: '100%', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-            <div className="msg-search-box" style={{ flexShrink: 0 }}>
+          <div style={{ padding: "20px", borderBottom: "1px solid #E6E8EE" }}>
+            <div style={{ position: 'relative' }}>
+              <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#A0AAB9', fontSize: '14px' }}>🔍</span>
               <input 
                 type="text" 
-                className="msg-search-input" 
-                placeholder="Search..." 
+                placeholder="Search messages..." 
                 value={searchQuery}
-                onChange={this.handleSearch}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ padding: '10px 16px 10px 36px', border: '1px solid #E6E8EE', borderRadius: '8px', fontSize: '14px', width: '100%', outline: 'none', color: '#0E1116', boxSizing: 'border-box' }} 
               />
             </div>
-            <div className="msg-list" style={{ flex: 1, overflowY: 'auto' }}>
-              {isLoading ? (
-                <div style={{ padding: '24px', textAlign: 'center', color: '#A0AAB9' }}>Loading chats from DB...</div>
-              ) : filteredChats.length === 0 ? (
-                <div style={{ padding: '24px', textAlign: 'center', color: '#A0AAB9' }}>No active chats</div>
-              ) : (
-                filteredChats.map(chat => (
+          </div>
+
+          <div style={{ flex: 1, overflowY: "auto" }}>
+            {isLoadingChats ? (
+              <div style={{ padding: "32px", textAlign: "center", color: "#A0AAB9" }}>Loading chats...</div>
+            ) : filteredChats.length === 0 ? (
+              <div style={{ padding: "48px 32px", textAlign: "center", color: "#A0AAB9" }}>No chats found.</div>
+            ) : (
+              filteredChats.map(chat => {
+                const isSelected = activeChatId === chat.id;
+                return (
                   <div 
                     key={chat.id} 
-                    className={`msg-item ${activeChatId === chat.id ? 'active' : ''}`}
-                    onClick={() => this.handleSelectChat(chat.id, chat.loadId)}
+                    onClick={() => setSearchParams({ chatId: chat.id })}
+                    style={{ 
+                      padding: "16px 20px", 
+                      borderBottom: "1px solid #E6E8EE", 
+                      cursor: "pointer",
+                      background: isSelected ? "#EEF1FF" : "white",
+                      borderLeft: isSelected ? "3px solid #3D5AFE" : "3px solid transparent",
+                      display: "flex",
+                      gap: "12px",
+                      transition: "background 0.2s ease"
+                    }}
                   >
-                    <div className={`msg-avatar ${chat.avatarColor}`}>{chat.avatarInitials}</div>
-                    <div className="msg-item-content">
-                      <div className="msg-item-header">
-                        <div className="msg-item-name">{chat.partnerName}</div>
-                        <div className="msg-item-time">{chat.lastMessageTime}</div>
+                    <div style={{ position: "relative" }}>
+                      <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: chat.avatarColor === 'green' ? '#ECFDF5' : '#EEF1FF', color: chat.avatarColor === 'green' ? '#10B981' : '#3D5AFE', display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600, fontSize: "16px" }}>
+                        {chat.avatarInitials}
                       </div>
-                      <div className="msg-item-company">{chat.partnerCompany}</div>
-                      <div className="msg-item-preview">{chat.lastMessage}</div>
+                      {chat.isOnline && (
+                        <div style={{ position: "absolute", bottom: "2px", right: "2px", width: "12px", height: "12px", background: "#10B981", border: "2px solid white", borderRadius: "50%" }}></div>
+                      )}
                     </div>
-                    {chat.unreadCount > 0 && <div className="msg-unread-dot"></div>}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
+                        <span style={{ fontSize: "14px", fontWeight: 600, color: "#0E1116", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{chat.partnerName}</span>
+                        <span style={{ fontSize: "12px", color: "#A0AAB9" }}>{chat.lastMessageTime}</span>
+                      </div>
+                      <div style={{ fontSize: "12px", color: "#5C6470", marginBottom: "4px" }}>{chat.partnerCompany}</div>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ fontSize: "13px", color: chat.unreadCount > 0 ? "#0E1116" : "#A0AAB9", fontWeight: chat.unreadCount > 0 ? 600 : 400, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {chat.lastMessage || "No messages yet"}
+                        </span>
+                        {chat.unreadCount > 0 && (
+                          <span style={{ background: "#3D5AFE", color: "white", fontSize: "11px", fontWeight: 600, padding: "2px 6px", borderRadius: "100px" }}>{chat.unreadCount}</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                ))
-              )}
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* ЦЕНТРАЛЬНАЯ ПАНЕЛЬ: ЧАТ */}
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "#FAFAFA" }}>
+          {!activeChatId ? (
+            <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "#A0AAB9", fontSize: "15px" }}>
+              Select a chat to start messaging
             </div>
-          </aside>
-
-          {activeChat ? (
-            <div className="msg-chat-area" style={{ height: '100%', flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-              <div className="msg-chat-header" style={{ flexShrink: 0 }}>
-                <div className="msg-chat-user">
-                  <div className={`msg-avatar ${activeChat.avatarColor}`}>{activeChat.avatarInitials}</div>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '15px', color: '#0E1116' }}>{activeChat.partnerName}</div>
-                    <div style={{ fontSize: '13px', color: activeChat.isOnline ? '#00C48C' : '#A0AAB9', display: 'flex', alignItems: 'center', marginTop: '2px' }}>
-                      {activeChat.isOnline && <span className="msg-status-dot"></span>}
-                      {activeChat.isOnline ? 'Online' : 'Offline'} • {activeChat.partnerCompany}
-                    </div>
-                  </div>
+          ) : (
+            <>
+              {/* Шапка чата */}
+              <div style={{ padding: "20px 32px", background: "white", borderBottom: "1px solid #E6E8EE", display: "flex", alignItems: "center", gap: "16px", flexShrink: 0 }}>
+                <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: activeChat?.avatarColor === 'green' ? '#ECFDF5' : '#EEF1FF', color: activeChat?.avatarColor === 'green' ? '#10B981' : '#3D5AFE', display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600 }}>
+                  {activeChat?.avatarInitials}
                 </div>
-                <div className="msg-chat-actions">
-                  {/* Кнопка View Load показывает только если есть привязанный LoadId */}
-                  {currentLoadId && (
-                    <button className="btn-figma-secondary" onClick={this.handleViewLoad} style={{ padding: '6px 16px', fontSize: '13px' }}>
-                        <span style={{ marginRight: '6px' }}>👁</span> View load
-                    </button>
-                  )}
-                  <button style={{ background: 'none', border: 'none', fontSize: '18px', color: '#5C6470', cursor: 'pointer', padding: '0 8px' }}>•••</button>
+                <div>
+                  <div style={{ fontSize: "16px", fontWeight: 600, color: "#0E1116", marginBottom: "2px" }}>{activeChat?.partnerName}</div>
+                  <div style={{ fontSize: "13px", color: "#10B981", fontWeight: 500 }}>Active now</div>
                 </div>
               </div>
 
-              <div className="msg-history" style={{ flex: 1, overflowY: 'auto' }}>
-                {messages.map((msg) => {
-                  if (msg.isSystemMessage) {
+              {/* Зона сообщений */}
+              <div style={{ flex: 1, overflowY: "auto", padding: "32px", display: "flex", flexDirection: "column", gap: "24px" }}>
+                {isLoadingMessages ? (
+                  <div style={{ textAlign: "center", color: "#A0AAB9" }}>Loading messages...</div>
+                ) : messages.length === 0 ? (
+                  <div style={{ textAlign: "center", color: "#A0AAB9", marginTop: "auto", marginBottom: "auto" }}>This is the beginning of your conversation.</div>
+                ) : (
+                  messages.map((msg) => {
+                    const isSystem = msg.isSystemMessage;
+                    // Проверка: сообщение мое, если senderId совпадает с ID текущего пользователя
+                    const isMine = msg.senderId === user?.id; 
+
+                    if (isSystem) {
+                      return (
+                        <div key={msg.id} style={{ display: "flex", justifyContent: "center" }}>
+                          <span style={{ background: "#F6F7FB", padding: "6px 16px", borderRadius: "100px", fontSize: "12px", color: "#5C6470", border: "1px solid #E6E8EE" }}>
+                            {msg.text}
+                          </span>
+                        </div>
+                      );
+                    }
+
                     return (
-                      <div key={msg.id} className="msg-system-badge">✓ {msg.text}</div>
+                      <div key={msg.id} style={{ display: "flex", justifyContent: isMine ? "flex-end" : "flex-start" }}>
+                        <div style={{ maxWidth: "70%" }}>
+                          <div style={{ 
+                            background: isMine ? "#3D5AFE" : "white", 
+                            color: isMine ? "white" : "#0E1116", 
+                            padding: "12px 16px", 
+                            borderRadius: isMine ? "12px 12px 0 12px" : "12px 12px 12px 0",
+                            border: isMine ? "none" : "1px solid #E6E8EE",
+                            fontSize: "14px",
+                            lineHeight: 1.5,
+                            boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
+                          }}>
+                            {msg.text}
+                          </div>
+                          <div style={{ fontSize: "11px", color: "#A0AAB9", marginTop: "6px", textAlign: isMine ? "right" : "left" }}>
+                            {msg.timestamp}
+                          </div>
+                        </div>
+                      </div>
                     );
-                  }
-                  
-                  const isMe = msg.senderId === userId || msg.senderId === 'me';
-                  return (
-                    <div key={msg.id} className={`msg-bubble-row ${isMe ? 'me' : 'them'}`}>
-                      <div className={`msg-bubble ${isMe ? 'me' : 'them'}`}>{msg.text}</div>
-                    </div>
-                  );
-                })}
-                <div ref={this.messagesEndRef} />
+                  })
+                )}
+                <div ref={messagesEndRef} />
               </div>
 
-              <div className="msg-input-area" style={{ flexShrink: 0 }}>
-                <form className="msg-input-wrapper" onSubmit={this.handleSendMessage}>
+              {/* Поле ввода */}
+              <div style={{ padding: "24px 32px", background: "white", borderTop: "1px solid #E6E8EE", flexShrink: 0 }}>
+                <form onSubmit={handleSendMessage} style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+                  <button type="button" style={{ background: "transparent", border: "none", cursor: "pointer", color: "#A0AAB9", display: "flex", alignItems: "center", padding: "8px" }}>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                  </button>
                   <input 
                     type="text" 
-                    className="msg-input-field" 
-                    placeholder={`Reply to ${activeChat.partnerName.split(' ')[0]}...`}
-                    value={newMessage}
-                    onChange={(e) => this.setState({ newMessage: e.target.value })}
+                    placeholder="Type a message..." 
+                    value={inputText}
+                    onChange={(e) => setInputText(e.target.value)}
+                    style={{ flex: 1, padding: "12px 16px", background: "#F6F7FB", border: "1px solid #E6E8EE", borderRadius: "8px", fontSize: "14px", outline: "none", color: "#0E1116" }}
                   />
-                  <button type="submit" className="msg-send-btn">
-                    <span style={{ transform: 'rotate(-45deg)' }}>➤</span> Send
+                  <button type="submit" disabled={!inputText.trim()} style={{ background: "#3D5AFE", color: "white", border: "none", padding: "12px 24px", borderRadius: "8px", fontWeight: 600, cursor: inputText.trim() ? "pointer" : "not-allowed", opacity: inputText.trim() ? 1 : 0.5, transition: "all 0.2s" }}>
+                    Send
                   </button>
                 </form>
               </div>
-            </div>
-          ) : (
-            <div className="dash-empty-state" style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              Select a chat to view messages
-            </div>
-          )}
-
-          {activeChat && activeDeal && (
-            <aside className="msg-deal-sidebar" style={{ height: '100%', overflowY: 'auto', flexShrink: 0 }}>
-              <div className="deal-section-title">Active Deal</div>
-              <div className="deal-summary-card">
-                <div style={{ fontSize: '12px', color: '#A0AAB9', marginBottom: '4px' }}>{activeDeal.loadId}</div>
-                <div style={{ fontSize: '15px', fontWeight: 600, color: '#0E1116', marginBottom: '4px' }}>{activeDeal.route}</div>
-                <div style={{ fontSize: '13px', color: '#5C6470', marginBottom: '16px' }}>{activeDeal.details}</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', borderTop: '1px solid #E6E8EE', paddingTop: '16px' }}>
-                  <span style={{ fontSize: '13px', color: '#A0AAB9' }}>{activeDeal.status}</span>
-                  <span style={{ fontSize: '20px', fontWeight: 600, color: '#0E1116' }}>{activeDeal.price}</span>
-                </div>
-              </div>
-
-              <div className="deal-section-title">Timeline</div>
-              <div className="deal-timeline">
-                {activeDeal.timeline.map((event, _index) => (
-                  <div key={_index} className="timeline-item">
-                    <div className="timeline-line"></div>
-                    <div className={`timeline-dot ${event.status === 'completed' ? 'green' : event.status === 'current' ? 'blue' : 'gray'}`}></div>
-                    <div className="timeline-content">
-                      <div className="timeline-title" style={{ color: event.status === 'pending' ? '#5C6470' : '#0E1116' }}>
-                        {event.title}
-                      </div>
-                      <div className="timeline-time">{event.time}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </aside>
+            </>
           )}
         </div>
-        
-        <style>{`
-          ::-webkit-scrollbar {
-            width: 0px;
-            height: 0px;
-            background: transparent;
-          }
-          * {
-            scrollbar-width: none; 
-            -ms-overflow-style: none;
-          }
-        `}</style>
+
+        {/* ПРАВАЯ ПАНЕЛЬ: АКТИВНАЯ СДЕЛКА */}
+        {activeChatId && activeDeal && (
+          <div style={{ width: "320px", background: "white", borderLeft: "1px solid #E6E8EE", display: "flex", flexDirection: "column" }}>
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid #E6E8EE" }}>
+              <div style={{ fontSize: "16px", fontWeight: 600, color: "#0E1116" }}>Active deal</div>
+            </div>
+            
+            <div style={{ padding: "24px", overflowY: "auto" }}>
+              <div style={{ background: "#F9FAFB", border: "1px solid #E6E8EE", borderRadius: "8px", padding: "16px", marginBottom: "24px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
+                  <span style={{ fontSize: "12px", color: "#5C6470", fontWeight: 600 }}>LOAD ID {activeDeal.loadId}</span>
+                  <span style={{ background: "#ECFDF5", color: "#10B981", border: "1px solid #A7F3D0", padding: "2px 8px", borderRadius: "100px", fontSize: "11px", fontWeight: 600 }}>{activeDeal.status}</span>
+                </div>
+                <div style={{ fontSize: "14px", fontWeight: 600, color: "#0E1116", marginBottom: "4px" }}>{activeDeal.route}</div>
+                <div style={{ fontSize: "13px", color: "#5C6470", marginBottom: "12px" }}>{activeDeal.details}</div>
+                <div style={{ fontSize: "18px", fontWeight: 600, color: "#0E1116" }}>{activeDeal.price}</div>
+              </div>
+
+              <div>
+                <div style={{ fontSize: "14px", fontWeight: 600, color: "#0E1116", marginBottom: "16px" }}>Timeline</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px", position: "relative" }}>
+                  {activeDeal.timeline.map((event, idx) => (
+                    <div key={idx} style={{ display: "flex", gap: "12px", position: "relative" }}>
+                      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", zIndex: 1 }}>
+                        <div style={{ 
+                          width: "16px", height: "16px", borderRadius: "50%", 
+                          background: event.status === 'completed' ? "#10B981" : event.status === 'current' ? "#3D5AFE" : "white",
+                          border: `2px solid ${event.status === 'pending' ? '#E6E8EE' : 'transparent'}`,
+                          display: "flex", alignItems: "center", justifyContent: "center"
+                        }}>
+                          {event.status === 'completed' && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
+                          {event.status === 'current' && <div style={{ width: "6px", height: "6px", background: "white", borderRadius: "50%" }}></div>}
+                        </div>
+                        {idx < activeDeal.timeline.length - 1 && (
+                          <div style={{ position: "absolute", top: "16px", bottom: "-16px", width: "2px", background: event.status === 'completed' ? "#10B981" : "#E6E8EE" }}></div>
+                        )}
+                      </div>
+                      <div style={{ paddingBottom: "16px" }}>
+                        <div style={{ fontSize: "13px", fontWeight: 600, color: event.status === 'pending' ? "#A0AAB9" : "#0E1116" }}>{event.title}</div>
+                        {event.time && <div style={{ fontSize: "12px", color: "#5C6470", marginTop: "2px" }}>{event.time}</div>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
-    );
-  }
-}
-
-export const MessagesPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const userId = useAuthStore((state) => state.user?.id || 'current-user-id');
-  const chatId = searchParams.get('chatId');
-  const loadId = searchParams.get('loadId'); 
-
-  return (
-    <MessagesPageClass 
-      onNavigate={(path) => navigate(`/${path}`)} 
-      userId={userId} 
-      initialChatId={chatId}
-      initialLoadId={loadId} 
-    />
+    </div>
   );
 };
 

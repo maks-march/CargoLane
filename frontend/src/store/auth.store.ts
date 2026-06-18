@@ -6,6 +6,7 @@ interface AuthState {
   user: {
     id: string;
     name: string | null;
+    role: string; // ИСПРАВЛЕНО: Добавлена типизация роли
   } | null;
   isAuthenticated: boolean;
   isLoading: boolean;
@@ -24,7 +25,7 @@ const useAuthStore = create<AuthState>()(
       login: async (data: LoginCommand) => {
         const tokens = await authService.login(data);
         set({
-          user: tokens.userId ? { id: tokens.userId, name: tokens.username } : null,
+          user: tokens.userId ? { id: tokens.userId, name: tokens.username, role: tokens.role } : null,
           isAuthenticated: !!tokens.token,
           isLoading: false,
         });
@@ -39,7 +40,7 @@ const useAuthStore = create<AuthState>()(
         const tokens = authService.getCurrentUserTokens();
         if (tokens && tokens.token) {
           set({
-            user: { id: tokens.userId, name: tokens.username },
+            user: { id: tokens.userId, name: tokens.username, role: tokens.role },
             isAuthenticated: true,
             isLoading: false,
           });

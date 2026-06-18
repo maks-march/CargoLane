@@ -105,6 +105,8 @@ interface CreateLoadCommand {
   vehicleTypes: string[]; 
   cargoType: string;      
   about: string | null;
+  distance: number; 
+  duration: string; 
   payloads: PayloadInputDto[];
   routePoints: RoutePointInputDto[];
 }
@@ -119,6 +121,8 @@ interface CreateLoadDraftCommand {
   vehicleTypes?: string[]; 
   cargoType?: string;
   about: string | null;
+  distance?: number;
+  duration?: string;
   payloads?: PayloadInputDto[];
   routePoints?: RoutePointInputDto[];
 }
@@ -160,6 +164,7 @@ interface RoutePointDraftVm {
 
 interface LoadListVm {
   id: string;
+  article?: string;
   from: string;
   to: string;
   dateStart: string;
@@ -170,10 +175,16 @@ interface LoadListVm {
   status: string;
   volumeStr?: string;
   matchPercent?: number;
+  // ИСПРАВЛЕНО: Добавлены новые поля прямо сюда!
+  companyName?: string;
+  reviewerName?: string;
+  createdDate?: string;
 }
 
 interface LoadDetailsVm {
   id: string;
+  userId?: string;
+  article?: string;
   from: string;
   to: string;
   dateStart: string;
@@ -190,7 +201,10 @@ interface LoadDetailsVm {
   companyName: string;
   payloads: PayloadInputDto[];
   routePoints: RoutePointInputDto[];
-  distance: number | null; // ИСПРАВЛЕНО: Добавлено поле дистанции из бэкенда
+  distance: number | null; 
+  duration?: string | null;
+  isSaved?: boolean;
+  rejectReason?: string | null;
 }
 
 interface PayloadVm {

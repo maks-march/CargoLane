@@ -9,6 +9,8 @@ export const Sidebar: React.FC = () => {
 
   const [sidebarStats, setSidebarStats] = useState({ listings: 0, messages: 0 });
 
+  const isModerator = user?.role === 'Admin' || user?.role === 'Moderator'; 
+
   useEffect(() => {
     const fetchUserStats = async () => {
       try {
@@ -40,36 +42,81 @@ export const Sidebar: React.FC = () => {
     <aside className="dash-sidebar">
       <div className="dash-sidebar-logo" onClick={() => navigate('/orders')} style={{ cursor: 'pointer' }}>
         <div className="logo-icon">▲</div>
-        <span>Cargolane</span>
+        <span>Cargolane {isModerator && <span style={{ color: '#3D5AFE' }}>Mod</span>}</span>
       </div>
 
-      <button className="dash-new-listing" onClick={() => navigate('/orders/create')}>
-        + New listing
-      </button>
+      {!isModerator && (
+        <button className="dash-new-listing" onClick={() => navigate('/orders/create')}>
+          + New listing
+        </button>
+      )}
 
-      <div className="dash-nav-section">Marketplace</div>
+      {/* МАРКЕТПЛЕЙС */}
+      <div className="dash-nav-section" style={{ marginTop: isModerator ? '32px' : '0' }}>Marketplace</div>
       <div className={`dash-nav-item ${isActive('/orders', true) ? 'active' : ''}`} onClick={() => navigate('/orders')}>
         🔍 Search
       </div>
-      <div className={`dash-nav-item ${isActive('/saved') ? 'active' : ''}`} onClick={() => navigate('/saved')}>
-        📌 Saved searches
-      </div>
+      
+      {!isModerator && (
+        <div className={`dash-nav-item ${isActive('/saved') ? 'active' : ''}`} onClick={() => navigate('/saved')}>
+          📌 Saved searches
+        </div>
+      )}
 
-      <div className="dash-nav-section" style={{ marginTop: '16px' }}>Workspace</div>
-      <div className={`dash-nav-item ${isActive('/my-listings') ? 'active' : ''}`} onClick={() => navigate('/my-listings')}>
-        📦 My listings 
-        {sidebarStats.listings > 0 && (
-          <span className="dash-nav-badge">{sidebarStats.listings}</span>
-        )}
-      </div>
-      <div className={`dash-nav-item ${isActive('/chat') ? 'active' : ''}`} onClick={() => navigate('/chat')}>
-        💬 Messages 
-        {sidebarStats.messages > 0 && (
-          <span className="dash-nav-badge" style={{ background: '#F6F7FB', color: '#5C6470' }}>{sidebarStats.messages}</span>
-        )}
-      </div>
+      {/* МОДЕРАЦИЯ (Только для админа) */}
+      {isModerator && (
+        <>
+          <div className="dash-nav-section" style={{ marginTop: '16px' }}>Moderation</div>
+          <div className={`dash-nav-item ${isActive('/admin/reviews') ? 'active' : ''}`} onClick={() => navigate('/admin/reviews')}>
+            🛡️ Review queue
+          </div>
+          {/* ИСПРАВЛЕНО: Добавлены вкладки из макета */}
+          <div className={`dash-nav-item ${isActive('/admin/approved') ? 'active' : ''}`} onClick={() => navigate('/admin/approved')}>
+            ✓ Approved
+          </div>
+          <div className={`dash-nav-item ${isActive('/admin/rejected') ? 'active' : ''}`} onClick={() => navigate('/admin/rejected')}>
+            ✕ Rejected
+          </div>
+        </>
+      )}
 
-      <div className="dash-nav-section" style={{ marginTop: '16px' }}>Other</div>
+      {/* ВОРКСПЕЙС */}
+      {!isModerator && (
+        <>
+          <div className="dash-nav-section" style={{ marginTop: '16px' }}>Workspace</div>
+          <div className={`dash-nav-item ${isActive('/my-listings') ? 'active' : ''}`} onClick={() => navigate('/my-listings')}>
+            📦 My listings 
+            {sidebarStats.listings > 0 && (
+              <span className="dash-nav-badge">{sidebarStats.listings}</span>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* СООБЩЕНИЯ */}
+      {!isModerator ? (
+        <div className={`dash-nav-item ${isActive('/chat') ? 'active' : ''}`} onClick={() => navigate('/chat')}>
+          💬 Messages 
+          {sidebarStats.messages > 0 && (
+            <span className="dash-nav-badge" style={{ background: '#F6F7FB', color: '#5C6470' }}>{sidebarStats.messages}</span>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="dash-nav-section" style={{ marginTop: '16px' }}>Other</div>
+          <div className={`dash-nav-item ${isActive('/chat') ? 'active' : ''}`} onClick={() => navigate('/chat')}>
+            💬 Messages 
+            {sidebarStats.messages > 0 && (
+              <span className="dash-nav-badge" style={{ background: '#F6F7FB', color: '#5C6470' }}>{sidebarStats.messages}</span>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* ДРУГОЕ */}
+      {!isModerator && (
+        <div className="dash-nav-section" style={{ marginTop: '16px' }}>Other</div>
+      )}
       <div className={`dash-nav-item ${isActive('/settings') ? 'active' : ''}`} onClick={() => navigate('/settings')}>
         ⚙ Settings
       </div>
@@ -78,8 +125,7 @@ export const Sidebar: React.FC = () => {
         <div className="dash-user-avatar">{getInitials(user?.name)}</div>
         <div className="dash-user-info">
           <div className="dash-user-name">{user?.name || 'User'}</div>
-          {/* ИСПРАВЛЕНО: Безопасное приведение типов для устранения ошибки TS */}
-          <div className="dash-user-company">{((user as unknown) as { role?: string })?.role || 'Carrier Pro'}</div>
+          <div className="dash-user-company">{isModerator ? 'Moderator' : (user?.role || 'Carrier Pro')}</div>
         </div>
       </div>
     </aside>

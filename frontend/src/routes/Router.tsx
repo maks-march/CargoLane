@@ -10,6 +10,7 @@ import SignInPage from '../pages/Auth/SignInPage';
 import SignUpPage from '../pages/Auth/SignUpPage';
 import RecoveryPage from '../pages/Auth/RecoveryPage';
 import ConfirmEmailPage from '../pages/Auth/ConfirmEmailPage';
+import AdminSignInPage from '../pages/Auth/AdminSignInPage';
 
 // --- DASHBOARD ---
 import SearchPage from '../pages/Dashboard/SearchPage';
@@ -34,6 +35,10 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <SignInPage />,
+  },
+  {
+    path: '/admin/login',
+    element: <AdminSignInPage />,
   },
   {
     path: '/register',
@@ -73,7 +78,24 @@ export const router = createBrowserRouter([
             path: '/saved',
             element: <SavedPage />,
           },
-          // Заглушки для ссылок из бокового меню, чтобы сайт не падал
+          // --- РОУТЫ АДМИНКИ ---
+          {
+            path: '/admin/reviews',
+            element: <ReviewQueuePage />,
+          },
+          {
+            path: '/admin/approved',
+            element: <ApprovedQueuePage />,
+          },
+          {
+            path: '/admin/rejected',
+            element: <RejectedQueuePage />,
+          },
+          {
+            path: '/admin/orders/:id', // <--- НОВЫЙ ЗАЩИЩЕННЫЙ ПУТЬ
+            element: <AdminLoadDetailPage />,
+          },
+          // ---------------------
           {
             path: '/chat',
             element: <MessagesPage />,
