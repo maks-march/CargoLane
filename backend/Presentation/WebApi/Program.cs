@@ -11,7 +11,7 @@ builder.Configuration.AddEnvironment(builder.Configuration);
 builder.Services
     .AddPersistenceServices(builder.Configuration)
     .AddApplicationServices()
-    .AddWebApiServices();
+    .AddWebApiServices(builder.Configuration);
 
 
 

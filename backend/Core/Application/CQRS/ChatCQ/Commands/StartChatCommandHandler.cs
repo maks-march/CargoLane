@@ -14,14 +14,13 @@ public class StartChatCommandHandler(IAppDbContext dbContext) : IRequestHandler<
             throw new InvalidOperationException("Chat with yourself permitted");
         
         // Ищем чат, где есть оба участника
-        var existingChatId = await dbContext.Chats
+        var existingChat = await dbContext.Chats
             .Where(c => c.Participants.Any(p => p.Id == request.CurrentUserId) && 
                         c.Participants.Any(p => p.Id == request.TargetUserId))
-            .Select(c => c.Id)
             .FirstOrDefaultAsync(cancellationToken);
 
-        if (existingChatId != Guid.Empty) 
-            return existingChatId;
+        if (existingChat != null) 
+            return existingChat.Id;
 
         // Если чата нет — создаем
         var currentUser = await dbContext.BusinessUsers.FindAsync([request.CurrentUserId], cancellationToken);

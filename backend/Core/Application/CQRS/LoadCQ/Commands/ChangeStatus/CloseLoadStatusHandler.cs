@@ -12,10 +12,15 @@ public class CloseLoadStatusHandler(IAppDbContext dbContext) : IRequestHandler<C
     public async Task<Guid> Handle(CloseLoadStatus request, CancellationToken cancellationToken)
     {
         var load = await dbContext.Loads
-            .FirstOrDefaultAsync(l => l.Id == request.Id && l.UserId == request.UserId && l.Status != LoadStatus.Closed, cancellationToken);
+            .FirstOrDefaultAsync(l => l.Id == request.Id, cancellationToken);
+        
         
         if (load == null) 
             throw new NotFoundException(nameof(LoadEntity), request.Id);
+        if (load.UserId != request.UserId)
+            throw new ForbiddenException("Access denied", request.UserId);
+        if (load.Status == LoadStatus.Closed)
+            throw new InvalidOperationException("Load is already closed");
         
         load.Status = LoadStatus.Closed;
         load.Updated = DateTime.UtcNow;

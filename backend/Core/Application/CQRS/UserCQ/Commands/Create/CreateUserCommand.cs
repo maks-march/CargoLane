@@ -15,5 +15,5 @@ public record CreateUserCommand : IRequest<Guid>
     /// </summary>
     public required string Password { get; init; }
 
-    public required string Role { get; set; } = RoleMapping.User;
+    public string Role { get; set; } = RoleMapping.User;
 }

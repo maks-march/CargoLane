@@ -32,9 +32,8 @@ public class CreateUserCommandHandler(
             throw new InvalidOperationException("Failed to find user after creation.");
         
         await userManager.AddToRoleAsync(appUser, request.Role);
-        appUser.Email = request.Login;
-        appUser.EmailConfirmed = true;
-        
+        var token = await userManager.GenerateEmailConfirmationTokenAsync(appUser);
+        await userManager.ConfirmEmailAsync(appUser, token);
         await dbContext.SaveChangesAsync(cancellationToken);
         return userId;
     }

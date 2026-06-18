@@ -351,6 +351,34 @@ public abstract class LoadTestBase : BaseIntegrationTest
         return result;
     }
 
+    // ============================================
+    // Book / Unbook / Close helpers
+    // ============================================
+
+    /// <summary>
+    /// Бронирует груз от имени текущего пользователя. Возвращает ID созданного чата.
+    /// </summary>
+    protected async Task<HttpResponseMessage> BookLoad(Guid loadId)
+    {
+        return await Client.PostAsync($"{LoadBaseUrl}/{loadId}/book", null);
+    }
+
+    /// <summary>
+    /// Разбронирует груз от имени текущего пользователя.
+    /// </summary>
+    protected async Task<HttpResponseMessage> UnbookLoad(Guid loadId)
+    {
+        return await Client.PostAsync($"{LoadBaseUrl}/{loadId}/unbook", null);
+    }
+
+    /// <summary>
+    /// Закрывает груз (необратимая операция). Доступно только владельцу.
+    /// </summary>
+    protected async Task<HttpResponseMessage> CloseLoad(Guid loadId)
+    {
+        return await Client.PostAsync($"{LoadBaseUrl}/{loadId}/close", null);
+    }
+
     protected async Task<LoadDetailsVm> GetAdminReview(Guid id)
     {
         var previousAuth = Client.DefaultRequestHeaders.Authorization;

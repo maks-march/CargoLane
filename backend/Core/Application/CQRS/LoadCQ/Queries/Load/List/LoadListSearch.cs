@@ -12,7 +12,7 @@ public class LoadListSearch
             var search = request.SearchBy.ToLower();
 
             query = query.Where(l =>
-                l.Id.ToString().ToLower().Contains(search) ||
+                l.Article.ToString().ToLower().Contains(search) ||
                 l.RoutePoints.Any(rp => rp.City.ToLower().Contains(search)) ||
                 l.About.ToLower().Contains(search) || 
                 l.User.CompanyName.ToLower().Contains(search));
