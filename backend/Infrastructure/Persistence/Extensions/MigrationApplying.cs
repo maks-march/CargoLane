@@ -15,8 +15,8 @@ public static class MigrationApplying
     public static IServiceProvider ApplyMigrations(this IServiceProvider serviceProvider)
     {
         var dbContext = serviceProvider.GetRequiredService<AppDbContext>();
-        // dbContext.Database.EnsureCreated();
-        dbContext.Database.Migrate();
+        dbContext.Database.EnsureCreated();
+        //dbContext.Database.Migrate();
         return serviceProvider;
     }
     

@@ -23,6 +23,7 @@ interface LoadDetailsBackendResponse {
   payment?: number;
   totalWeight?: number;
   totalVolume?: number;
+  distance?: number;
   cargoType?: string;
   vehicleTypes?: string[]; 
   vihicleTypes?: string[];
@@ -167,6 +168,7 @@ export const loadsService = {
         price: item.payment || 0,
         weight: item.totalWeight || 0,
         volume: item.totalVolume || 0,
+        distance: item.distance || 0,
         cargo: item.cargoType || 'General Cargo',
         recommendedVehicle: item.vehicleTypes?.[0] || item.vihicleTypes?.[0] || 'Any',
         about: item.about || '',

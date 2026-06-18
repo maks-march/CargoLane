@@ -20,7 +20,7 @@
 **/obj
 **/secrets.dev.yaml
 **/values.dev.yaml
-
+**/appsettings.Development.json
 **/wwwroot/*
 !**/wwwroot/swagger/
 LICENSE

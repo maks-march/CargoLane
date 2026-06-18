@@ -19,6 +19,8 @@ public class CreateLoadCommandHandler(IAppDbContext dbContext, IMapper mapper)
         load.Created = DateTime.UtcNow;
         load.Updated = DateTime.UtcNow;
         load.Status = LoadStatus.Pending;
+        load.Article = Math.Abs(load.Id.GetHashCode()) % 1000000;
+        
         double totalVolume = 0.0;
         double totalWeight = 0.0;
         // 3. Обработка грузов (Payloads)

@@ -30,13 +30,9 @@ public static class DependencyInjection
             {
                 options.AddPolicy("AllowFrontend", policy =>
                 {
-                    var origins = configuration.GetSection("AllowedOrigins").Get<string[]>()
-                                  ?? new[] { "http://localhost:5173" };
-        
-                    policy.WithOrigins(origins)
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials();
+                    policy.SetIsOriginAllowed(_ => true)
+                        .AllowAnyHeader()  
+                        .AllowAnyMethod();  
                 });
             });
     }

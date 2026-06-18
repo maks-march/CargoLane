@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useNavigate } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import MainLayout from '../components/Layout/MainLayout';
 
@@ -68,7 +68,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/orders/create',
-            element: <CreateLoadPage />,
+            element: <CreateLoadPageWrapper />,
           },
           {
             path: '/my-listings',
