@@ -40,7 +40,8 @@ services:
       dockerfile: Dockerfile
     container_name: frontend_app
     ports:
-      - "8080:80" # Внешний порт 8080 ведет на Nginx фронтенда
+      - "80:80"
+      - "443:80" # Внешний порт 8080 ведет на Nginx фронтенда
     depends_on:
       - api
     restart: unless-stopped
