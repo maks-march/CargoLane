@@ -1,7 +1,6 @@
 using Application.DTO.Auth;
 using Application.Interfaces;
 using Application.Interfaces.Auth;
-using Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
 

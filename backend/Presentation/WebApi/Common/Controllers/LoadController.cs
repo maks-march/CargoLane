@@ -1,5 +1,7 @@
+using Application.CQRS.AdminCQ.Commands;
 using Application.CQRS.ChatCQ.Commands;
 using Application.CQRS.LoadCQ.Commands.BookLoad;
+using Application.CQRS.LoadCQ.Commands.ChangeStatus;
 using Application.CQRS.LoadCQ.Commands.CreateLoad;
 using Application.CQRS.LoadCQ.Commands.DeleteLoad;
 using Application.CQRS.LoadCQ.Commands.Draft;
@@ -16,6 +18,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.DTO;
 using Application.DTO.Load;
+using Domain.Enums.Load;
 using WebApi.Common.Controllers.Abstract;
 
 namespace WebApi.Common.Controllers;
@@ -208,6 +211,48 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
         };
         await Mediator.Send(messageCommand);
         return Ok(chatId);
+    }
+    
+     
+    /// <summary>
+    /// Разбронить лот
+    /// </summary>
+    /// <param name="id">Идентификатор груза.</param>
+    /// <returns>Идентификатор одобренного груза.</returns>
+    /// <response code="200">Груз успешно одобрен.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
+    /// <response code="403">Доступ запрещён (не администратор).</response>
+    /// <response code="404">Груз не найден.</response>
+    [HttpPost("{id:guid}/unbook")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Guid>> Unbook(Guid id)
+    {
+        var command = new UnbookLoadStatus(id, UserId);
+        return Ok(await Mediator.Send(command));
+    }
+    
+     
+    /// <summary>
+    /// Закрыть лот (необратимая операция)
+    /// </summary>
+    /// <param name="id">Идентификатор груза.</param>
+    /// <returns>Идентификатор одобренного груза.</returns>
+    /// <response code="200">Груз успешно одобрен.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
+    /// <response code="403">Доступ запрещён (не администратор).</response>
+    /// <response code="404">Груз не найден.</response>
+    [HttpPost("{id:guid}/close")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<Guid>> Close(Guid id)
+    {
+        var command = new CloseLoadStatus(id, UserId);
+        return Ok(await Mediator.Send(command));
     }
 
     /// <summary>

@@ -2,7 +2,6 @@ using Application.Common.Exceptions;
 using Application.DTO.Load;
 using Application.Interfaces;
 using AutoMapper;
-using Domain.Enums.Load;
 using Domain.Models.Load;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
