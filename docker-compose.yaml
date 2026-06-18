@@ -17,12 +17,15 @@ services:
       timeout: 3s
       retries: 5
 
-  api:
+  backend:
     image: backend
     container_name: backend
     build:
       context: ./backend
       dockerfile: Dockerfile
+      
+    ports:
+      - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING}
@@ -43,7 +46,7 @@ services:
       - "80:80"
       - "443:80" # Внешний порт 8080 ведет на Nginx фронтенда
     depends_on:
-      - api
+      - backend
     restart: unless-stopped
 
 volumes:
