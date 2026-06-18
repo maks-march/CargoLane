@@ -43,7 +43,7 @@ public record LoadListVm : IMapWith<LoadEntity>
             .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()))
             .ForMember(d => d.StartDate, opt => opt.MapFrom(s => 
                 s.RoutePoints.OrderBy(rp => rp.OrderIndex).First().ArrivalTime))
-            .ForMember(d => d, opt => 
+            .ForMember(d => d.Shipper, opt => 
                 opt.MapFrom(src => src.User.CompanyName));
     }
 }

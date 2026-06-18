@@ -40,7 +40,7 @@ public record LoadDetailsVm : IMapWith<LoadEntity>
             .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()))
             .ForMember(d => d.Files, opt => opt.MapFrom(s => s.Photos.Select(p => p.FilePath)))
             .ForMember(d => d.RoutePoints, opt => opt.MapFrom(s => s.RoutePoints.OrderBy(rp => rp.OrderIndex)))
-            .ForMember(d => d, opt => 
+            .ForMember(d => d.Shipper, opt => 
                 opt.MapFrom(src => src.User.CompanyName));
     }
 }
