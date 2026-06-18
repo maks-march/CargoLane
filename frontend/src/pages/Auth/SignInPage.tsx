@@ -35,7 +35,8 @@ export const SignInPage: React.FC = () => {
       try {
         const data = await loadsService.getAllLoads();
         if (data && data.length > 0) {
-          const latestLoad = data[data.length - 1];
+          // ИСПРАВЛЕНО: Берем самый первый (самый свежий) маршрут из БД
+          const latestLoad = data[0];
           
           if (latestLoad.from && latestLoad.to) {
             setBackgroundStops([
@@ -73,7 +74,6 @@ export const SignInPage: React.FC = () => {
     }
   };
 
-  // Проверка: заполнены ли все поля
   const isFormValid = email.trim() !== '' && password.trim() !== '';
 
   return (
@@ -87,7 +87,6 @@ export const SignInPage: React.FC = () => {
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-subtitle">Enter your details to sign in to your account</p>
 
-          {/* ТОТ САМЫЙ ОРИГИНАЛЬНЫЙ БЛОК ОШИБКИ ИЗ ПЕРВОЙ ВЕТКИ */}
           {error && <div style={{ color: '#EF4444', background: '#FEF2F2', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid #EF4444' }}>{error}</div>}
 
           <form onSubmit={handleSubmit}>

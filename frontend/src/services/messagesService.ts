@@ -1,5 +1,5 @@
 import apiClient from '../api/api-client';
-import { loadsService } from './loadsService'; // Импортируем для получения данных сделки
+import { loadsService } from './loadsService';
 
 export interface ChatDto {
     id: string;
@@ -19,6 +19,7 @@ export interface ChatMessageDto {
     senderId: string; 
     text: string;
     timestamp: string;
+    date: string; // ИСПРАВЛЕНО: Поле для отображения даты в стиле Телеграм
     isSystemMessage?: boolean;
 }
 
@@ -56,7 +57,6 @@ interface BackendMessageVm {
 }
 
 export const messagesService = {
-    // 1. Получение списка чатов (ТОЛЬКО ИЗ БД, без фейковых админов)
     getChats: async (): Promise<ChatDto[]> => {
         try {
             const response = await apiClient.get<BackendChatVm[]>('/api/chat/me');
@@ -77,10 +77,7 @@ export const messagesService = {
                 };
             });
 
-            // ИСПРАВЛЕНО БАГ 1: Жесткая защита от дубликатов. 
-            // Если бэкенд прислал несколько чатов с одинаковым ID (например, Support), оставляем только уникальные.
             const uniqueChats = Array.from(new Map(rawChats.map(item => [item.id, item])).values());
-            
             return uniqueChats;
 
         } catch (error) {
@@ -89,20 +86,22 @@ export const messagesService = {
         }
     },
 
-    // 2. Получение истории переписки и правильная сортировка
     getChatHistory: async (chatId: string): Promise<ChatMessageDto[]> => {
         try {
             const response = await apiClient.get<BackendMessageVm[]>(`/api/chat/${chatId}/messages`);
             
-            const mappedMessages = response.data.map((msg) => ({
-                id: msg.id,
-                senderId: msg.senderId,
-                text: msg.text,
-                timestamp: new Date(msg.created).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                isSystemMessage: false 
-            }));
+            const mappedMessages = response.data.map((msg) => {
+                const d = new Date(msg.created);
+                return {
+                    id: msg.id,
+                    senderId: msg.senderId,
+                    text: msg.text,
+                    timestamp: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                    date: d.toLocaleDateString('en-US', { day: 'numeric', month: 'long' }), // Пример: "18 June"
+                    isSystemMessage: false 
+                };
+            });
 
-            // ИСПРАВЛЕНО: Переворачиваем массив, чтобы новые сообщения были внизу
             return mappedMessages.reverse();
 
         } catch (error) {
@@ -111,12 +110,10 @@ export const messagesService = {
         }
     },
 
-    // 3. Получение информации о сделке по LoadId для правой панели
     getActiveDeal: async (loadId: string): Promise<ActiveDealDto | null> => {
         if (!loadId || loadId === 'Support') return null;
 
         try {
-            // Дергаем реальные данные маршрута из базы
             const item = await loadsService.getLoadById(loadId);
             const startCity = item.routePoints?.[0]?.city || item.from || 'Unknown';
             const endCity = item.routePoints?.[(item.routePoints?.length || 1) - 1]?.city || item.to || 'Unknown';
@@ -139,23 +136,23 @@ export const messagesService = {
         }
     },
 
-    // 4. Отправка сообщения
     sendMessage: async (chatId: string, text: string): Promise<void> => {
-        await apiClient.post(`/api/chat/${chatId}/messages`, JSON.stringify(text), {
+        await apiClient.post(`/api/chat/${chatId}/message`, JSON.stringify(text), {
             headers: {
                 'Content-Type': 'application/json'
             }
         });
     },
 
-    // 5. Инициализация нового чата
     startChat: async (partnerId: string, loadId: string | null): Promise<{ chatId: string }> => {
-        const payload: Record<string, string> = { targetUserId: partnerId };
-        if (loadId) {
-            payload.loadId = loadId; 
-        }
+        const url = loadId 
+            ? `/api/chat/start/${partnerId}?loadId=${loadId}` 
+            : `/api/chat/start/${partnerId}`;
+            
+        const response = await apiClient.post(url);
         
-        const response = await apiClient.post(`/api/chat`, payload);
-        return typeof response.data === 'string' ? { chatId: response.data } : { chatId: response.data.id || response.data };
+        return typeof response.data === 'string' 
+            ? { chatId: response.data } 
+            : { chatId: response.data.id || response.data };
     }
 };

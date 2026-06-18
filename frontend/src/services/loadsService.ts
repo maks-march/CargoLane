@@ -34,6 +34,7 @@ interface LoadDetailsBackendResponse {
   distance?: number | null; 
   duration?: string | null; 
   isSaved?: boolean; 
+  rejectReason?: string | null; // ИСПРАВЛЕНО: Добавлено поле причины отказа
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   payloads?: any[];
   routePoints?: {
@@ -173,6 +174,7 @@ export const loadsService = {
         hScode: item.hScode || '',
         insurance: item.insurance || 0,
         status: item.status || 'Active',
+        rejectReason: item.rejectReason || null, // ИСПРАВЛЕНО: Теперь причина отказа берется из бэкенда!
         companyName: 'CargoLane Partner',
         distance: item.distance || 0,
         duration: item.duration || "00:00:00",

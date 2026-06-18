@@ -33,7 +33,7 @@ export const SettingsPage: React.FC = () => {
     units: 'Metric: km, t, m³',
     companyName: '',
     companyType: 'Freight forwarder',
-    regCountry: 'Germany',
+    regCountry: '', // ИСПРАВЛЕНО: По умолчанию пустая строка для свободного ввода
     street: '',
     city: '',
     zip: '',
@@ -68,7 +68,7 @@ export const SettingsPage: React.FC = () => {
             ...prev, 
             ...response.data,
             phone: response.data.phone || prev.phone,
-            regCountry: response.data.companyCountry || prev.regCountry,
+            regCountry: response.data.companyCountry || prev.regCountry, // Подтягиваем из БД
             street: response.data.address || prev.street,
             zip: response.data.postalCode || prev.zip
           }));
@@ -110,7 +110,7 @@ export const SettingsPage: React.FC = () => {
         await apiClient.post('/api/user/avatar', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        setMessage({ type: 'success', text: 'Avatar uploaded successfully.' });
+        setMessage({ type: 'success', text: 'Avatar uploaded successfully. Reload page to see changes globally.' });
       } catch (err: unknown) {
         const error = err as ApiError;
         setMessage({ type: 'error', text: error.response?.data?.details || error.response?.data?.message || 'Failed to upload avatar.' });
@@ -402,8 +402,15 @@ export const SettingsPage: React.FC = () => {
                   <select className="figma-input" value={userForm.companyType} onChange={(e) => setUserData({...userForm, companyType: e.target.value})}><option>Freight forwarder</option><option>Carrier</option></select>
                 </div>
                 <div className="form-group">
-                  <div className="form-label"><label>Registration country</label></div>
-                  <select className="figma-input" value={userForm.regCountry} onChange={(e) => setUserData({...userForm, regCountry: e.target.value})}><option>Germany</option><option>Russia</option><option>Poland</option></select>
+                  <div className="form-label"><label>Registration country & city</label></div>
+                  {/* ИСПРАВЛЕНО: Теперь это обычный текстовый ввод, а не список */}
+                  <input 
+                    type="text" 
+                    className="figma-input" 
+                    placeholder="e.g. Russia, Moscow"
+                    value={userForm.regCountry} 
+                    onChange={(e) => setUserData({...userForm, regCountry: e.target.value})} 
+                  />
                 </div>
               </div>
             </div>

@@ -47,7 +47,7 @@ export const SavedPage: React.FC = () => {
     const fetchSavedLoads = async () => {
       setIsLoading(true);
       try {
-        const data = await loadsService.getAllLoads(filters);
+        const data = await loadsService.getSavedLoads(filters);
 
         if (data) {
           const mappedData: ExtendedLoadVm[] = data.map((load: LoadListVm) => ({
@@ -57,7 +57,6 @@ export const SavedPage: React.FC = () => {
           }));
           setLoads(mappedData);
           
-          // Функциональное обновление стейта решает проблему react-hooks/exhaustive-deps
           setSelectedLoad((prevLoad) => {
             if (prevLoad && !mappedData.find((l) => l.id === prevLoad.id)) {
               return null;
@@ -86,8 +85,9 @@ export const SavedPage: React.FC = () => {
     navigate(`/chat?partnerId=${partnerId}&loadId=${loadId}`);
   };
 
+  // ИСПРАВЛЕНО: Теперь перекидывает на правильный URL деталей заказа, а не на страницу логина
   const handleViewDetails = (loadId: string) => {
-    navigate(`/load-details?loadId=${loadId}`);
+    navigate(`/orders/${loadId}`);
   };
 
   return (
@@ -105,7 +105,6 @@ export const SavedPage: React.FC = () => {
           </div>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', flex: 1, maxWidth: '500px', justifyContent: 'flex-end' }}>
-            {/* ИСПРАВЛЕНО: Кнопка Post Load удалена, инпут растянут (flex: 1) */}
             <div style={{ position: 'relative', flex: 1, width: '100%' }}>
               <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#A0AAB9' }}>🔍</span>
               <input 
@@ -313,7 +312,7 @@ export const SavedPage: React.FC = () => {
           padding: 24px 32px;
           overflow-y: auto;
           min-width: 0;
-          min-height: 350px !important; /* Базовая защита от сжатия в десктопе */
+          min-height: 350px !important; 
         }
         
         .split-layout-right {
@@ -322,19 +321,17 @@ export const SavedPage: React.FC = () => {
           flex-direction: column;
           background: white;
           border-left: 1px solid #E6E8EE;
-          min-height: 350px !important; /* Базовая защита от сжатия в десктопе */
+          min-height: 350px !important; 
         }
 
-        /* АДАПТИВНАЯ МАГИЯ (МЕНЕЕ 1200PX) */
         @media (max-width: 1200px) {
           .split-layout-container {
             flex-direction: column !important;
-            overflow-y: auto !important; /* Включаем общий скролл страницы */
+            overflow-y: auto !important; 
             overflow-x: hidden !important;
           }
           
           .split-layout-left {
-            /* flex-shrink 0 ЗАПРЕЩАЕТ сжиматься меньше 400px! Таблица всегда будет видна! */
             flex: 1 0 400px !important; 
             min-height: 400px !important; 
             padding: 16px 32px !important;
@@ -344,7 +341,6 @@ export const SavedPage: React.FC = () => {
           }
           
           .split-layout-right {
-            /* flex-shrink 0 ЗАПРЕЩАЕТ сжиматься меньше 450px! Карта всегда будет видна! */
             flex: 1 0 450px !important; 
             min-height: 450px !important; 
             width: 100% !important; 

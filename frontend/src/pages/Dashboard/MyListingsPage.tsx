@@ -3,6 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { loadsService } from "../../services/loadsService";
 import type { LoadListVm } from "../../api/types";
 
+// Форматер даты в стиле "Month day" (e.g. "Jun 18")
+const formatMonthDay = (dateStr?: string) => {
+  if (!dateStr) return '--';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '--';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[d.getMonth()]} ${d.getDate()}`;
+};
+
 export const MyListingsPage: React.FC = () => {
   const navigate = useNavigate();
   
@@ -19,18 +28,15 @@ export const MyListingsPage: React.FC = () => {
     const fetchMyListings = async () => {
       setIsLoading(true);
       try {
-        // ИСПРАВЛЕНО: Теперь мы запрашиваем строгие статусы, которые прописаны в C# (LoadStatus.cs)
-        // Бэкенд отдает Pending, а не ModerationPending!
         const [active, pending, booked, rejected, closed, draftsData] = await Promise.all([
           loadsService.getUserLoads({ status: 'Active' }),
-          loadsService.getUserLoads({ status: 'Pending' }), // Исправлено здесь!
+          loadsService.getUserLoads({ status: 'Pending' }),
           loadsService.getUserLoads({ status: 'Booked' }),
           loadsService.getUserLoads({ status: 'Rejected' }),
           loadsService.getUserLoads({ status: 'Closed' }),
           loadsService.getUserDrafts()
         ]);
         
-        // Объединяем все полученные заявки в один массив
         const allListings = [
           ...(active || []), 
           ...(pending || []), 
@@ -52,18 +58,16 @@ export const MyListingsPage: React.FC = () => {
 
   const getTabCount = (tabName: string) => {
     if (tabName === "All") return listings.length;
-    // Считаем заявки по строгому статусу бэкенда
     return listings.filter((load) => (load.status || "Active") === tabName).length;
   };
 
   const getFilteredData = () => {
-    let targetData: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let targetData: any[] = []; 
     
-    // Строгое разделение: если нажаты черновики - работаем только с массивом черновиков
     if (activeTab === "Drafts") {
       targetData = drafts;
     } else {
-      // Иначе работаем только с опубликованными заявками
       if (activeTab === "All") {
         targetData = listings;
       } else {
@@ -71,7 +75,6 @@ export const MyListingsPage: React.FC = () => {
       }
     }
     
-    // Применяем текстовый поиск
     return targetData.filter((item) => {
       const searchStr = searchQuery.toLowerCase();
       const isDraft = 'routePoints' in item;
@@ -121,7 +124,6 @@ export const MyListingsPage: React.FC = () => {
         {/* ПАНЕЛЬ ФИЛЬТРОВ И ПОИСКА */}
         <div style={{ background: "white", border: "1px solid #E6E8EE", borderRadius: "12px", padding: "10px 16px", display: "flex", gap: "16px", justifyContent: "space-between", alignItems: "center", overflowX: "auto" }}>
           
-          {/* Левая часть: Фильтры реальных заявок */}
           <div style={{ display: "flex", gap: "8px", overflowX: "auto", flexShrink: 0 }}>
             {["All", "Active", "Pending", "Booked", "Rejected", "Closed"].map((tab) => (
               <button
@@ -149,7 +151,6 @@ export const MyListingsPage: React.FC = () => {
             ))}
           </div>
 
-          {/* Правая часть: Кнопка Drafts + Строка поиска */}
           <div style={{ display: "flex", alignItems: "center", gap: "16px", flexShrink: 0 }}>
             
             <button
@@ -174,7 +175,6 @@ export const MyListingsPage: React.FC = () => {
               <span style={{ fontSize: "12px", fontWeight: 600 }}>{drafts.length}</span>
             </button>
 
-            {/* Вертикальный разделитель */}
             <div style={{ width: "1px", height: "24px", background: "#E6E8EE" }}></div> 
 
             <div style={{ position: "relative", width: "240px" }}>
@@ -193,7 +193,7 @@ export const MyListingsPage: React.FC = () => {
         {/* ТАБЛИЦА */}
         <div style={{ background: "white", border: "1px solid #E6E8EE", borderRadius: "12px", overflow: "hidden", width: "100%" }}>
           <div style={{ overflowX: "auto", width: "100%" }}>
-            <table style={{ width: "100%", minWidth: "800px", borderCollapse: "collapse", textAlign: "left" }}>
+            <table style={{ width: "100%", minWidth: "1000px", borderCollapse: "collapse", textAlign: "left" }}>
               
               {/* ДИНАМИЧЕСКИЙ ХЕДЕР ТАБЛИЦЫ */}
               <thead>
@@ -209,8 +209,10 @@ export const MyListingsPage: React.FC = () => {
                   <tr style={{ background: "#FAFAFA" }}>
                     <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Load ID</th>
                     <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Route</th>
-                    <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Date</th>
+                    <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Pick up</th>
+                    <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Drop off</th>
                     <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Cargo</th>
+                    <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Vehicle</th>
                     <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Price</th>
                     <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Status</th>
                   </tr>
@@ -221,13 +223,13 @@ export const MyListingsPage: React.FC = () => {
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={activeTab === "Drafts" ? 5 : 6} style={{ padding: "40px", textAlign: "center", color: "#888" }}>
+                    <td colSpan={activeTab === "Drafts" ? 5 : 8} style={{ padding: "40px", textAlign: "center", color: "#888" }}>
                       Loading...
                     </td>
                   </tr>
                 ) : displayData.length === 0 ? (
                   <tr>
-                    <td colSpan={activeTab === "Drafts" ? 5 : 6} style={{ padding: "80px", textAlign: "center", color: "#A0AAB9" }}>
+                    <td colSpan={activeTab === "Drafts" ? 5 : 8} style={{ padding: "80px", textAlign: "center", color: "#A0AAB9" }}>
                       No listings found in this category.
                     </td>
                   </tr>
@@ -244,23 +246,26 @@ export const MyListingsPage: React.FC = () => {
                         onClick={() => navigate(`/orders/create?draftId=${draft.id}`)} 
                         className="table-row-hover"
                       >
-                        <td style={{ padding: "16px 24px", verticalAlign: "top" }}>
+                        <td style={{ padding: "16px 24px", verticalAlign: "middle" }}>
                           <div style={{ fontSize: "13px", fontWeight: 600, color: "#5C6470" }}>
                             {draft.id.substring(0, 10).toUpperCase()}
                           </div>
                         </td>
-                        <td style={{ padding: "16px 24px", verticalAlign: "top" }}>
-                          <div style={{ fontSize: "14px", fontWeight: 500, color: "#0E1116", display: "flex", alignItems: "center", gap: "8px" }}>
+                        
+                        {/* ИСПРАВЛЕНО: Маршрут черновика в 1 линию */}
+                        <td style={{ padding: "16px 24px", verticalAlign: "middle" }}>
+                          <div style={{ fontSize: "14px", fontWeight: 600, color: "#0E1116", display: "flex", alignItems: "center", gap: "8px" }}>
                              {startCity} <span style={{ color: "#A0AAB9" }}>→</span> {endCity}
                           </div>
                         </td>
-                        <td style={{ padding: "16px 24px", verticalAlign: "top", fontSize: "14px", color: "#5C6470" }}>
+                        
+                        <td style={{ padding: "16px 24px", verticalAlign: "middle", fontSize: "14px", color: "#5C6470" }}>
                           {draft.cargoType || 'Cargo not specified'}
                         </td>
-                        <td style={{ padding: "16px 24px", verticalAlign: "top", fontSize: "15px", fontWeight: 600, color: "#0E1116" }}>
+                        <td style={{ padding: "16px 24px", verticalAlign: "middle", fontSize: "15px", fontWeight: 600, color: "#0E1116" }}>
                           {draft.payment ? `€${draft.payment.toLocaleString('en-US')}` : '-'}
                         </td>
-                        <td style={{ padding: "16px 24px", verticalAlign: "top", textAlign: "right" }}>
+                        <td style={{ padding: "16px 24px", verticalAlign: "middle", textAlign: "right" }}>
                           <button 
                             onClick={(e) => { e.stopPropagation(); navigate(`/orders/create?draftId=${draft.id}`); }}
                             style={{ color: "#3D5AFE", background: "#EEF1FF", padding: "8px 16px", borderRadius: "6px", border: "none", fontWeight: 600, cursor: "pointer", fontSize: "13px", transition: "background 0.2s" }}
@@ -290,6 +295,11 @@ export const MyListingsPage: React.FC = () => {
                       statusColor = "#5C6470"; statusBg = "#F6F7FB"; statusBorder = "#E6E8EE";
                     }
 
+                    // Приводим load к any, чтобы TypeScript не ругался на новые поля, 
+                    // которые мы добавили через бэкенд, но которых нет в базовом LoadListVm
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    const l = load as any;
+
                     return (
                       <tr 
                         key={idx} 
@@ -297,31 +307,46 @@ export const MyListingsPage: React.FC = () => {
                         onClick={() => navigate(`/orders/${load.id}`)} 
                         className="table-row-hover"
                       >
-                        <td style={{ padding: "16px 24px", verticalAlign: "top" }}>
+                        <td style={{ padding: "16px 24px", verticalAlign: "middle" }}>
                           <div style={{ fontSize: "13px", fontWeight: 600, color: "#5C6470" }}>
                             {load.article || load.id.substring(0,8).toUpperCase()}
                           </div>
                         </td>
-                        <td style={{ padding: "16px 24px", verticalAlign: "top" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 500, color: "#0E1116", marginBottom: "4px" }}>
-                            <span style={{ width: "6px", height: "6px", background: "#3D5AFE", borderRadius: "50%", display: "inline-block" }}></span> 
-                            {load.from?.split(',')[0] || 'N/A'}
-                          </div>
-                          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 500, color: "#0E1116" }}>
-                            <span style={{ width: "6px", height: "6px", background: "#00C48C", borderRadius: "50%", display: "inline-block" }}></span> 
-                            {load.to?.split(',')[0] || 'N/A'}
+                        
+                        {/* ИСПРАВЛЕНО: Однострочный маршрут со стрелочкой (По макету) */}
+                        <td style={{ padding: "16px 24px", verticalAlign: "middle" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "#0E1116" }}>
+                            {load.from?.split(',')[0] || 'N/A'} <span style={{ color: "#A0AAB9" }}>→</span> {load.to?.split(',')[0] || 'N/A'}
                           </div>
                         </td>
-                        <td style={{ padding: "16px 24px", verticalAlign: "top", fontSize: "13px", color: "#0E1116" }}>
-                          {load.dateStart ? new Date(load.dateStart).toLocaleDateString() : 'N/A'}
+
+                        {/* ИСПРАВЛЕНО: Раздельные даты Pick up и Drop off */}
+                        <td style={{ padding: "16px 24px", verticalAlign: "middle", fontSize: "14px", color: "#0E1116", fontWeight: 500 }}>
+                          {formatMonthDay(load.dateStart)}
                         </td>
-                        <td style={{ padding: "16px 24px", verticalAlign: "top", fontSize: "14px", color: "#0E1116" }}>
+                        <td style={{ padding: "16px 24px", verticalAlign: "middle", fontSize: "14px", color: "#0E1116", fontWeight: 500 }}>
+                          {formatMonthDay(l.endDate || load.dateStart)}
+                        </td>
+
+                        <td style={{ padding: "16px 24px", verticalAlign: "middle", fontSize: "14px", color: "#0E1116" }}>
                           {load.cargo} <span style={{ color: "#A0AAB9" }}>• {load.weight}t</span>
                         </td>
-                        <td style={{ padding: "16px 24px", verticalAlign: "top", fontSize: "16px", fontWeight: 600, color: "#0E1116" }}>
+                        
+                        {/* ИСПРАВЛЕНО: Вывод множественных Vehicle-тегов */}
+                        <td style={{ padding: "16px 24px", verticalAlign: "middle" }}>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {(l.vehicleTypes || (load.recommendedVehicle ? [load.recommendedVehicle] : ['Any'])).map((v: string, i: number) => (
+                              <span key={i} style={{ padding: '4px 10px', background: '#F6F7FB', color: '#5C6470', borderRadius: '6px', fontSize: '12px', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                                {v}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+
+                        <td style={{ padding: "16px 24px", verticalAlign: "middle", fontSize: "16px", fontWeight: 600, color: "#0E1116" }}>
                           €{load.price.toLocaleString('en-US')}
                         </td>
-                        <td style={{ padding: "16px 24px", verticalAlign: "top" }}>
+                        <td style={{ padding: "16px 24px", verticalAlign: "middle" }}>
                           <span style={{ background: statusBg, color: statusColor, border: `1px solid ${statusBorder}`, padding: "4px 10px", borderRadius: "100px", fontSize: "12px", fontWeight: 600 }}>
                             {rawStatus}
                           </span>

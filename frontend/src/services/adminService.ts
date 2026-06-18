@@ -4,7 +4,7 @@ import type { LoadListVm, LoadDetailsVm } from '../api/types';
 interface LoadDetailsBackendResponse {
   id: string;
   userId?: string; 
-  article?: string | number; // ИСПРАВЛЕНО: Бэкенд может вернуть число
+  article?: string | number; 
   payment?: number;
   totalWeight?: number;
   totalVolume?: number;
@@ -39,7 +39,7 @@ interface LoadDetailsBackendResponse {
 
 interface BackendLoadResponse {
   id: string;
-  article?: string | number; // ИСПРАВЛЕНО: Бэкенд может вернуть число
+  article?: string | number; 
   startCity?: string;
   endCity?: string;
   startDate?: string;
@@ -55,7 +55,6 @@ interface BackendLoadResponse {
   created?: string;
 }
 
-// Расширяем тип для фронта
 export interface ExtendedLoadListVm extends LoadListVm {
   companyName?: string;
   reviewerName?: string;
@@ -64,7 +63,6 @@ export interface ExtendedLoadListVm extends LoadListVm {
 
 const mapToListVm = (item: BackendLoadResponse): ExtendedLoadListVm => ({
   id: item.id,
-  // ИСПРАВЛЕНО: Жесткая конвертация артикула в строку, чтобы избежать краша
   article: item.article ? String(item.article) : item.id.substring(0, 8).toUpperCase(), 
   from: item.startCity || 'Unknown',
   to: item.endCity || 'Unknown',
@@ -92,7 +90,7 @@ export const adminService = {
 
   getApprovedLoads: async (): Promise<ExtendedLoadListVm[]> => {
     try {
-      const response = await apiClient.get<BackendLoadResponse[]>('/api/load', { params: { Status: 'Active' } });
+      const response = await apiClient.get<BackendLoadResponse[]>('/api/loadadmin/approved');
       return response.data.map(mapToListVm);
     } catch (error) {
       console.error("Failed to fetch approved loads", error);
@@ -102,7 +100,7 @@ export const adminService = {
 
   getRejectedLoads: async (): Promise<ExtendedLoadListVm[]> => {
     try {
-      const response = await apiClient.get<BackendLoadResponse[]>('/api/load', { params: { Status: 'Rejected' } });
+      const response = await apiClient.get<BackendLoadResponse[]>('/api/loadadmin/rejected');
       return response.data.map(mapToListVm);
     } catch (error) {
       console.error("Failed to fetch rejected loads", error);
@@ -111,7 +109,9 @@ export const adminService = {
   },
 
   getReviewDetails: async (id: string): Promise<LoadDetailsVm> => {
-    const response = await apiClient.get<LoadDetailsBackendResponse>(`/api/loadadmin/${id}/review`);
+    // ИСПРАВЛЕНО: Бэкенд блокирует роут /api/loadadmin/{id}/review для статусов, отличных от Pending (Status=1).
+    // Поэтому для просмотра карточки мы дергаем универсальный эндпоинт, который отдает детали ЛЮБОГО груза.
+    const response = await apiClient.get<LoadDetailsBackendResponse>(`/api/load/${id}`);
     const item = response.data;
     
     return {

@@ -24,10 +24,34 @@ const formatMoney = (num: number): string => {
 
 export const LandingPage: React.FC = () => {
   const navigate = useNavigate();
+  
+  // Стейт для карты
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [routeStops, setRouteStops] = useState<any[]>([]);
   
-  // Стейт статистики ( carriers теперь '0' по умолчанию )
+  // Стейт статистики
   const [stats, setStats] = useState({ loads: '0', carriers: '0', fee: '€0', support: '24/7' });
+
+  // ИСПРАВЛЕНО: Подгружаем реальный свежий маршрут из БД для превью на карте
+  useEffect(() => {
+    const fetchLatestRoute = async () => {
+      try {
+        const data = await loadsService.getAllLoads();
+        if (data && data.length > 0) {
+          const latestLoad = data[0]; // Берем самый свежий груз
+          if (latestLoad.from && latestLoad.to) {
+            setRouteStops([
+              { address: latestLoad.from.split(',')[0], type: 'start' },
+              { address: latestLoad.to.split(',')[0], type: 'end' }
+            ]);
+          }
+        }
+      } catch {
+        console.warn('Backend is down or empty. Map will start empty.');
+      }
+    };
+    fetchLatestRoute();
+  }, []);
 
   // Логика получения статистики с кэшем на 1 час
   useEffect(() => {
@@ -49,14 +73,14 @@ export const LandingPage: React.FC = () => {
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
 
-        let totalGMV = 0; // Итоговая сумма денег
+        let totalGMV = 0; 
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const monthlyLoads = loads.filter((load: any) => {
           if (!load.dateStart) return false;
           const loadDate = new Date(load.dateStart);
           const isThisMonth = loadDate.getMonth() === currentMonth && loadDate.getFullYear() === currentYear;
           
-          // Плюсуем цену к общей сумме, если груз за этот месяц
           if (isThisMonth && load.price) {
             totalGMV += Number(load.price);
           }
@@ -132,7 +156,6 @@ export const LandingPage: React.FC = () => {
           width: '100%',
           boxSizing: 'border-box'
       }}>
-        {/* ЛЕВАЯ ЧАСТЬ - Увеличенная ширина для длинных строк, убрана лишняя жирность */}
         <div className="hero-left" style={{ flex: '1 1 600px', maxWidth: '700px' }}>
           <h1 style={{fontWeight: '400',fontSize: '67px',  lineHeight: 1.15, marginBottom: '24px' }}>
             The freight exchange <span className="highlight">built for Europe.</span>
@@ -147,7 +170,6 @@ export const LandingPage: React.FC = () => {
           </div>
         </div>
         
-        {/* ПРАВАЯ ЧАСТЬ - Интерактивная карта (без изменений) */}
         <div className="hero-right" style={{ 
             flex: '1 1 450px', 
             width: '100%', 
@@ -182,7 +204,7 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 3. STATS SECTION - Возвращено сжатое расстояние между блоками */}
+      {/* 3. STATS SECTION */}
       <section className="stats-section" style={{ borderTop: '1px solid #E6E8EE', borderBottom: '1px solid #E6E8EE', background: '#FAFAFA', width: '100%' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '32px', padding: '64px 48px', maxWidth: '1750px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
           <div>
@@ -204,7 +226,6 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Spacer */}
       <div style={{ flex: 1, background: 'white' }}></div>
 
       {/* 4. FOOTER */}

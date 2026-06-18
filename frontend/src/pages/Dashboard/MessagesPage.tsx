@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useLocation } from "react-router-dom";
-// ИСПРАВЛЕННЫЙ ИМПОРТ: Точное название твоего файла (с буквой 's')
 import { messagesService, type ChatDto, type ChatMessageDto, type ActiveDealDto } from "../../services/messagesService";
 import useAuthStore from "../../store/auth.store";
 
-export const MessagesPage: React.FC = () => {
+const MessagesPage: React.FC = () => {
   const location = useLocation();
   const user = useAuthStore((state) => state.user);
   
-  // URL-параметры для сохранения открытого чата при F5
   const [searchParams, setSearchParams] = useSearchParams();
   const activeChatId = searchParams.get('chatId');
 
@@ -22,16 +20,37 @@ export const MessagesPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Определяем, админ это или обычный пользователь по URL
   const isAdmin = location.pathname.startsWith('/admin');
 
-  // 1. Загрузка списка чатов
+  // Функция загрузки списка чатов
   const fetchChats = async () => {
     setIsLoadingChats(true);
     try {
       const data = await messagesService.getChats();
-      setChats(data);
+      
+      const currentActiveId = new URLSearchParams(window.location.search).get('chatId');
+      // ИСПРАВЛЕНО: Достаем локальный кэш прочитанных сообщений
+      const localReadChats = JSON.parse(localStorage.getItem('cargo_read_chats') || '{}');
+
+      const processedChats = data.map(chat => {
+        let forcedUnreadCount = chat.unreadCount;
+
+        // Если чат сейчас открыт, точно 0 и кэшируем последнее сообщение
+        if (chat.id === currentActiveId) {
+            forcedUnreadCount = 0;
+            localReadChats[chat.id] = chat.lastMessage;
+            localStorage.setItem('cargo_read_chats', JSON.stringify(localReadChats));
+        } 
+        // Если мы уже читали это последнее сообщение (оно есть в кэше)
+        else if (localReadChats[chat.id] === chat.lastMessage) {
+            forcedUnreadCount = 0;
+        }
+
+        return { ...chat, unreadCount: forcedUnreadCount };
+      });
+
+      setChats(processedChats);
+
     } catch (error) {
       console.error("Failed to load chats", error);
     } finally {
@@ -41,11 +60,22 @@ export const MessagesPage: React.FC = () => {
 
   useEffect(() => {
     fetchChats();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 2. Загрузка истории сообщений и сделки при выборе чата
   useEffect(() => {
     if (activeChatId) {
+      // ИСПРАВЛЕНО: Мгновенно убиваем счетчик при переключении чатов и обновляем кэш
+      setChats(prev => prev.map(chat => {
+        if (chat.id === activeChatId) {
+            const localReadChats = JSON.parse(localStorage.getItem('cargo_read_chats') || '{}');
+            localReadChats[chat.id] = chat.lastMessage;
+            localStorage.setItem('cargo_read_chats', JSON.stringify(localReadChats));
+            return { ...chat, unreadCount: 0 };
+        }
+        return chat;
+      }));
+
       const loadChatData = async () => {
         setIsLoadingMessages(true);
         try {
@@ -70,27 +100,24 @@ export const MessagesPage: React.FC = () => {
       setMessages([]);
       setActiveDeal(null);
     }
-  }, [activeChatId, chats]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeChatId]);
 
-  // 3. Автоскролл вниз при новых сообщениях
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // 4. Отправка сообщения
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputText.trim() || !activeChatId) return;
 
     const textToSend = inputText.trim();
-    setInputText(""); // Очищаем инпут сразу для UX
+    setInputText(""); 
 
     try {
       await messagesService.sendMessage(activeChatId, textToSend);
-      // После отправки сразу запрашиваем обновленную историю из БД
       const updatedHistory = await messagesService.getChatHistory(activeChatId);
       setMessages(updatedHistory);
-      // Обновляем список чатов, чтобы подтянулось lastMessage
       fetchChats();
     } catch (error) {
       console.error("Failed to send message", error);
@@ -107,7 +134,6 @@ export const MessagesPage: React.FC = () => {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", overflow: "hidden", background: "#FFFFFF" }}>
       
-      {/* ХЕДЕР С ДИНАМИЧЕСКИМИ КРОШКАМИ */}
       <header className="dash-header" style={{ padding: "16px 32px", borderBottom: "1px solid #E6E8EE", background: "white", flexShrink: 0 }}>
         <div>
           <div className="dash-breadcrumb" style={{ fontSize: "13px", marginBottom: "4px" }}>
@@ -119,12 +145,10 @@ export const MessagesPage: React.FC = () => {
         </div>
       </header>
 
-      {/* СПЛИТ-ЛЕЙАУТ МЕССЕНДЖЕРА */}
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
         
-        {/* ЛЕВАЯ ПАНЕЛЬ: СПИСОК ЧАТОВ */}
+        {/* ЛЕВАЯ ПАНЕЛЬ */}
         <div style={{ width: "340px", borderRight: "1px solid #E6E8EE", display: "flex", flexDirection: "column", background: "white" }}>
-          
           <div style={{ padding: "20px", borderBottom: "1px solid #E6E8EE" }}>
             <div style={{ position: 'relative' }}>
               <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#A0AAB9', fontSize: '14px' }}>🔍</span>
@@ -199,7 +223,6 @@ export const MessagesPage: React.FC = () => {
             </div>
           ) : (
             <>
-              {/* Шапка чата */}
               <div style={{ padding: "20px 32px", background: "white", borderBottom: "1px solid #E6E8EE", display: "flex", alignItems: "center", gap: "16px", flexShrink: 0 }}>
                 <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: activeChat?.avatarColor === 'green' ? '#ECFDF5' : '#EEF1FF', color: activeChat?.avatarColor === 'green' ? '#10B981' : '#3D5AFE', display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 600 }}>
                   {activeChat?.avatarInitials}
@@ -210,60 +233,65 @@ export const MessagesPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Зона сообщений */}
               <div style={{ flex: 1, overflowY: "auto", padding: "32px", display: "flex", flexDirection: "column", gap: "24px" }}>
                 {isLoadingMessages ? (
                   <div style={{ textAlign: "center", color: "#A0AAB9" }}>Loading messages...</div>
                 ) : messages.length === 0 ? (
                   <div style={{ textAlign: "center", color: "#A0AAB9", marginTop: "auto", marginBottom: "auto" }}>This is the beginning of your conversation.</div>
                 ) : (
-                  messages.map((msg) => {
+                  messages.map((msg, index) => {
                     const isSystem = msg.isSystemMessage;
-                    // Проверка: сообщение мое, если senderId совпадает с ID текущего пользователя
                     const isMine = msg.senderId === user?.id; 
-
-                    if (isSystem) {
-                      return (
-                        <div key={msg.id} style={{ display: "flex", justifyContent: "center" }}>
-                          <span style={{ background: "#F6F7FB", padding: "6px 16px", borderRadius: "100px", fontSize: "12px", color: "#5C6470", border: "1px solid #E6E8EE" }}>
-                            {msg.text}
-                          </span>
-                        </div>
-                      );
-                    }
+                    
+                    const showDateHeader = index === 0 || messages[index - 1].date !== msg.date;
 
                     return (
-                      <div key={msg.id} style={{ display: "flex", justifyContent: isMine ? "flex-end" : "flex-start" }}>
-                        <div style={{ maxWidth: "70%" }}>
-                          <div style={{ 
-                            background: isMine ? "#3D5AFE" : "white", 
-                            color: isMine ? "white" : "#0E1116", 
-                            padding: "12px 16px", 
-                            borderRadius: isMine ? "12px 12px 0 12px" : "12px 12px 12px 0",
-                            border: isMine ? "none" : "1px solid #E6E8EE",
-                            fontSize: "14px",
-                            lineHeight: 1.5,
-                            boxShadow: "0 1px 2px rgba(0,0,0,0.02)"
-                          }}>
-                            {msg.text}
+                      <React.Fragment key={msg.id}>
+                        {showDateHeader && (
+                          <div style={{ display: "flex", justifyContent: "center", margin: "8px 0" }}>
+                            <span style={{ background: "#EEF1FF", padding: "4px 12px", borderRadius: "100px", fontSize: "12px", color: "#3D5AFE", fontWeight: 600 }}>
+                              {msg.date}
+                            </span>
                           </div>
-                          <div style={{ fontSize: "11px", color: "#A0AAB9", marginTop: "6px", textAlign: isMine ? "right" : "left" }}>
-                            {msg.timestamp}
+                        )}
+                        
+                        {isSystem ? (
+                          <div style={{ display: "flex", justifyContent: "center" }}>
+                            <span style={{ background: "#F6F7FB", padding: "6px 16px", borderRadius: "100px", fontSize: "12px", color: "#5C6470", border: "1px solid #E6E8EE" }}>
+                              {msg.text}
+                            </span>
                           </div>
-                        </div>
-                      </div>
+                        ) : (
+                          <div style={{ display: "flex", justifyContent: isMine ? "flex-end" : "flex-start" }}>
+                            <div style={{ maxWidth: "70%" }}>
+                              <div style={{ 
+                                background: isMine ? "#3D5AFE" : "white", 
+                                color: isMine ? "white" : "#0E1116", 
+                                padding: "12px 16px", 
+                                borderRadius: isMine ? "12px 12px 0 12px" : "12px 12px 12px 0",
+                                border: isMine ? "none" : "1px solid #E6E8EE",
+                                fontSize: "14px",
+                                lineHeight: 1.5,
+                                boxShadow: "0 1px 2px rgba(0,0,0,0.02)",
+                                wordBreak: "break-word"
+                              }}>
+                                {msg.text}
+                              </div>
+                              <div style={{ fontSize: "11px", color: "#A0AAB9", marginTop: "6px", textAlign: isMine ? "right" : "left" }}>
+                                {msg.timestamp}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </React.Fragment>
                     );
                   })
                 )}
                 <div ref={messagesEndRef} />
               </div>
 
-              {/* Поле ввода */}
               <div style={{ padding: "24px 32px", background: "white", borderTop: "1px solid #E6E8EE", flexShrink: 0 }}>
                 <form onSubmit={handleSendMessage} style={{ display: "flex", gap: "16px", alignItems: "center" }}>
-                  <button type="button" style={{ background: "transparent", border: "none", cursor: "pointer", color: "#A0AAB9", display: "flex", alignItems: "center", padding: "8px" }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
-                  </button>
                   <input 
                     type="text" 
                     placeholder="Type a message..." 
@@ -280,7 +308,7 @@ export const MessagesPage: React.FC = () => {
           )}
         </div>
 
-        {/* ПРАВАЯ ПАНЕЛЬ: АКТИВНАЯ СДЕЛКА */}
+        {/* ПРАВАЯ ПАНЕЛЬ: ДЕТАЛИ ГРУЗА */}
         {activeChatId && activeDeal && (
           <div style={{ width: "320px", background: "white", borderLeft: "1px solid #E6E8EE", display: "flex", flexDirection: "column" }}>
             <div style={{ padding: "20px 24px", borderBottom: "1px solid #E6E8EE" }}>

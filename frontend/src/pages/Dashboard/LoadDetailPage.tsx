@@ -16,6 +16,9 @@ export const LoadDetailPage: React.FC = () => {
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [routeInfo, setRouteInfo] = useState({ distance: '0 km', duration: '0h 0m' });
+  
+  // ИСПРАВЛЕНО: Стейт для предотвращения спама кликами по кнопке Save
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const fetchLoad = async () => {
@@ -36,9 +39,24 @@ export const LoadDetailPage: React.FC = () => {
     fetchLoad();
   }, [id]);
 
-  const handleSave = () => {
-    setSuccessMsg('Load successfully saved to your bookmarks!');
-    setTimeout(() => setSuccessMsg(''), 3000);
+  // ИСПРАВЛЕНО: Реальная отправка ID груза на бэкенд и переключение статуса
+  const handleSave = async () => {
+    if (!load) return;
+    setIsSaving(true);
+    try {
+      const isNowSaved = await loadsService.toggleSaveLoad(load.id);
+      setLoad({ ...load, isSaved: isNowSaved });
+      if (isNowSaved) {
+        setSuccessMsg('Load successfully saved to your bookmarks!');
+      } else {
+        setSuccessMsg('Load removed from your bookmarks.');
+      }
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      console.error("Failed to toggle save", err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (isLoading) {
@@ -76,16 +94,42 @@ export const LoadDetailPage: React.FC = () => {
             <span className="dash-detail-breadcrumb-arrow"> › </span>
             <strong className="dash-detail-breadcrumb-current">{load.id.substring(0, 8).toUpperCase()}</strong>
           </div>
-          {/* ИСПРАВЛЕНО: Выводится только Cargo type • Маршрут */}
           <h1 className="dash-title" style={{ fontSize: '24px', fontWeight: 400, color: '#0E1116', marginTop: '7px', letterSpacing: '-0.64px', marginBottom: 0 }}>
             {load.cargo || 'General Cargo'} <span style={{ color: '#A0AAB9' }}>•</span> <span style={{ color: '#0E1116', fontWeight: 400 }}>{startCity} → {endCity}</span>
           </h1>
         </div>
 
-        <div className="detail-actions" style={{ display: 'flex', gap: '12px' }}>
-          <button className="btn-figma-secondary" onClick={handleSave} style={{ padding: '8px 16px', cursor: 'pointer' }}><span>☆</span> Save</button>
+        <div className="detail-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          
+          {/* ИСПРАВЛЕНО: Динамическая кнопка сохранения по макету */}
+          <button 
+            onClick={handleSave} 
+            disabled={isSaving}
+            style={{ 
+              padding: '8px 16px', 
+              cursor: isSaving ? 'not-allowed' : 'pointer',
+              background: load.isSaved ? '#ECFDF5' : 'white',
+              border: load.isSaved ? '1px solid #10B981' : '1px solid #E6E8EE',
+              color: load.isSaved ? '#10B981' : '#0E1116',
+              borderRadius: '8px',
+              fontWeight: 600,
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.2s',
+              opacity: isSaving ? 0.7 : 1
+            }}
+          >
+            {load.isSaved ? (
+              <><span>✓</span> Saved</>
+            ) : (
+              <><span>☆</span> Save</>
+            )}
+          </button>
+          
           <button className="btn-figma-secondary" style={{ padding: '8px 16px', cursor: 'pointer' }}><span>↗</span> Share</button>
-          <div className="dash-notify" style={{ cursor: 'pointer' }}>🔔</div>
+          {/* ИСПРАВЛЕНО: Колокольчик удален */}
         </div>
       </header>
 
@@ -99,6 +143,18 @@ export const LoadDetailPage: React.FC = () => {
 
       <div style={{ display: 'flex', gap: '24px', padding: successMsg ? '24px 48px 48px 48px' : '48px', alignItems: 'flex-start' }}>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
+          
+          {load.status === 'Rejected' && load.rejectReason && (
+            <div style={{ background: '#FEF2F2', borderRadius: '12px', padding: '24px', border: '1px solid #FECACA' }}>
+              <div style={{ fontSize: '13px', fontWeight: 600, color: '#EF4444', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                Reason for rejection
+              </div>
+              <p style={{ fontSize: '14px', color: '#B91C1C', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap', fontWeight: 500 }}>
+                {load.rejectReason}
+              </p>
+            </div>
+          )}
+
           <DetailHeaderCard load={load} />
           <DetailRouteMap load={load} onRouteCalculated={(dist, dur) => setRouteInfo({ distance: dist, duration: dur })} routeInfo={routeInfo} />
           <DetailSpecs load={load} />

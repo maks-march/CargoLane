@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/auth.store'; 
+import apiClient from '../../api/api-client';
 
 export const Sidebar: React.FC = () => {
   const navigate = useNavigate();
@@ -8,22 +9,37 @@ export const Sidebar: React.FC = () => {
   const user = useAuthStore((state) => state.user); 
 
   const [sidebarStats, setSidebarStats] = useState({ listings: 0, messages: 0 });
+  
+  // Стейт для реального имени и аватарки из БД
+  const [dbProfile, setDbProfile] = useState<{ displayName: string; avatarPath: string | null }>({
+    displayName: user?.name || 'User',
+    avatarPath: null
+  });
 
   const isModerator = user?.role === 'Admin' || user?.role === 'Moderator'; 
 
   useEffect(() => {
-    const fetchUserStats = async () => {
+    const fetchUserStatsAndProfile = async () => {
       try {
+        // Подтягиваем реальные данные профиля для сайдбара
+        const userRes = await apiClient.get('/api/user/me');
+        if (userRes.data) {
+           setDbProfile({
+             displayName: userRes.data.displayName || userRes.data.firstName || user?.name || 'User',
+             avatarPath: userRes.data.avatarPath || null
+           });
+        }
+        
         const dbListings = 0; 
         const dbMessages = 0; 
         
         setSidebarStats({ listings: dbListings, messages: dbMessages });
       } catch {
-        console.error("Failed to load sidebar stats");
+        console.error("Failed to load sidebar stats or profile");
       }
     };
-    fetchUserStats();
-  }, []);
+    fetchUserStatsAndProfile();
+  }, [user?.name]);
 
   const isActive = (path: string, exact: boolean = false) => {
     if (exact) return location.pathname === path;
@@ -32,9 +48,9 @@ export const Sidebar: React.FC = () => {
 
   const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U';
-    const parts = name.split(' ');
+    const parts = name.trim().split(' ');
     if (parts.length > 1 && parts[0] && parts[1]) return (parts[0][0] + parts[1][0]).toUpperCase();
-    if (parts.length === 1 && parts[0].length > 0) return parts[0][0].toUpperCase();
+    if (parts.length === 1 && parts[0].length > 0) return parts[0].substring(0, 2).toUpperCase();
     return 'U';
   };
 
@@ -70,7 +86,6 @@ export const Sidebar: React.FC = () => {
           <div className={`dash-nav-item ${isActive('/admin/reviews') ? 'active' : ''}`} onClick={() => navigate('/admin/reviews')}>
             🛡️ Review queue
           </div>
-          {/* ИСПРАВЛЕНО: Добавлены вкладки из макета */}
           <div className={`dash-nav-item ${isActive('/admin/approved') ? 'active' : ''}`} onClick={() => navigate('/admin/approved')}>
             ✓ Approved
           </div>
@@ -122,9 +137,19 @@ export const Sidebar: React.FC = () => {
       </div>
 
       <div className="dash-user">
-        <div className="dash-user-avatar">{getInitials(user?.name)}</div>
+        {/* ИСПРАВЛЕНО: Выводим реальную аватарку, если она есть в БД */}
+        <div className="dash-user-avatar" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+           {dbProfile.avatarPath ? (
+             <img src={dbProfile.avatarPath} alt="User avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+           ) : (
+             getInitials(dbProfile.displayName)
+           )}
+        </div>
         <div className="dash-user-info">
-          <div className="dash-user-name">{user?.name || 'User'}</div>
+          {/* ИСПРАВЛЕНО: Выводим реальное Display Name из БД */}
+          <div className="dash-user-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>
+             {dbProfile.displayName}
+          </div>
           <div className="dash-user-company">{isModerator ? 'Moderator' : (user?.role || 'Carrier Pro')}</div>
         </div>
       </div>

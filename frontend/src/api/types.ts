@@ -11,6 +11,7 @@ export type {
   LoadDraftVm,
   LoadDetailsVm,
   LoadListVm,
+  ExtendedLoadListVm, // <--- НОВЫЙ ЭКСПОРТ
   PayloadInputDto,
   RoutePointInputDto,
   RoutePointDraftVm,
@@ -162,49 +163,60 @@ interface RoutePointDraftVm {
   orderIndex: number | null;
 }
 
+// --- НОВЫЙ КОНТРАКТ LoadListVm СТРОГО ПО SWAGGER ---
 interface LoadListVm {
   id: string;
-  article?: string;
-  from: string;
-  to: string;
-  dateStart: string;
-  price: number;
-  cargo: string;
-  weight: number;
-  recommendedVehicle: string;
-  status: string;
-  volumeStr?: string;
-  matchPercent?: number;
-  // ИСПРАВЛЕНО: Добавлены новые поля прямо сюда!
-  companyName?: string;
-  reviewerName?: string;
-  createdDate?: string;
+  article?: number;
+  startDate?: string;
+  payment?: number;
+  startCity?: string | null;
+  endCity?: string | null;
+  totalWeight?: number;
+  totalVolume?: number;
+  vehicleTypes?: string[] | null;
+  cargoType?: string | null;
+  payloadCount?: number;
+  shipper?: string | null;
+  created: string;
+  status?: string | null;
 }
 
+// --- НОВЫЙ КОНТРАКТ LoadDetailsVm СТРОГО ПО SWAGGER ---
 interface LoadDetailsVm {
   id: string;
-  userId?: string;
-  article?: string;
+  article?: number;
+  payment?: number;
+  insurance?: number;
+  hScode?: string | null;
+  adr?: number;
+  vehicleTypes?: string[] | null;
+  cargoType?: string | null;
+  about?: string | null;
+  status?: string | null;
+  totalWeight?: number;
+  totalVolume?: number;
+  distance?: number;
+  duration?: string | null;
+  userId: string;
+  reviewerName?: string | null;
+  rejectReason?: string | null;
+  reviewDate?: string;
+  shipper?: string | null;
+  created: string;
+  payloads?: PayloadVm[] | null;
+  routePoints?: LoadRoutePointVm[] | null;
+  files?: string[] | null;
+}
+
+// --- МОДЕЛЬ ДЛЯ ФРОНТЕНДА (чтобы не сломались твои старые таблицы) ---
+interface ExtendedLoadListVm {
+  id: string;
   from: string;
   to: string;
-  dateStart: string;
-  price: number;
-  cargo: string;
-  weight: number;
-  volume: number;
-  recommendedVehicle: string;
-  about: string;
-  adr: number;
-  hScode: string | null;
-  insurance: number;
+  price: string;
   status: string;
-  companyName: string;
-  payloads: PayloadInputDto[];
-  routePoints: RoutePointInputDto[];
-  distance: number | null; 
-  duration?: string | null;
-  isSaved?: boolean;
-  rejectReason?: string | null;
+  cargo: string;
+  created: string;
 }
 
 interface PayloadVm {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { authService } from '../../services/auth.service';
+import useAuthStore from '../../store/auth.store';
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
 
@@ -18,18 +18,18 @@ interface ApiErrorResponse {
 
 export const SignUpPage: React.FC = () => {
   const navigate = useNavigate();
+  const register = useAuthStore((state) => state.register);
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role] = useState('Carrier'); 
+  
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // ИСПРАВЛЕНО: Заменили any[] на строгий тип RouteStop[]
   const [backgroundStops, setBackgroundStops] = useState<RouteStop[]>([
     { address: 'Berlin', type: 'start' },
-    { address: 'Paris', type: 'end' }
+    { address: 'Munich', type: 'end' }
   ]);
 
   useEffect(() => {
@@ -37,7 +37,8 @@ export const SignUpPage: React.FC = () => {
       try {
         const data = await loadsService.getAllLoads();
         if (data && data.length > 0) {
-          const latestLoad = data[data.length - 1];
+          // ИСПРАВЛЕНО: Берем самый первый (самый свежий) маршрут из БД
+          const latestLoad = data[0];
           
           if (latestLoad.from && latestLoad.to) {
             setBackgroundStops([
@@ -47,8 +48,7 @@ export const SignUpPage: React.FC = () => {
           }
         }
       } catch {
-        // ИСПРАВЛЕНО: Убрали неиспользуемую переменную err
-        console.warn('Using default background route for signup page.');
+        console.warn('Backend is down or empty. Using default background route.');
       }
     };
     fetchLatestRoute();
@@ -56,27 +56,27 @@ export const SignUpPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username || !email || !password) return;
+    if (!email || !password || !username) return;
 
     setLoading(true);
     setError('');
 
     try {
-      await authService.register({ username, email, password, role });
-      navigate('/login');
+      await register({ username, email, password });
+      navigate('/orders');
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data) {
         const data = err.response.data as ApiErrorResponse;
         setError(data.details || data.error || data.message || 'Registration failed.');
       } else {
-        setError('Registration failed. Please try again.');
+        setError('Registration failed.');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  const isFormValid = username.trim() !== '' && email.trim() !== '' && password.trim() !== '';
+  const isFormValid = email.trim() !== '' && password.trim() !== '' && username.trim() !== '';
 
   return (
     <div className="auth-page active">
@@ -87,29 +87,24 @@ export const SignUpPage: React.FC = () => {
             Cargolane
           </div>
           <h1 className="auth-title">Create an account</h1>
-          <p className="auth-subtitle">Get started with CargoLane logistics network today</p>
+          <p className="auth-subtitle">Join thousands of businesses managing their logistics</p>
 
-          {error && (
-            <div style={{ color: '#EF4444', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#FEF2F2', borderRadius: '8px', border: '1px solid #EF4444' }}>
-              {error}
-            </div>
-          )}
+          {error && <div style={{ color: '#EF4444', background: '#FEF2F2', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid #EF4444' }}>{error}</div>}
 
           <form onSubmit={handleSubmit}>
             <div className="form-group">
-              <div className="form-label"><label>Full Name</label></div>
+              <div className="form-label"><label>Company / User name</label></div>
               <input 
                 type="text" 
                 className="form-input" 
-                placeholder="" 
+                placeholder="Cargo Logistics GmbH" 
                 value={username} 
                 onChange={(e) => setUsername(e.target.value)} 
                 required 
               />
             </div>
-
             <div className="form-group">
-              <div className="form-label"><label>Email Address</label></div>
+              <div className="form-label"><label>Email address</label></div>
               <input 
                 type="email" 
                 className="form-input" 
@@ -119,19 +114,18 @@ export const SignUpPage: React.FC = () => {
                 required 
               />
             </div>
-
             <div className="form-group">
               <div className="form-label"><label>Password</label></div>
               <input 
                 type="password" 
                 className="form-input" 
-                placeholder="••••••••" 
+                placeholder="Create a strong password" 
                 value={password} 
                 onChange={(e) => setPassword(e.target.value)} 
                 required 
               />
             </div>
-
+            
             <button 
               className="form-submit" 
               type="submit" 
@@ -143,7 +137,7 @@ export const SignUpPage: React.FC = () => {
                 transition: 'opacity 0.2s'
               }}
             >
-              {loading ? 'Creating account...' : 'Sign up'}
+              {loading ? 'Creating account...' : 'Create account'}
             </button>
           </form>
 
@@ -162,9 +156,9 @@ export const SignUpPage: React.FC = () => {
         <RoutingMap stops={backgroundStops} hideFloatingWidget={true} />
         <div className="auth-right-overlay" style={{ pointerEvents: 'none' }}></div>
         <div className="auth-right-content" style={{ zIndex: 10, position: 'absolute' }}>
-          <div className="growth-badge">Live Network Map</div>
-          <h2 className="auth-right-title">Manage your logistics <br/><span className="light">efficiently.</span></h2>
-          <p className="auth-right-desc">Join thousands of carriers and shippers connecting daily across the EU network.</p>
+          <div className="growth-badge">Global Coverage</div>
+          <h2 className="auth-right-title">Start shipping <br/><span className="light">worldwide.</span></h2>
+          <p className="auth-right-desc">Create your account in seconds and gain access to our extensive transport network.</p>
         </div>
       </div>
     </div>
