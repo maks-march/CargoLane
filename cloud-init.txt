@@ -34,3 +34,9 @@ EMAIL_PASSWORD="wbjx ahce wnzt coey"
 EOF
 
 docker login
+
+docker stop $(docker ps -aq) 2>/dev/null
+docker rm $(docker ps -aq) 2>/dev/null
+
+# 2. Удалить все volumes (⚠️ данные БД потеряются!)
+docker volume rm $(docker volume ls -q) 2>/dev/null
