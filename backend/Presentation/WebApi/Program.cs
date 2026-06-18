@@ -50,7 +50,7 @@ await app.SeedData();
 
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseMiddleware<UserStatusMiddleware>();
+// app.UseMiddleware<UserStatusMiddleware>(app.Configuration);
 app.MapControllers();
 
 app.Run();

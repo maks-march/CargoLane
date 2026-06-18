@@ -1,0 +1,42 @@
+curl -fsSL https://get.docker.com | sh
+
+# 2. Установка Docker Compose plugin
+apt-get install -y docker-compose-plugin
+
+git clone https://github.com/maks-march/CargoLane.git /opt/CargoLane
+
+cat > /opt/CargoLane/.env << 'EOF'
+DB_PASSWORD=szrWZEXrsectrfJjMKNOmklmklUHByfgvDTdszrXDHfhbjnjJBKLkgvFCxrfGXF
+DB_USER=COSTUMER
+DB_NAME=CargoLane_DB
+DB_HOST=db
+DB_CONNECTION_STRING=Host=db;Database=CargoLane_DB;Username=COSTUMER;Password=szrWZEXrsectrfJjMKNOmklmklUHByfgvDTdszrXDHfhbjnjJBKLkgvFCxrfGXF
+
+Jwt__SecretKey=GVYYFVilkhbajgbilCVUYtctgfCRFCSJVBSVBhjsvkLBNOSa
+Jwt__Issuer=CargoLaneApi
+Jwt__Audience=CargoLaneClient
+Jwt__ExpiryMinutes=60
+
+Admin__Login=admin
+Admin__Name=Support
+Admin__Email=CargoLane@gmail.com
+Admin__Surname=Support
+Admin__Password=admin
+Admin__PasswordTrue=JIfniopjfnIOPFHNibfuFBUBFUvbfyVUFnfkfNKFNifhn
+
+
+EMAIL_SMTP_SERVER=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_SENDER_NAME="CargoLane Team"
+EMAIL_SENDER_EMAIL="grishamarch23@gmail.com"
+EMAIL_USERNAME="grishamarch23@gmail.com"
+EMAIL_PASSWORD="wbjx ahce wnzt coey"
+EOF
+
+docker login
+
+docker stop $(docker ps -aq) 2>/dev/null
+docker rm $(docker ps -aq) 2>/dev/null
+
+# 2. Удалить все volumes (⚠️ данные БД потеряются!)
+docker volume rm $(docker volume ls -q) 2>/dev/null

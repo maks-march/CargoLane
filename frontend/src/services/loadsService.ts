@@ -26,6 +26,7 @@ interface LoadDetailsBackendResponse {
   payment?: number;
   totalWeight?: number;
   totalVolume?: number;
+  distance?: number;
   cargoType?: string;
   vehicleTypes?: string[]; 
   vihicleTypes?: string[];
