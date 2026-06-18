@@ -21,7 +21,7 @@ using WebApi.Common.Controllers.Abstract;
 namespace WebApi.Common.Controllers;
 
 /// <summary>
-/// Контроллер по управлению грузами (Load) и черновиками (Draft)
+/// Контроллер по управлению грузами (Load) и черновиками (Draft).
 /// </summary>
 [Authorize]
 public class LoadController(IMediator mediator) : BaseLoadController(mediator)
@@ -29,8 +29,11 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
     #region Основные грузы (LoadEntity)
 
     /// <summary>
-    /// Получить список активных заказов (грузов).
+    /// Получить список активных заказов (грузов). Доступно анонимно.
     /// </summary>
+    /// <param name="query">Параметры фильтрации и сортировки.</param>
+    /// <returns>Массив грузов, соответствующих фильтру.</returns>
+    /// <response code="200">Список грузов успешно получен.</response>
     [AllowAnonymous]
     [HttpGet]
     [ProducesResponseType(typeof(LoadListVm[]), StatusCodes.Status200OK)]
@@ -44,8 +47,12 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
     }
 
     /// <summary>
-    /// Получить детали конкретного заказа.
+    /// Получить детали конкретного заказа. Доступно анонимно.
     /// </summary>
+    /// <param name="id">Идентификатор груза.</param>
+    /// <returns>Детальная информация о грузе.</returns>
+    /// <response code="200">Детали груза получены.</response>
+    /// <response code="404">Груз не найден.</response>
     [AllowAnonymous]
     [HttpGet("{id:guid}")]
     [ProducesResponseType(typeof(LoadDetailsVm), StatusCodes.Status200OK)]
@@ -62,8 +69,13 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
     /// <summary>
     /// Получить список заказов текущего авторизованного пользователя.
     /// </summary>
+    /// <param name="status">Фильтр по статусу (по умолчанию Active).</param>
+    /// <returns>Массив грузов текущего пользователя.</returns>
+    /// <response code="200">Список грузов получен.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
     [HttpGet("me")]
     [ProducesResponseType(typeof(LoadListVm[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<LoadListVm[]>> GetMy([FromQuery] string status = "Active")
     {
         return Ok(
@@ -73,12 +85,15 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
             );
     }
     
-    
     /// <summary>
-    /// Получить список СОХРАНЕННЫХ заказов текущего авторизованного пользователя.
+    /// Получить список сохранённых заказов текущего авторизованного пользователя.
     /// </summary>
+    /// <returns>Массив сохранённых грузов.</returns>
+    /// <response code="200">Список сохранённых грузов получен.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
     [HttpGet("user/saved")]
     [ProducesResponseType(typeof(LoadListVm[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<LoadListVm[]>> GetMySaved()
     {
         return Ok(
@@ -89,11 +104,17 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
     }
 
     /// <summary>
-    /// Создать заказ (полная валидация).
+    /// Создать заказ (полная валидация). Груз попадает на модерацию (статус Pending).
     /// </summary>
+    /// <param name="command">Данные нового груза.</param>
+    /// <returns>Идентификатор созданного груза.</returns>
+    /// <response code="200">Груз успешно создан.</response>
+    /// <response code="400">Ошибка валидации данных.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
     [HttpPost]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<Guid>> Create([FromBody] CreateLoadCommand command)
     {
         command.UserId = UserId;
@@ -118,13 +139,19 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
     }
 
     /// <summary>
-    /// Сохранить заказ. Или убрать из сохраненных.
+    /// Добавить или убрать заказ из сохранённых (toggle).
     /// </summary>
+    /// <param name="id">Идентификатор груза.</param>
+    /// <returns>true — добавлен в сохранённые, false — убран из сохранённых.</returns>
+    /// <response code="200">Операция выполнена.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
+    /// <response code="403">Доступ запрещён.</response>
+    /// <response code="404">Груз не найден.</response>
     [HttpPost("{id:guid}/save")]
-    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> Save(Guid id)
     {
         var command = new SaveLoadCommand(id, UserId);
@@ -132,10 +159,16 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
     }
     
     /// <summary>
-    /// Удалить заказ.
+    /// Удалить заказ. Доступно только владельцу.
     /// </summary>
+    /// <param name="id">Идентификатор груза.</param>
+    /// <response code="204">Груз успешно удалён.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
+    /// <response code="403">Пользователь не является владельцем груза.</response>
+    /// <response code="404">Груз не найден.</response>
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> Delete(Guid id)
@@ -144,7 +177,18 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
         return NoContent();
     }
 
+    /// <summary>
+    /// Забронировать груз. Создаёт чат с владельцем и отправляет системное сообщение.
+    /// </summary>
+    /// <param name="id">Идентификатор груза.</param>
+    /// <returns>Идентификатор созданного чата.</returns>
+    /// <response code="200">Груз забронирован, чат создан.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
+    /// <response code="404">Груз не найден.</response>
     [HttpPost("{id:guid}/book")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Guid>> BookLoad(Guid id)
     {
         var command = new BookLoadCommand(id, UserId);
@@ -166,8 +210,18 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
         return Ok(chatId);
     }
 
+    /// <summary>
+    /// Загрузить файлы к заказу (документы, фото). Доступно только владельцу.
+    /// </summary>
+    /// <param name="id">Идентификатор груза.</param>
+    /// <param name="files">Массив загружаемых файлов.</param>
+    /// <response code="204">Файлы успешно загружены.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
+    /// <response code="403">Пользователь не является владельцем груза.</response>
+    /// <response code="404">Груз не найден.</response>
     [HttpPut("{id:guid}/files")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult> PutFiles(Guid id, [FromForm] IFormFile[] files)
@@ -183,8 +237,13 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
     /// <summary>
     /// Создать новый пустой или частично заполненный черновик.
     /// </summary>
+    /// <param name="command">Данные черновика.</param>
+    /// <returns>Идентификатор созданного черновика.</returns>
+    /// <response code="200">Черновик успешно создан.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
     [HttpPost("draft")]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<Guid>> CreateDraft([FromBody] CreateLoadDraftCommand command)
     {
         command.UserId = UserId;
@@ -208,8 +267,16 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
         return Ok(await Mediator.Send(command));
     }
 
+    /// <summary>
+    /// Получить список черновиков текущего авторизованного пользователя.
+    /// </summary>
+    /// <returns>Массив черновиков.</returns>
+    /// <response code="200">Список черновиков получен.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
+    /// <response code="404">Черновики не найдены.</response>
     [HttpGet("draft/me")]
     [ProducesResponseType(typeof(LoadDraftVm[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<LoadDraftVm[]>> GetMyDrafts()
     {
@@ -219,10 +286,16 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
     }
     
     /// <summary>
-    /// Получить данные черновика.
+    /// Получить данные черновика по идентификатору.
     /// </summary>
+    /// <param name="id">Идентификатор черновика.</param>
+    /// <returns>Данные черновика.</returns>
+    /// <response code="200">Черновик найден.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
+    /// <response code="404">Черновик не найден.</response>
     [HttpGet("draft/{id:guid}")]
     [ProducesResponseType(typeof(LoadDraftVm), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<LoadDraftVm>> GetDraft(Guid id)
     {
@@ -234,8 +307,16 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
     /// <summary>
     /// Обновить данные черновика (без строгой валидации).
     /// </summary>
+    /// <param name="id">Идентификатор черновика.</param>
+    /// <param name="command">Обновлённые данные черновика.</param>
+    /// <returns>Идентификатор обновлённого черновика.</returns>
+    /// <response code="200">Черновик успешно обновлён.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
+    /// <response code="404">Черновик не найден.</response>
     [HttpPut("draft/{id:guid}")]
     [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Guid>> UpdateDraft(Guid id, [FromBody] UpdateLoadDraftCommand command)
     {
         command.Id = id;
@@ -246,8 +327,12 @@ public class LoadController(IMediator mediator) : BaseLoadController(mediator)
     /// <summary>
     /// Удалить черновик.
     /// </summary>
+    /// <param name="id">Идентификатор черновика.</param>
+    /// <response code="204">Черновик успешно удалён.</response>
+    /// <response code="401">Пользователь не авторизован.</response>
     [HttpDelete("draft/{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult> DeleteDraft(Guid id)
     {
         await Mediator.Send(new DeleteLoadDraftCommand(id, UserId));

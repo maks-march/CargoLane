@@ -46,10 +46,13 @@ public class IdentityService(UserManager<ApplicationUser> userManager, AppDbCont
         if (appUser == null)
             return (false, null);
 
+        // Проверяем lockout ДО проверки пароля — заблокированный пользователь не может логиниться
+        if (await userManager.IsLockedOutAsync(appUser))
+            throw new ForbiddenException("Account is deactivated or locked.", appUser.Id);
+
         var success = await userManager.CheckPasswordAsync(appUser, password);
         if (!success)
             return (false, null);
-        
 
         return (true, appUser);
     }
@@ -119,11 +122,14 @@ public class IdentityService(UserManager<ApplicationUser> userManager, AppDbCont
         var user = await userManager.FindByIdAsync(userId.ToString());
         if (user == null)
             throw new NotFoundException("User not found", userId);
-        // Устанавливаем блокировку до конца времен (9999 год)
+        
+        // 1. Сначала включаем механизм блокировки (без этого IsLockedOutAsync всегда вернёт false)
+        await userManager.SetLockoutEnabledAsync(user, true);
+        
+        // 2. Только потом ставим дату блокировки до конца времён
         var blocked = await userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
         
-        await userManager.SetLockoutEnabledAsync(user, true);
-        // Опционально: сбрасываем Security Stamp, чтобы пользователя выкинуло из системы мгновенно
+        // 3. Сбрасываем Security Stamp, чтобы все текущие токены стали невалидными
         await userManager.UpdateSecurityStampAsync(user);
         return blocked.Succeeded;
     }

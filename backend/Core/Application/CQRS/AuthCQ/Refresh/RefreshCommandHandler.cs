@@ -30,16 +30,22 @@ public class RefreshCommandHandler(UserManager<ApplicationUser> userManager, IJw
             throw new UnauthorizedAccessException("Invalid access token or refresh token.");
         }
 
-        // 4. Генерируем НОВУЮ пару токенов
+        // 4. Проверяем, что пользователь не заблокирован (деактивирован)
+        if (await userManager.IsLockedOutAsync(user))
+        {
+            throw new UnauthorizedAccessException("Account is deactivated or locked.");
+        }
+
+        // 5. Генерируем НОВУЮ пару токенов
         var newAccessToken = jwtProvider.GenerateAccessToken(user);
         var newRefreshToken = jwtProvider.GenerateRefreshToken();
 
-        // 5. Обновляем Refresh Token в базе (Token Rotation)
+        // 6. Обновляем Refresh Token в базе (Token Rotation)
         user.RefreshToken = newRefreshToken;
         user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
         await userManager.UpdateAsync(user);
 
-        // 6. Возвращаем новую пару токенов клиенту (включая роль)
+        // 7. Возвращаем новую пару токенов клиенту (включая роль)
         var role = userManager.GetRolesAsync(user).Result.ToHighRole();
         return new AuthResponse(newAccessToken, newRefreshToken, user.Id, user.UserName, role);
     }

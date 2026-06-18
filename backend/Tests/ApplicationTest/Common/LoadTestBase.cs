@@ -50,7 +50,7 @@ public abstract class LoadTestBase : BaseIntegrationTest
     }
 
     // --- User loads ---
-    protected async Task<LoadListVm[]> GetMyLoads(string status = "Pending")
+    protected async Task<LoadListVm[]> GetMyLoads(string status = "Active")
     {
         var response = await Client.GetAsync($"{LoadBaseUrl}/me?status={status}");
         return await ExtractFromResponse<LoadListVm[]>(response) ?? Array.Empty<LoadListVm>();
@@ -294,9 +294,13 @@ public abstract class LoadTestBase : BaseIntegrationTest
     }
 
     // ============================================
-    // Admin moderation helpers (new after admin review flow)
+    // Admin moderation helpers
     // ============================================
 
+    /// <summary>
+    /// Создаёт груз и сразу аппрувит его через админа.
+    /// Сохраняет и восстанавливает текущий auth-контекст вызывающего.
+    /// </summary>
     protected async Task<Guid> CreateLoadAndApprove(CreateLoadCommand command)
     {
         var id = await CreateLoad(command);
@@ -304,33 +308,58 @@ public abstract class LoadTestBase : BaseIntegrationTest
         return id;
     }
 
+    /// <summary>
+    /// Аппрувит груз от имени админа, затем восстанавливает auth на того пользователя,
+    /// который был авторизован ДО вызова (а не на дефолтный Tokens).
+    /// </summary>
     protected async Task ApproveLoad(Guid loadId)
     {
+        // Запоминаем текущий auth header, чтобы восстановить после
+        var previousAuth = Client.DefaultRequestHeaders.Authorization;
+        
         SetAuth(AdminTokens);
-        await Client.PostAsync($"/api/LoadAdmin/{loadId}/approve", null);
-        SetAuth(Tokens);
+        var response = await Client.PostAsync($"/api/LoadAdmin/{loadId}/approve", null);
+        response.EnsureSuccessStatusCode();
+        
+        // Восстанавливаем предыдущий auth
+        Client.DefaultRequestHeaders.Authorization = previousAuth;
     }
 
+    /// <summary>
+    /// Реджектит груз от имени админа, затем восстанавливает auth на предыдущего пользователя.
+    /// </summary>
     protected async Task RejectLoad(Guid loadId, string reason = "test reject")
     {
+        var previousAuth = Client.DefaultRequestHeaders.Authorization;
+        
         SetAuth(AdminTokens);
-        await Client.PostAsJsonAsync($"/api/LoadAdmin/{loadId}/reject", reason);
-        SetAuth(Tokens);
+        var response = await Client.PostAsJsonAsync($"/api/LoadAdmin/{loadId}/reject", reason);
+        response.EnsureSuccessStatusCode();
+        
+        Client.DefaultRequestHeaders.Authorization = previousAuth;
     }
 
     protected async Task<LoadListVm[]> GetAdminReviews()
     {
+        var previousAuth = Client.DefaultRequestHeaders.Authorization;
+        
         SetAuth(AdminTokens);
         var resp = await Client.GetAsync("/api/LoadAdmin/reviews");
-        return await ExtractFromResponse<LoadListVm[]>(resp) ?? Array.Empty<LoadListVm>();
+        var result = await ExtractFromResponse<LoadListVm[]>(resp) ?? Array.Empty<LoadListVm>();
+        
+        Client.DefaultRequestHeaders.Authorization = previousAuth;
+        return result;
     }
 
     protected async Task<LoadDetailsVm> GetAdminReview(Guid id)
     {
+        var previousAuth = Client.DefaultRequestHeaders.Authorization;
+        
         SetAuth(AdminTokens);
         var resp = await Client.GetAsync($"/api/LoadAdmin/{id}/review");
-        return await ExtractFromResponse<LoadDetailsVm>(resp) ?? new();
+        var result = await ExtractFromResponse<LoadDetailsVm>(resp) ?? new();
+        
+        Client.DefaultRequestHeaders.Authorization = previousAuth;
+        return result;
     }
 }
-
-
