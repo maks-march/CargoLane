@@ -49,7 +49,6 @@ public static class DependencyInjection
     {
         services.AddScoped<IJwtProvider, JwtProvider>();
         services.AddScoped<IIdentityService, IdentityService>();
-        services.AddScoped<IGoogleAuthProvider, GoogleAuthProvider>();
         services.Configure<EmailSettings>(configuration.GetSection("EmailSettings"));
         services.AddScoped<IEmailService, EmailService>();
         

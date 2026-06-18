@@ -19,7 +19,7 @@ public class GetLoadDetailQueryHandler(IAppDbContext dbContext, IMapper mapper)
             .Include(l => l.RoutePoints)
             .Include(l => l.Photos)
             .AsNoTracking()
-            .FirstOrDefaultAsync(l => l.Id == request.Id && (l.Status == LoadStatus.Active || l.Status == LoadStatus.Booked), cancellationToken);
+            .FirstOrDefaultAsync(l => l.Id == request.Id, cancellationToken);
 
         if (load == null) throw new NotFoundException(nameof(LoadEntity), request.Id);
         return mapper.Map<LoadDetailsVm>(load);
