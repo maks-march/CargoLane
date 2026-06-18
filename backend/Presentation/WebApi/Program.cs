@@ -11,7 +11,7 @@ builder.Configuration.AddEnvironment(builder.Configuration);
 builder.Services
     .AddPersistenceServices(builder.Configuration)
     .AddApplicationServices()
-    .AddWebApiServices();
+    .AddWebApiServices(builder.Configuration);
 
 
 
@@ -35,7 +35,7 @@ app.MapHub<ChatHub>("/chathub");
 app.UseStatusCodePages();
 app.UseForwardedHeaders();
 
-if (app.Environment.IsDevelopment() || true)
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>

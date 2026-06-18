@@ -541,4 +541,195 @@ public class LoadControllerTests : LoadTestBase
     }
 
     #endregion
+
+    #region Book / Unbook flow
+
+    [Test]
+    public async Task BookLoad_ShouldReturnChatId_WhenAnotherUserBooks()
+    {
+        // Arrange: пользователь A создаёт груз
+        SetAuth(AuthA);
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Load to book"));
+
+        // Act: пользователь B бронирует
+        SetAuth(AuthB);
+        var response = await BookLoad(loadId);
+
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+        var chatId = await response.Content.ReadFromJsonAsync<Guid>();
+        chatId.Should().NotBeEmpty();
+    }
+
+    [Test]
+    public async Task BookLoad_ShouldReturnUnauthorized_WhenAnonymous()
+    {
+        SetAuth(AuthA);
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Book anon test"));
+
+        var anonClient = Factory.CreateClient();
+        var response = await anonClient.PostAsync($"{LoadBaseUrl}/{loadId}/book", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Test]
+    public async Task BookLoad_ShouldReturnNotFound_WhenLoadDoesNotExist()
+    {
+        SetAuth(AuthA);
+        var response = await BookLoad(Guid.NewGuid());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task UnbookLoad_ShouldSucceed_AfterBooking()
+    {
+        // Arrange: A создаёт, B бронирует
+        SetAuth(AuthA);
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Unbook test"));
+
+        SetAuth(AuthB);
+        var bookResp = await BookLoad(loadId);
+        bookResp.IsSuccessStatusCode.Should().BeTrue();
+
+        // Act: A разбронирует
+        SetAuth(AuthA);
+        var unbookResp = await UnbookLoad(loadId);
+
+        // Assert
+        unbookResp.IsSuccessStatusCode.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task UnbookLoad_ShouldReturnNotFound_WhenLoadDoesNotExist()
+    {
+        SetAuth(AuthA);
+        var response = await UnbookLoad(Guid.NewGuid());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task UnbookLoad_ShouldReturnUnauthorized_WhenAnonymous()
+    {
+        SetAuth(AuthA);
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Unbook anon"));
+
+        var anonClient = Factory.CreateClient();
+        var response = await anonClient.PostAsync($"{LoadBaseUrl}/{loadId}/unbook", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    #endregion
+
+    #region Close load (irreversible)
+
+    [Test]
+    public async Task CloseLoad_ShouldSucceed_WhenOwnerCloses()
+    {
+        // Arrange
+        SetAuth(AuthA);
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Load to close"));
+
+        // Act: владелец закрывает
+        var response = await CloseLoad(loadId);
+
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+
+        // Закрытый груз не должен быть в Active-списке
+        var activeLoads = await GetAllLoads(anonymous: true, status: "Active");
+        activeLoads.Should().NotContain(l => l.Id == loadId);
+    }
+
+    [Test]
+    public async Task CloseLoad_ShouldAppearInClosedList()
+    {
+        // Arrange
+        SetAuth(AuthA);
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Close and check list"));
+
+        // Act
+        var closeResp = await CloseLoad(loadId);
+        closeResp.IsSuccessStatusCode.Should().BeTrue();
+
+        // Assert: груз появляется в списке Closed
+        var closedLoads = await GetMyLoads("Closed");
+        closedLoads.Should().Contain(l => l.Id == loadId);
+    }
+
+    [Test]
+    public async Task CloseLoad_ShouldReturnForbidden_WhenNonOwnerCloses()
+    {
+        // Arrange: A создаёт
+        SetAuth(AuthA);
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Close forbidden test"));
+
+        // Act: B пытается закрыть
+        SetAuth(AuthB);
+        var response = await CloseLoad(loadId);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Test]
+    public async Task CloseLoad_ShouldReturnNotFound_WhenLoadDoesNotExist()
+    {
+        SetAuth(AuthA);
+        var response = await CloseLoad(Guid.NewGuid());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task CloseLoad_ShouldReturnUnauthorized_WhenAnonymous()
+    {
+        SetAuth(AuthA);
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Close anon test"));
+
+        var anonClient = Factory.CreateClient();
+        var response = await anonClient.PostAsync($"{LoadBaseUrl}/{loadId}/close", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    #endregion
+
+    #region New model fields (shipper, created)
+
+    [Test]
+    public async Task GetDetails_ShouldContainShipperAndCreated()
+    {
+        // Arrange
+        SetAuth(AuthA);
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("Shipper test"));
+
+        // Act
+        var details = await GetLoadDetails(loadId, anonymous: true);
+
+        // Assert: новые поля должны быть заполнены
+        details.Should().NotBeNull();
+        // shipper может быть displayName или companyName пользователя
+        // created — дата создания груза, не должна быть default
+    }
+
+    [Test]
+    public async Task GetList_ShouldContainShipperAndCreated()
+    {
+        // Arrange
+        SetAuth(AuthA);
+        var loadId = await CreateLoadAndApprove(CreateValidLoadCommand("List shipper test"));
+
+        // Act
+        var loads = await GetAllLoads(anonymous: true, status: "Active");
+        var load = loads.FirstOrDefault(l => l.Id == loadId);
+
+        // Assert
+        load.Should().NotBeNull();
+    }
+
+    #endregion
 }

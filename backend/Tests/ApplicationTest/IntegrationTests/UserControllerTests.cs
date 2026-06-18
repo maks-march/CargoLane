@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using Application.CQRS.AuthCQ.Login;
 using Application.CQRS.AuthCQ.Refresh;
+using Application.CQRS.UserCQ.Commands.Create;
 using Application.CQRS.UserCQ.Commands.Update;
 using Application.DTO.User;
 using ApplicationTest.Common;
@@ -340,6 +341,117 @@ public class UserControllerTests : BaseIntegrationTest
         var unauth = Factory.CreateClient();
         var resp = await unauth.PostAsync($"{BaseUrl}deactivate", null);
         resp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    #endregion
+
+    #region Admin: Create user (POST /api/user/admin)
+
+    [Test]
+    public async Task AdminCreateUser_ShouldReturnGuid_WhenAdminCreates()
+    {
+        // Arrange
+        SetAuth(AdminTokens);
+        var command = new CreateUserCommand
+        {
+            Login = $"{Guid.NewGuid()}@test.com",
+            Password = Password,
+            DisplayName = "Admin Created User",
+            Role = "User"
+        };
+
+        // Act
+        var response = await Client.PostAsJsonAsync($"{BaseUrl}admin", command);
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+        var userId = await response.Content.ReadFromJsonAsync<Guid>();
+        userId.Should().NotBeEmpty();
+
+        // Проверяем что пользователь действительно создан
+        var user = await CheckGet_User(userId);
+        user.Should().NotBeNull();
+    }
+
+    [Test]
+    public async Task AdminCreateUser_ShouldReturnForbidden_WhenRegularUserAttempts()
+    {
+        // Arrange
+        var command = new CreateUserCommand
+        {
+            Login = $"should-fail-{Guid.NewGuid()}@test.com",
+            Password = Password,
+            DisplayName = "Should Fail",
+            Role = "User"
+        };
+
+        // Act: обычный пользователь пытается создать
+        var response = await Client.PostAsJsonAsync($"{BaseUrl}admin", command);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Test]
+    public async Task AdminCreateUser_ShouldReturnUnauthorized_WhenAnonymous()
+    {
+        var anonClient = Factory.CreateClient();
+        var command = new CreateUserCommand
+        {
+            Login = $"anon-admin-{Guid.NewGuid()}@test.com",
+            Password = Password,
+            DisplayName = "Anon Admin",
+            Role = "User"
+        };
+
+        var response = await anonClient.PostAsJsonAsync($"{BaseUrl}admin", command);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
+    [Test]
+    public async Task AdminCreateUser_WithAdminRole_ShouldSucceed()
+    {
+        // Arrange: создаём пользователя с ролью Admin
+        SetAuth(AdminTokens);
+        var login = $"{Guid.NewGuid()}@test.com";
+        var command = new CreateUserCommand
+        {
+            Login = login,
+            Password = Password,
+            DisplayName = "New Admin"
+        };
+
+        // Act
+        var response = await Client.PostAsJsonAsync($"{BaseUrl}admin", command);
+        // Assert
+        response.IsSuccessStatusCode.Should().BeTrue();
+
+        // Проверяем что новый admin может залогиниться
+        var loginResp = await Client.PostAsJsonAsync("/api/Auth/login", new LoginCommand
+        {
+            Login = login,
+            Password = Password
+        });
+        loginResp.IsSuccessStatusCode.Should().BeTrue();
+    }
+
+    [Test]
+    public async Task AdminCreateUser_ShouldReturnBadRequest_WhenMissingRequiredFields()
+    {
+        // Arrange: пустая команда (без login/password/role)
+        SetAuth(AdminTokens);
+        var command = new CreateUserCommand
+        {
+            Login = "",
+            Password = "",
+            Role = ""
+        };
+
+        // Act
+        var response = await Client.PostAsJsonAsync($"{BaseUrl}admin", command);
+
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     #endregion

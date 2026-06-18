@@ -13,7 +13,7 @@
 .env
 **/wwwroot/*
 !**/wwwroot/swagger/
-
+!**/frontend/.env
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/

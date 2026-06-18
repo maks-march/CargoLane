@@ -12,10 +12,14 @@ public class UnbookLoadStatusHandler(IAppDbContext dbContext) : IRequestHandler<
     public async Task<Guid> Handle(UnbookLoadStatus request, CancellationToken cancellationToken)
     {
         var load = await dbContext.Loads
-            .FirstOrDefaultAsync(l => l.Id == request.Id && l.UserId == request.UserId && l.Status == LoadStatus.Booked, cancellationToken);
+            .FirstOrDefaultAsync(l => l.Id == request.Id, cancellationToken);
         
         if (load == null) 
             throw new NotFoundException(nameof(LoadEntity), request.Id);
+        if (load.UserId != request.UserId)
+            throw new ForbiddenException("Access denied", request.UserId);
+        if (load.Status != LoadStatus.Booked)
+            throw new InvalidOperationException("Load is not booked");
         
         load.Status = LoadStatus.Active;
         load.Updated = DateTime.UtcNow;

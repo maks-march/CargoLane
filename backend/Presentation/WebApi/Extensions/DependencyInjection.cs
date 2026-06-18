@@ -17,7 +17,8 @@ public static class DependencyInjection
     /// Инъекция сервисов из WebApi
     /// </summary>
     /// <param name="services"></param>
-    public static IServiceCollection AddWebApiServices(this IServiceCollection services)
+    /// <param name="configuration"></param>
+    public static IServiceCollection AddWebApiServices(this IServiceCollection services, IConfiguration configuration)
     {
         return services
             .AddServices()
@@ -29,14 +30,13 @@ public static class DependencyInjection
             {
                 options.AddPolicy("AllowFrontend", policy =>
                 {
-                    policy.WithOrigins("http://localhost:5173")  // URL вашего Vite фронта
+                    var origins = configuration.GetSection("AllowedOrigins").Get<string[]>()
+                                  ?? new[] { "http://localhost:5173" };
+        
+                    policy.WithOrigins(origins)
                         .AllowAnyHeader()
                         .AllowAnyMethod()
-                        .AllowCredentials();  // если используете cookies/авторизацию
-                    policy.WithOrigins("http://localhost:8080")  // URL вашего Vite фронта
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials();  // если используете cookies/авторизацию
+                        .AllowCredentials();
                 });
             });
     }
