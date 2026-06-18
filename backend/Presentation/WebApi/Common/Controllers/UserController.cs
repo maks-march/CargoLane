@@ -7,6 +7,7 @@ using Application.CQRS.UserCQ.Commands.UploadAvatar;
 using Application.CQRS.UserCQ.Queries.GetUserDetails;
 using Application.CQRS.UserCQ.Queries.GetUserList;
 using Application.DTO.User;
+using Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -59,6 +60,18 @@ public class UserController(IMediator mediator) : BaseController(mediator)
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<Guid>> Post([FromBody] CreateUserCommand command)
         => Ok(await Mediator.Send(command));
+
+    [Authorize(Roles = "Admin")]
+    [HttpPost("admin")]
+    [ProducesResponseType(typeof(Guid), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<Guid>> PostAdmin([FromBody] CreateUserCommand command)
+    {
+        command.Role = RoleMapping.Admin;
+        return Ok(await Mediator.Send(command));
+    }
     
     /// <summary>
     /// Удалить пользователя по идентификатору. Только для администратора.

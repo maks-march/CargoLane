@@ -6,16 +6,16 @@ public class CreateUserValidator : AbstractValidator<CreateUserCommand>
 {
     public CreateUserValidator()
     {
-        RuleFor(command => command.FirstName)
+        RuleFor(command => command.Login)
             .NotEmpty()
             .MaximumLength(50);
-        RuleFor(command => command.LastName)
+        RuleFor(command => command.Password)
             .NotEmpty()
             .MaximumLength(50);
-        RuleFor(command => command.LastName)
+        RuleFor(command => command.Password)
             .NotEmpty()
             .MaximumLength(50);
-        RuleFor(command => command.LastName)
+        RuleFor(command => command.Password)
             .NotEmpty()
             .MaximumLength(256);
     }
