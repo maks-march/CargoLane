@@ -35,7 +35,7 @@ app.MapHub<ChatHub>("/chathub");
 app.UseStatusCodePages();
 app.UseForwardedHeaders();
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || true)
 {
     app.UseSwagger();
     app.UseSwaggerUI(c =>
