@@ -13,6 +13,7 @@ public class BaseLoadController(IMediator mediator) : BaseController(mediator)
     {
         if (UserId == Guid.Empty) return vm;
         var settings = UserSettings;
+        vm.Created = vm.Created.AddHours(settings.timezone);
         foreach (var route in vm.RoutePoints)
         {
             route.ArrivalTime = route.ArrivalTime.AddHours(settings.timezone);
@@ -41,6 +42,7 @@ public class BaseLoadController(IMediator mediator) : BaseController(mediator)
         var settings = UserSettings;
         foreach (var vm in vms)
         {
+            vm.Created = vm.Created.AddHours(settings.timezone);
             vm.StartDate = vm.StartDate.AddHours(settings.timezone);
             if (!settings.isMetric)
             {

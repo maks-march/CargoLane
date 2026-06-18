@@ -22,6 +22,8 @@ public class GetUserSavedQueryHandler(IAppDbContext dbContext, IMapper mapper)
                 .ThenInclude(l => l.RoutePoints)
             .Include(u => u.SavedLoads)
                 .ThenInclude(l => l.Payloads)
+            .Include(l => l.SavedLoads)
+                .ThenInclude(l => l.User)
             .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken: cancellationToken);
         
         if (user == null)

@@ -15,6 +15,7 @@ public class GetUserLoadsQueryHandler(IAppDbContext dbContext, IMapper mapper)
         var loads = await dbContext.Loads
             .Where(l => l.UserId == request.UserId && l.Status.ToString() == request.Status)
             .AsNoTracking()
+            .Include(l => l.User)
             .Include(l => l.RoutePoints)
             .Include(l => l.Payloads)
             .ProjectTo<LoadListVm>(mapper.ConfigurationProvider)

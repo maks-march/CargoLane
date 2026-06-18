@@ -5,9 +5,9 @@ using MediatR;
 
 namespace Application.CQRS.LoadCQ.Queries.Load.List;
 
-public record GetLoadListQuery : IRequest<LoadListVm[]>
+public record GetLoadListQuery : IRequest<LoadListVm[]>, ISearchQuery
 {
-    public string? SearchBy { get; set; }
+    public string? SearchBy { get; init; }
     public string? StartCity { get; set; }
     public string? EndCity { get; set; }
     

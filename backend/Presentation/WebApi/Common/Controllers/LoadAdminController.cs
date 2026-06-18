@@ -28,9 +28,9 @@ public class LoadAdminController(IMediator mediator) : BaseLoadController(mediat
     [ProducesResponseType(typeof(LoadListVm[]), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<LoadListVm[]>> GetReviews()
+    public async Task<ActionResult<LoadListVm[]>> GetReviews([FromQuery] string? searchBy)
     {
-        var query = new GetReviewsQuery(LoadStatus.Pending);
+        var query = new GetReviewsQuery(LoadStatus.Pending, searchBy);
         return Ok(
             ChangeListVmForUser(
                 await Mediator.Send(query)
@@ -73,9 +73,9 @@ public class LoadAdminController(IMediator mediator) : BaseLoadController(mediat
     [ProducesResponseType(typeof(LoadListVm[]), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<LoadListVm[]>> GetApproved()
+    public async Task<ActionResult<LoadListVm[]>> GetApproved([FromQuery] string? searchBy)
     {
-        var query = new GetReviewsQuery(null);
+        var query = new GetReviewsQuery(null, searchBy);
         return Ok(
             ChangeListVmForUser(
                 await Mediator.Send(query)
@@ -94,9 +94,9 @@ public class LoadAdminController(IMediator mediator) : BaseLoadController(mediat
     [ProducesResponseType(typeof(LoadListVm[]), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<LoadListVm[]>> GetRejected()
+    public async Task<ActionResult<LoadListVm[]>> GetRejected([FromQuery] string? searchBy)
     {
-        var query = new GetReviewsQuery(LoadStatus.Rejected);
+        var query = new GetReviewsQuery(LoadStatus.Rejected, searchBy);
         return Ok(
             ChangeListVmForUser(
                 await Mediator.Send(query)

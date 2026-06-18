@@ -14,6 +14,7 @@ public class GetLoadDetailQueryHandler(IAppDbContext dbContext, IMapper mapper)
     public async Task<LoadDetailsVm> Handle(GetLoadDetailQuery request, CancellationToken cancellationToken)
     {
         var load = await dbContext.Loads
+            .Include(l => l.User)
             .Include(l => l.Payloads)
             .Include(l => l.RoutePoints)
             .Include(l => l.Photos)
