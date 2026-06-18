@@ -27,13 +27,7 @@ public class UserStatusMiddleware
             // Если пользователя нет или он заблокирован
             if (user == null || await userManager.IsLockedOutAsync(user))
             {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                await context.Response.WriteAsJsonAsync(new ErrorResponse()
-                {
-                    Details = "",
-                    Error = "Account is deactivated or locked."
-                });
-                return;
+                throw new ForbiddenException("Account is deactivated or locked.", Guid.Empty);
             }
         }
 

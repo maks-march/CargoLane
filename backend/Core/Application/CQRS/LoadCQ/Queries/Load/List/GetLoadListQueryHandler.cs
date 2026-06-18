@@ -14,6 +14,7 @@ public class GetLoadListQueryHandler(IAppDbContext dbContext, IMapper mapper)
     {
         var query = dbContext.Loads
             .AsNoTracking()
+            .Include(l => l.User)
             .Include(l => l.RoutePoints)
             .Include(l => l.Payloads)
             .Select(x => x);

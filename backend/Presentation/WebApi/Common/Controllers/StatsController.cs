@@ -7,9 +7,18 @@ using WebApi.Common.Controllers.Abstract;
 
 namespace WebApi.Common.Controllers;
 
+/// <summary>
+/// Контроллер для получения общей статистики платформы.
+/// </summary>
 public class StatsController(IMediator mediator) : BaseController(mediator)
 {
+    /// <summary>
+    /// Получить сводную статистику: количество грузов, пользователей, закрытых заказов и объём денежных средств.
+    /// </summary>
+    /// <returns>Объект статистики платформы.</returns>
+    /// <response code="200">Статистика успешно получена.</response>
     [HttpGet]
+    [ProducesResponseType(typeof(StatsDto), StatusCodes.Status200OK)]
     public async Task<ActionResult<StatsDto>> GetStats()
     {
         var loadsCommand = new GetLoadListQuery();

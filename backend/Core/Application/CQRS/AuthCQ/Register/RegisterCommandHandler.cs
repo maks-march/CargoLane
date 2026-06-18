@@ -2,6 +2,7 @@ using Application.DTO.Auth;
 using Application.Interfaces.Auth;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Configuration;
 
 namespace Application.CQRS.AuthCQ.Register;
 
@@ -36,6 +37,7 @@ public class RegisterCommandHandler(
             throw new InvalidOperationException("Failed to find user after creation.");
         
         appUser.Email = request.Login;
+        
         var token = await userManager.GenerateEmailConfirmationTokenAsync(appUser);
         var sended = await emailService.SendConfirmationEmailAsync(
             request.Login, 

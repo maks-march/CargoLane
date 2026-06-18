@@ -5,7 +5,7 @@ namespace Application.CQRS.LoadCQ.Queries.Load.List;
 
 public class LoadListSearch
 {
-    protected IQueryable<LoadEntity> Search(IQueryable<LoadEntity> query, GetLoadListQuery request)
+    protected IQueryable<LoadEntity> Search(IQueryable<LoadEntity> query, ISearchQuery request)
     {
         if (!string.IsNullOrWhiteSpace(request.SearchBy))
         {
@@ -14,7 +14,8 @@ public class LoadListSearch
             query = query.Where(l =>
                 l.Id.ToString().ToLower().Contains(search) ||
                 l.RoutePoints.Any(rp => rp.City.ToLower().Contains(search)) ||
-                l.About.ToLower().Contains(search));
+                l.About.ToLower().Contains(search) || 
+                l.User.CompanyName.ToLower().Contains(search));
         }
         return query;
     }

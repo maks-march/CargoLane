@@ -14,6 +14,10 @@ public class EmailService(IOptions<EmailSettings> settings, IConfiguration confi
 
     public async Task<bool> SendConfirmationEmailAsync(string email, Guid userId, string token, CancellationToken cancellationToken)
     {
+        if (settings.Value.Environment == "Testing")
+        {
+            return true;
+        }
         var confirmationLink = $"{configuration["AppBaseUrl"]}/confirm-email?userId={userId}&token={Uri.EscapeDataString(token)}";
 
         var htmlBody = $@"
@@ -114,6 +118,10 @@ public class EmailService(IOptions<EmailSettings> settings, IConfiguration confi
 
     public async Task<bool> SendPasswordResetEmailAsync(string email, string resetToken, CancellationToken cancellationToken)
     {
+        if (settings.Value.Environment == "Testing")
+        {
+            return true;
+        }
         var resetLink = $"{configuration["AppBaseUrl"]}/reset-password/?email={email}&token={resetToken}";
         var htmlBody = $@"
         <!DOCTYPE html>

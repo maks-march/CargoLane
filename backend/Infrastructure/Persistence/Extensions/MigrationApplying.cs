@@ -70,6 +70,7 @@ public static class MigrationApplying
                     Id = newAdminUser.Id,
                     FirstName = configuration["Admin:Name"]!,
                     LastName = configuration["Admin:Surname"]!,
+                    Role = RoleMapping.Admin,
                     Created = DateTime.UtcNow,
                     Updated = DateTime.UtcNow,
                 };

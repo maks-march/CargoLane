@@ -14,6 +14,7 @@ public class GetReviewQueryHandler(IAppDbContext dbContext, IMapper mapper) : IR
     public async Task<LoadDetailsVm> Handle(GetReviewQuery request, CancellationToken cancellationToken)
     {
         var load = await dbContext.Loads
+            .Include(l => l.User)
             .Include(l => l.Payloads)
             .Include(l => l.RoutePoints)
             .Include(l => l.Photos)

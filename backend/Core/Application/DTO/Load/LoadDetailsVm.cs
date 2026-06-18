@@ -25,6 +25,9 @@ public record LoadDetailsVm : IMapWith<LoadEntity>
     public string ReviewerName  { get; set; } = string.Empty;
     public string RejectReason { get; set; } = string.Empty;
     public DateTime ReviewDate { get; set; } = DateTime.MinValue;
+    
+    public string Shipper { get; init; } = string.Empty;
+    public DateTime Created { get; set; }
     // Вложенные коллекции
     public IList<PayloadVm> Payloads { get; init; } = [];
     public IList<LoadRoutePointVm> RoutePoints { get; init; } = [];
@@ -36,6 +39,8 @@ public record LoadDetailsVm : IMapWith<LoadEntity>
             .ForMember(d => d.Article, opt => opt.MapFrom(s => s.Article))
             .ForMember(d => d.Status, opt => opt.MapFrom(s => s.Status.ToString()))
             .ForMember(d => d.Files, opt => opt.MapFrom(s => s.Photos.Select(p => p.FilePath)))
-            .ForMember(d => d.RoutePoints, opt => opt.MapFrom(s => s.RoutePoints.OrderBy(rp => rp.OrderIndex)));
+            .ForMember(d => d.RoutePoints, opt => opt.MapFrom(s => s.RoutePoints.OrderBy(rp => rp.OrderIndex)))
+            .ForMember(d => d.Shipper, opt => 
+                opt.MapFrom(src => src.User.CompanyName));
     }
 }

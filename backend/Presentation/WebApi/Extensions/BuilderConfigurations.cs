@@ -29,7 +29,7 @@ public static class BuilderConfigurations
                 SenderEmail = Env.GetString("EMAIL_SENDER_EMAIL"),
                 Username = Env.GetString("EMAIL_USERNAME"),
                 Password = Env.GetString("EMAIL_PASSWORD"),
-                IsDevelopment = configuration.GetSection("Environment:Type").Value
+                Environment = configuration.GetSection("Environment").Value
             };
 
             // Добавляем в конфигурацию
@@ -41,7 +41,7 @@ public static class BuilderConfigurations
                 ["EmailSettings:SenderEmail"] = emailSettings.SenderEmail,
                 ["EmailSettings:Username"] = emailSettings.Username,
                 ["EmailSettings:Password"] = emailSettings.Password,
-                ["EmailSettings:IsDevelopment"] = emailSettings.IsDevelopment
+                ["EmailSettings:Environment"] = emailSettings.Environment
             });
         }
         else
