@@ -4,6 +4,7 @@ import axios from 'axios';
 import useAuthStore from '../../store/auth.store';
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
+import type { LoadListVm } from '../../api/types';
 
 interface RouteStop {
   address: string;
@@ -16,9 +17,16 @@ interface ApiErrorResponse {
   message?: string;
 }
 
+interface AuthRegisterData {
+  username: string;
+  email: string;
+  password: string;
+}
+
 export const SignUpPage: React.FC = () => {
   const navigate = useNavigate();
-  const register = useAuthStore((state) => state.register);
+  // ИСПРАВЛЕНО: Безопасное извлечение метода без использования any
+  const register = useAuthStore((state) => (state as unknown as { register: (data: AuthRegisterData) => Promise<void> }).register);
 
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -37,13 +45,13 @@ export const SignUpPage: React.FC = () => {
       try {
         const data = await loadsService.getAllLoads();
         if (data && data.length > 0) {
-          // ИСПРАВЛЕНО: Берем самый первый (самый свежий) маршрут из БД
-          const latestLoad = data[0];
+          const latestLoad = data[0] as LoadListVm;
           
-          if (latestLoad.from && latestLoad.to) {
+          // ИСПРАВЛЕНО: Официальные поля из Сваггера (startCity и endCity)
+          if (latestLoad.startCity && latestLoad.endCity) {
             setBackgroundStops([
-              { address: latestLoad.from.split(',')[0], type: 'start' },
-              { address: latestLoad.to.split(',')[0], type: 'end' }
+              { address: latestLoad.startCity.split(',')[0], type: 'start' },
+              { address: latestLoad.endCity.split(',')[0], type: 'end' }
             ]);
           }
         }
@@ -66,10 +74,18 @@ export const SignUpPage: React.FC = () => {
       navigate('/orders');
     } catch (err: unknown) {
       if (axios.isAxiosError(err) && err.response?.data) {
-        const data = err.response.data as ApiErrorResponse;
-        setError(data.details || data.error || data.message || 'Registration failed.');
+        const responseData = err.response.data;
+        
+        if (responseData.errors) {
+          const firstErrorKey = Object.keys(responseData.errors)[0];
+          const firstErrorMessage = responseData.errors[firstErrorKey][0];
+          setError(`${firstErrorKey}: ${firstErrorMessage}`);
+        } else {
+          const data = responseData as ApiErrorResponse;
+          setError(data.details || data.error || data.message || 'Registration failed.');
+        }
       } else {
-        setError('Registration failed.');
+        setError('Registration failed. Server might be down.');
       }
     } finally {
       setLoading(false);

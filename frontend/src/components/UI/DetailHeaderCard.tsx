@@ -6,23 +6,6 @@ interface Props {
 }
 
 export const DetailHeaderCard: React.FC<Props> = ({ load }) => {
-  const getCountryCode = (city?: string) => {
-    if (!city) return 'EU';
-    const c = city.toLowerCase();
-    if (c.includes('rotterdam') || c.includes('amsterdam')) return 'NL';
-    if (c.includes('berlin') || c.includes('munich') || c.includes('hamburg')) return 'DE';
-    if (c.includes('warsaw')) return 'PL';
-    if (c.includes('paris') || c.includes('lyon')) return 'FR';
-    if (c.includes('milan')) return 'IT';
-    if (c.includes('madrid')) return 'ES';
-    return 'EU'; 
-  };
-
-  // Безопасный доступ к массиву routePoints для получения стран
-  const startCity = load.routePoints?.[0]?.city || load.from?.split(',')[0] || 'Origin';
-  const endCity = load.routePoints?.[(load.routePoints?.length || 1) - 1]?.city || load.to?.split(',')[0] || 'Destination';
-  const borderStr = `${getCountryCode(startCity)} → ${getCountryCode(endCity)}`;
-
   // Подсчет количества и выбор имени груза из БД
   let totalItems = 0;
   let payloadType = 'General Cargo';
@@ -36,20 +19,18 @@ export const DetailHeaderCard: React.FC<Props> = ({ load }) => {
 
   // Умное форматирование цены (без .00 если число круглое)
   let priceStr = 'Request price';
-  if (load.price) {
-    priceStr = load.price % 1 === 0 
-      ? `€${load.price.toLocaleString('en-US')}` 
-      : `€${load.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  if (load.payment) {
+    priceStr = load.payment % 1 === 0 
+      ? `€${load.payment.toLocaleString('en-US')}` 
+      : `€${load.payment.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }
 
-  // Транспорт берем из бэкенда с подстраховкой на разные варианты свойств API
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const loadAny = load as any;
-  const vehicleType = loadAny.vehicleTypes?.[0] || loadAny.vihicleTypes?.[0] || load.recommendedVehicle || 'Any';
+  // Транспорт берем из бэкенда строго по контракту
+  const vehicleType = load.vehicleTypes?.[0] || 'Any';
 
   // Статистика СТРОГО ИЗ БАЗЫ ДАННЫХ
-  const distanceVal = loadAny.distance ? `${loadAny.distance} km` : '0 km';
-  const durationVal = loadAny.duration ? loadAny.duration : '0h 0m';
+  const distanceVal = load.distance ? `${load.distance} km` : '0 km';
+  const durationVal = load.duration ? load.duration : '0h 0m';
   const stopsCount = load.routePoints ? load.routePoints.length : 0;
   const stopsVal = stopsCount > 2 ? `${stopsCount - 1} + final` : (stopsCount === 2 ? '1 + final' : `${stopsCount}`);
 
@@ -60,7 +41,7 @@ export const DetailHeaderCard: React.FC<Props> = ({ load }) => {
           <h2 className="detail-title">
             {cargoPallets} <span style={{ color: 'rgb(160, 170, 185)', margin: '0 4px' }}>•</span> <span style={{ color: '#0E1116', fontWeight: 400 }}>{vehicleType}</span>
           </h2>  
-          <p className="detail-subtitle">{load.id.substring(0, 8).toUpperCase()} · {load.companyName || 'Unknown Company'}</p>
+          <p className="detail-subtitle">{load.id.substring(0, 8).toUpperCase()} · {load.shipper || 'Unknown Company'}</p>
         </div>
         <div className="detail-price">
           <div className="detail-price-value">{priceStr}</div>

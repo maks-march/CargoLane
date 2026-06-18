@@ -4,6 +4,7 @@ import type { PageType } from '../../utils/types';
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
 import type { CreateLoadDraftCommand } from '../../api/types';
+import apiClient from '../../api/api-client'; // ИСПРАВЛЕНО: Для загрузки файлов напрямую
 
 interface CreateLoadPageProps {
   onNavigate: (page: PageType) => void;
@@ -79,8 +80,9 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
 
   useEffect(() => {
     if (draftIdParam) {
+      // ИСПРАВЛЕНО: Используем правильный метод getDraftById
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      loadsService.getLoadDraft(draftIdParam).then((res: any) => {
+      loadsService.getDraftById(draftIdParam).then((res: any) => {
         if (res) {
           setDraftId(draftIdParam);
           setFormData(prev => ({
@@ -320,7 +322,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
     };
   };
 
-  // ИСПРАВЛЕНО: Черновик больше НЕ пытается загружать фотографии.
   const handleSaveDraft = async () => {
     setIsSubmitting(true);
     setErrorMsg('');
@@ -331,9 +332,11 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
       let finalId = draftId;
 
       if (draftId) {
-        await loadsService.updateLoadDraft(draftId, payload);
+        // ИСПРАВЛЕНО: Используем правильный метод updateDraft
+        await loadsService.updateDraft(draftId, payload);
       } else {
-        const returnedId = await loadsService.createLoadDraft(payload);
+        // ИСПРАВЛЕНО: Используем правильный метод createDraft
+        const returnedId = await loadsService.createDraft(payload);
         finalId = returnedId || 'DFT-' + Math.floor(1000 + Math.random() * 9000);
         setDraftId(finalId);
       }
@@ -359,11 +362,15 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
       const payload = getMappedPayload();
       const returnedId = await loadsService.createLoad(payload);
       
-      // ИСПРАВЛЕНО: Фотографии загружаются ТОЛЬКО при реальном сохранении
       if (returnedId && returnedId.length > 10 && uploadedPhotos.length > 0) {
         try {
-          const filesToUpload = uploadedPhotos.map(p => p.rawFile);
-          await loadsService.uploadLoadFiles(returnedId, filesToUpload);
+          // ИСПРАВЛЕНО: Загрузка файлов напрямую через apiClient (FormData)
+          const uploadData = new FormData();
+          uploadedPhotos.forEach(p => uploadData.append('files', p.rawFile));
+          
+          await apiClient.put(`/api/load/${returnedId}/files`, uploadData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
         } catch (uploadError) {
           console.error("Photos upload failed:", uploadError);
         }
@@ -373,7 +380,8 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
       setIsSubmitted(true);
       
       if (draftId) {
-        try { await loadsService.deleteLoadDraft(draftId); } catch (e) { console.warn('Skipped draft cleanup', e); }
+        // ИСПРАВЛЕНО: Используем правильный метод deleteDraft
+        try { await loadsService.deleteDraft(draftId); } catch (e) { console.warn('Skipped draft cleanup', e); }
       }
       window.scrollTo(0, 0);
 

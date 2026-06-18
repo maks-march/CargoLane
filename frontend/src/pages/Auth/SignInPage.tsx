@@ -4,6 +4,7 @@ import axios from 'axios';
 import useAuthStore from '../../store/auth.store';
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
+import type { LoadListVm } from '../../api/types';
 
 interface RouteStop {
   address: string;
@@ -35,13 +36,13 @@ export const SignInPage: React.FC = () => {
       try {
         const data = await loadsService.getAllLoads();
         if (data && data.length > 0) {
-          // ИСПРАВЛЕНО: Берем самый первый (самый свежий) маршрут из БД
-          const latestLoad = data[0];
+          const latestLoad = data[0] as LoadListVm;
           
-          if (latestLoad.from && latestLoad.to) {
+          // ИСПРАВЛЕНО: Безопасное обращение к полям из Сваггера
+          if (latestLoad.startCity && latestLoad.endCity) {
             setBackgroundStops([
-              { address: latestLoad.from.split(',')[0], type: 'start' },
-              { address: latestLoad.to.split(',')[0], type: 'end' }
+              { address: latestLoad.startCity.split(',')[0], type: 'start' },
+              { address: latestLoad.endCity.split(',')[0], type: 'end' }
             ]);
           }
         }

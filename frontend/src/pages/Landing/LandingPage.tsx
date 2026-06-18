@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
-import { Weight } from 'lucide-react';
+import type { LoadListVm } from '../../api/types';
 
 const formatCount = (num: number): string => {
   if (num === 0) return '0';
@@ -32,17 +32,17 @@ export const LandingPage: React.FC = () => {
   // Стейт статистики
   const [stats, setStats] = useState({ loads: '0', carriers: '0', fee: '€0', support: '24/7' });
 
-  // ИСПРАВЛЕНО: Подгружаем реальный свежий маршрут из БД для превью на карте
+  // ИСПРАВЛЕНО: Подгружаем реальный свежий маршрут из БД для превью на карте по новым полям Сваггера
   useEffect(() => {
     const fetchLatestRoute = async () => {
       try {
         const data = await loadsService.getAllLoads();
         if (data && data.length > 0) {
-          const latestLoad = data[0]; // Берем самый свежий груз
-          if (latestLoad.from && latestLoad.to) {
+          const latestLoad = data[0] as LoadListVm; // Берем самый свежий груз
+          if (latestLoad.startCity && latestLoad.endCity) {
             setRouteStops([
-              { address: latestLoad.from.split(',')[0], type: 'start' },
-              { address: latestLoad.to.split(',')[0], type: 'end' }
+              { address: latestLoad.startCity.split(',')[0], type: 'start' },
+              { address: latestLoad.endCity.split(',')[0], type: 'end' }
             ]);
           }
         }
@@ -75,14 +75,13 @@ export const LandingPage: React.FC = () => {
 
         let totalGMV = 0; 
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const monthlyLoads = loads.filter((load: any) => {
-          if (!load.dateStart) return false;
-          const loadDate = new Date(load.dateStart);
+        const monthlyLoads = loads.filter((load: LoadListVm) => {
+          if (!load.startDate) return false;
+          const loadDate = new Date(load.startDate);
           const isThisMonth = loadDate.getMonth() === currentMonth && loadDate.getFullYear() === currentYear;
           
-          if (isThisMonth && load.price) {
-            totalGMV += Number(load.price);
+          if (isThisMonth && load.payment) {
+            totalGMV += Number(load.payment);
           }
           
           return isThisMonth;
@@ -99,7 +98,7 @@ export const LandingPage: React.FC = () => {
         localStorage.setItem(cacheKey, JSON.stringify(newStats));
         localStorage.setItem(cacheTimeKey, now.toString());
       } catch (e) {
-        console.warn('Backend unavailable');
+        console.warn('Backend unavailable', e);
       }
     };
     fetchStats();

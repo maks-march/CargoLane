@@ -15,13 +15,14 @@ export const AdminSignInPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // ИСПРАВЛЕНО: Делаем РЕАЛЬНЫЙ запрос к бэкенду. 
+      // Делаем РЕАЛЬНЫЙ запрос к бэкенду. 
       // Бэкендер уже создал админа в базе данных через миграции.
       await loginForm({ login: loginInput, password: passwordInput });
       
       // Жесткий редирект для полного обновления приложения с новыми реальными токенами
       window.location.href = '/admin/reviews';
-    } catch (err: unknown) {
+    } catch {
+      // ИСПРАВЛЕНО: Убран неиспользуемый (err: unknown), теперь просто catch
       setErrorText('Invalid administrator credentials. Access denied.');
     } finally {
       setIsSubmitting(false);
@@ -29,17 +30,16 @@ export const AdminSignInPage: React.FC = () => {
   };
 
   return (
-    <div className="auth-container" style={{ display: 'flex', minHeight: '100vh', width: '100%', background: '#F6F7FB', alignItems: 'center', justifyContent: 'center', padding: '20px', boxSizing: 'border-box' }}>
-      <div className="auth-card" style={{ background: 'white', padding: '40px', borderRadius: '12px', border: '1px solid #E6E8EE', width: '100%', maxWidth: '440px', boxSizing: 'border-box', boxShadow: '0 4px 20px rgba(0,0,0,0.05)' }}>
+    <div className="auth-container" style={{ display: 'flex', minHeight: '100vh', width: '100%', background: '#F6F7FB', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: 'white', padding: '40px', borderRadius: '16px', boxShadow: '0 4px 24px rgba(0,0,0,0.04)', width: '100%', maxWidth: '400px', border: '1px solid #E6E8EE' }}>
         
-        <div className="auth-header" style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ fontSize: '32px', marginBottom: '12px' }}>🛡️</div>
-          <h2 style={{ fontSize: '24px', fontWeight: 500, color: '#0E1116', margin: '0 0 8px 0', letterSpacing: '-0.5px' }}>Control Panel</h2>
-          <p style={{ fontSize: '14px', color: '#5C6470', margin: 0 }}>Sign in as Platform Administrator</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '32px', justifyContent: 'center', color: '#0E1116' }}>
+          <div style={{ color: '#3D5AFE', fontSize: '24px' }}>▲</div>
+          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600 }}>CargoLane Admin</h2>
         </div>
 
         {errorText && (
-          <div style={{ color: '#EF4444', background: '#FEF2F2', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px', border: '1px solid #EF4444' }}>
+          <div style={{ color: '#EF4444', background: '#FEF2F2', border: '1px solid #FECACA', padding: '12px', borderRadius: '8px', fontSize: '13px', marginBottom: '24px', fontWeight: 500, textAlign: 'center' }}>
             {errorText}
           </div>
         )}
@@ -79,10 +79,9 @@ export const AdminSignInPage: React.FC = () => {
             disabled={isSubmitting}
             style={{ width: '100%', justifyContent: 'center', padding: '14px', fontSize: '15px', fontWeight: 600, marginTop: '8px' }}
           >
-            {isSubmitting ? 'Signing in...' : 'Sign In as Admin ›'}
+            {isSubmitting ? 'Authenticating...' : 'Sign in as Admin'}
           </button>
         </form>
-
       </div>
     </div>
   );

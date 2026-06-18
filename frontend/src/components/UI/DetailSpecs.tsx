@@ -8,9 +8,9 @@ interface Props {
 export const DetailSpecs: React.FC<Props> = ({ load }) => {
   // Высчитываем реальные цифровые метрики из массива payloads бэкенда
   let totalItems = 0;
-  let totalVolume = load.volume || 0; 
+  let totalVolume = load.totalVolume || 0; 
   let floorFootprint = 0;
-  let totalWeight = load.weight || 0;
+  let totalWeight = load.totalWeight || 0;
 
   if (load.payloads && load.payloads.length > 0) {
     let calcVol = 0;
@@ -45,12 +45,10 @@ export const DetailSpecs: React.FC<Props> = ({ load }) => {
   // Собираем типы грузов без дубликатов
   const commodity = load.payloads && load.payloads.length > 0 
     ? Array.from(new Set(load.payloads.map(p => p.type).filter(Boolean))).join(' • ')
-    : (load.cargo || 'General Cargo');
+    : (load.cargoType || 'General Cargo');
 
-  // Читаем vehicleTypes из бэкенда с проверкой на разные варианты поля
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const loadAny = load as any;
-  const vehicle = loadAny.vehicleTypes?.[0] || loadAny.vihicleTypes?.[0] || load.recommendedVehicle || 'Any';
+  // Читаем vehicleTypes из бэкенда строго по контракту Swagger
+  const vehicle = load.vehicleTypes?.[0] || 'Any';
   
   const adr = load.adr ? `Class ${load.adr}` : 'None';
   const hsCode = load.hScode || 'None';
@@ -151,7 +149,7 @@ export const DetailSpecs: React.FC<Props> = ({ load }) => {
         </div>
       </div>
 
-      {/* ИСПРАВЛЕНО: Описание теперь является абсолютно отдельной карточкой detail-card с чистым сквозным отступом */}
+      {/* Описание */}
       {load.about && (
         <div className="detail-card">
           <h3 className="dash-detail-specs-title">Description</h3>

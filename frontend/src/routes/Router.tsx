@@ -6,18 +6,18 @@ import MainLayout from '../components/Layout/MainLayout';
 import LandingPage from '../pages/Landing/LandingPage';
 
 // --- AUTH ---
-import SignInPage from '../pages/Auth/SignInPage';
-import SignUpPage from '../pages/Auth/SignUpPage';
-import RecoveryPage from '../pages/Auth/RecoveryPage';
-import ConfirmEmailPage from '../pages/Auth/ConfirmEmailPage';
-import AdminSignInPage from '../pages/Auth/AdminSignInPage';
+import { SignInPage } from '../pages/Auth/SignInPage';
+import { SignUpPage } from '../pages/Auth/SignUpPage';
+import { RecoveryPage } from '../pages/Auth/RecoveryPage';
+import { ConfirmEmailPage } from '../pages/Auth/ConfirmEmailPage';
+import { AdminSignInPage } from '../pages/Auth/AdminSignInPage';
 
 // --- DASHBOARD ---
-import SearchPage from '../pages/Dashboard/SearchPage';
-import MyListingsPage from '../pages/Dashboard/MyListingsPage';
-import CreateLoadPage from '../pages/Dashboard/CreateLoadPage';
-import LoadDetailPage from '../pages/Dashboard/LoadDetailPage';
-import SavedPage from '../pages/Dashboard/SavedPage';
+import { SearchPage } from '../pages/Dashboard/SearchPage';
+import { MyListingsPage } from '../pages/Dashboard/MyListingsPage';
+import { CreateLoadPage } from '../pages/Dashboard/CreateLoadPage';
+import { LoadDetailPage } from '../pages/Dashboard/LoadDetailPage';
+import { SavedPage } from '../pages/Dashboard/SavedPage';
 import { SettingsPage } from '../pages/Dashboard/SettingsPage';
 import MessagesPage from '../pages/Dashboard/MessagesPage';
 
@@ -25,7 +25,7 @@ import MessagesPage from '../pages/Dashboard/MessagesPage';
 import { ReviewQueuePage } from '../pages/Admin/ReviewQueuePage';
 import { ApprovedQueuePage } from '../pages/Admin/ApprovedQueuePage';
 import { RejectedQueuePage } from '../pages/Admin/RejectedQueuePage';
-import { AdminLoadDetailPage } from '../pages/Admin/AdminLoadDetailPage'; // <--- НОВЫЙ ИМПОРТ
+import { AdminLoadDetailPage } from '../pages/Admin/AdminLoadDetailPage';
 
 export const router = createBrowserRouter([
   {
@@ -35,10 +35,6 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <SignInPage />,
-  },
-  {
-    path: '/admin/login',
-    element: <AdminSignInPage />,
   },
   {
     path: '/register',
@@ -53,9 +49,16 @@ export const router = createBrowserRouter([
     element: <ConfirmEmailPage />,
   },
   {
+    path: '/admin-login',
+    element: <AdminSignInPage />,
+  },
+  {
+    path: '/',
+    // ИСПРАВЛЕНО: ProtectedRoute теперь является роутом-оберткой (Layout Route), как и задумано в React Router v6
     element: <ProtectedRoute />,
     children: [
       {
+        path: '/',
         element: <MainLayout />,
         children: [
           {
@@ -68,7 +71,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/orders/create',
-            element: <CreateLoadPage />,
+            element: <CreateLoadPage onNavigate={() => {}} />,
           },
           {
             path: '/my-listings',
@@ -92,7 +95,7 @@ export const router = createBrowserRouter([
             element: <RejectedQueuePage />,
           },
           {
-            path: '/admin/orders/:id', // <--- НОВЫЙ ЗАЩИЩЕННЫЙ ПУТЬ
+            path: '/admin/load/:id', 
             element: <AdminLoadDetailPage />,
           },
           // ---------------------
@@ -108,12 +111,12 @@ export const router = createBrowserRouter([
             path: '/settings',
             element: <SettingsPage />,
           },
+          {
+            path: '*',
+            element: <Navigate to="/orders" replace />,
+          },
         ],
       },
     ],
-  },
-  {
-    path: '*',
-    element: <Navigate to="/" replace />,
   },
 ]);

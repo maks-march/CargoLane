@@ -59,13 +59,14 @@ const MessagesPage: React.FC = () => {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchChats();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // Убрали лишний коммент exhaustive-deps
 
   useEffect(() => {
     if (activeChatId) {
       // ИСПРАВЛЕНО: Мгновенно убиваем счетчик при переключении чатов и обновляем кэш
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setChats(prev => prev.map(chat => {
         if (chat.id === activeChatId) {
             const localReadChats = JSON.parse(localStorage.getItem('cargo_read_chats') || '{}');
@@ -97,11 +98,12 @@ const MessagesPage: React.FC = () => {
       };
       loadChatData();
     } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMessages([]);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveDeal(null);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeChatId]);
+  }, [activeChatId]); // Убрали лишний коммент exhaustive-deps
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

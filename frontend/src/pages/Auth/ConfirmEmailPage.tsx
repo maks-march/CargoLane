@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { authService } from '../../services/auth.service';
+import apiClient from '../../api/api-client'; // ИСПРАВЛЕНО: Добавлен импорт apiClient
 
 export const ConfirmEmailPage: React.FC = () => {
     const [searchParams] = useSearchParams();
@@ -21,7 +21,8 @@ export const ConfirmEmailPage: React.FC = () => {
             }
 
             try {
-                await authService.confirmEmail({ userId, token });
+                // ИСПРАВЛЕНО: Прямой вызов apiClient вместо несуществующего метода в authService
+                await apiClient.post('/api/auth/confirm-email', { userId, token });
                 setStatus('success');
                 setMessage('Email confirmed successfully! You can now log in.');
             } catch (err: unknown) {
@@ -49,7 +50,6 @@ export const ConfirmEmailPage: React.FC = () => {
                     <h1 className="auth-title">Email Confirmation</h1>
                 </div>
 
-                {/* ОРИГИНАЛЬНЫЙ ДИЗАЙН УВЕДОМЛЕНИЙ В ТВОЕМ СТИЛЕ */}
                 {status === 'loading' && (
                     <div style={{ margin: '24px 0', fontSize: '16px', color: '#4B5563' }}>
                         ⏳ {message}

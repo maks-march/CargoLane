@@ -7,17 +7,21 @@ import { DetailSpecs } from '../../components/UI/DetailSpecs';
 import { DetailRightPanel } from '../../components/UI/DetailRightPanel';
 import type { LoadDetailsVm } from '../../api/types';
 
+// ИСПРАВЛЕНО: Добавляем локальное поле isSaved, которого нет в бэкенде, чтобы TS не ругался
+interface ExtendedLoadDetails extends LoadDetailsVm {
+  isSaved?: boolean;
+}
+
 export const LoadDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   
-  const [load, setLoad] = useState<LoadDetailsVm | null>(null);
+  const [load, setLoad] = useState<ExtendedLoadDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [routeInfo, setRouteInfo] = useState({ distance: '0 km', duration: '0h 0m' });
   
-  // ИСПРАВЛЕНО: Стейт для предотвращения спама кликами по кнопке Save
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -27,7 +31,7 @@ export const LoadDetailPage: React.FC = () => {
       setError('');
       try {
         const data = await loadsService.getLoadById(id);
-        setLoad(data as unknown as LoadDetailsVm);
+        setLoad(data as ExtendedLoadDetails);
       } catch (err: unknown) {
         console.error("API Error:", err);
         const errorObj = err as { response?: { data?: { details?: string; message?: string } } };
@@ -39,7 +43,6 @@ export const LoadDetailPage: React.FC = () => {
     fetchLoad();
   }, [id]);
 
-  // ИСПРАВЛЕНО: Реальная отправка ID груза на бэкенд и переключение статуса
   const handleSave = async () => {
     if (!load) return;
     setIsSaving(true);
@@ -82,8 +85,9 @@ export const LoadDetailPage: React.FC = () => {
     );
   }
 
-  const startCity = load.routePoints?.[0]?.city || load.from?.split(',')[0] || 'Origin';
-  const endCity = load.routePoints?.[(load.routePoints?.length || 1) - 1]?.city || load.to?.split(',')[0] || 'Destination';
+  // ИСПРАВЛЕНО: Безопасное извлечение городов из routePoints (from/to удалены)
+  const startCity = load.routePoints?.[0]?.city || 'Origin';
+  const endCity = load.routePoints?.[(load.routePoints?.length || 1) - 1]?.city || 'Destination';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100%', overflowY: 'auto', background: '#F6F7FB' }}>
@@ -95,13 +99,11 @@ export const LoadDetailPage: React.FC = () => {
             <strong className="dash-detail-breadcrumb-current">{load.id.substring(0, 8).toUpperCase()}</strong>
           </div>
           <h1 className="dash-title" style={{ fontSize: '24px', fontWeight: 400, color: '#0E1116', marginTop: '7px', letterSpacing: '-0.64px', marginBottom: 0 }}>
-            {load.cargo || 'General Cargo'} <span style={{ color: '#A0AAB9' }}>•</span> <span style={{ color: '#0E1116', fontWeight: 400 }}>{startCity} → {endCity}</span>
+            {load.cargoType || 'General Cargo'} <span style={{ color: '#A0AAB9' }}>•</span> <span style={{ color: '#0E1116', fontWeight: 400 }}>{startCity} → {endCity}</span>
           </h1>
         </div>
 
         <div className="detail-actions" style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          
-          {/* ИСПРАВЛЕНО: Динамическая кнопка сохранения по макету */}
           <button 
             onClick={handleSave} 
             disabled={isSaving}
@@ -129,7 +131,6 @@ export const LoadDetailPage: React.FC = () => {
           </button>
           
           <button className="btn-figma-secondary" style={{ padding: '8px 16px', cursor: 'pointer' }}><span>↗</span> Share</button>
-          {/* ИСПРАВЛЕНО: Колокольчик удален */}
         </div>
       </header>
 

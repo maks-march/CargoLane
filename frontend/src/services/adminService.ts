@@ -20,6 +20,9 @@ interface LoadDetailsBackendResponse {
   duration?: string | null; 
   isSaved?: boolean; 
   rejectReason?: string | null; 
+  // ИСПРАВЛЕНО: Теперь ждем shipper вместо companyName
+  shipper?: string | null;
+  created?: string;
   payloads?: Array<{
     length?: number;
     width?: number;
@@ -45,94 +48,67 @@ interface BackendLoadResponse {
   startDate?: string;
   payment?: number;
   totalWeight?: number;
+  totalVolume?: number;
   cargoType?: string;
   vehicleTypes?: string[]; 
-  vihicleTypes?: string[]; 
-  vehicleType?: string;
+  vihicleTypes?: string[];
   status?: string;
-  companyName?: string;
-  reviewerName?: string;
   created?: string;
+  // ИСПРАВЛЕНО: Теперь ждем shipper вместо companyName
+  shipper?: string | null;
+  payloadCount?: number;
 }
 
-export interface ExtendedLoadListVm extends LoadListVm {
-  companyName?: string;
-  reviewerName?: string;
-  createdDate?: string;
-}
-
-const mapToListVm = (item: BackendLoadResponse): ExtendedLoadListVm => ({
-  id: item.id,
-  article: item.article ? String(item.article) : item.id.substring(0, 8).toUpperCase(), 
-  from: item.startCity || 'Unknown',
-  to: item.endCity || 'Unknown',
-  dateStart: item.startDate || new Date().toISOString(),
-  price: item.payment || 0,
-  weight: item.totalWeight || 0,
-  cargo: item.cargoType || 'General Cargo', 
-  recommendedVehicle: item.vehicleTypes?.[0] || item.vihicleTypes?.[0] || item.vehicleType || 'Any',
-  status: item.status || 'Pending',
-  companyName: item.companyName || 'CargoLane Partner',
-  reviewerName: item.reviewerName || 'System Admin',
-  createdDate: item.created || item.startDate || new Date().toISOString()
-});
+// Экспортируем тот же тип, так как UI теперь переписан на LoadListVm
+export type ExtendedLoadListVm = LoadListVm;
 
 export const adminService = {
   getReviews: async (): Promise<ExtendedLoadListVm[]> => {
-    try {
-      const response = await apiClient.get<BackendLoadResponse[]>('/api/loadadmin/reviews');
-      return response.data.map(mapToListVm);
-    } catch (error) {
-      console.error("Failed to fetch admin reviews", error);
-      return [];
-    }
-  },
-
-  getApprovedLoads: async (): Promise<ExtendedLoadListVm[]> => {
-    try {
-      const response = await apiClient.get<BackendLoadResponse[]>('/api/loadadmin/approved');
-      return response.data.map(mapToListVm);
-    } catch (error) {
-      console.error("Failed to fetch approved loads", error);
-      return [];
-    }
-  },
-
-  getRejectedLoads: async (): Promise<ExtendedLoadListVm[]> => {
-    try {
-      const response = await apiClient.get<BackendLoadResponse[]>('/api/loadadmin/rejected');
-      return response.data.map(mapToListVm);
-    } catch (error) {
-      console.error("Failed to fetch rejected loads", error);
-      return [];
-    }
+    const response = await apiClient.get<BackendLoadResponse[]>('/api/loadadmin/reviews');
+    const data = response.data;
+    
+    return data.map(item => ({
+        id: item.id,
+        // ИСПРАВЛЕНО: Строго конвертируем в Number или undefined
+        article: item.article ? Number(item.article) : undefined,
+        startCity: item.startCity || '',
+        endCity: item.endCity || '',
+        startDate: item.startDate || new Date().toISOString(),
+        payment: item.payment || 0,
+        totalWeight: item.totalWeight || 0,
+        totalVolume: item.totalVolume || 0,
+        cargoType: item.cargoType || 'General',
+        vehicleTypes: item.vehicleTypes || item.vihicleTypes || ['Any'],
+        status: item.status || 'Pending',
+        created: item.created || new Date().toISOString(),
+        // ИСПРАВЛЕНО: Мапим shipper
+        shipper: item.shipper || 'CargoLane Partner',
+        payloadCount: item.payloadCount || 0
+    }));
   },
 
   getReviewDetails: async (id: string): Promise<LoadDetailsVm> => {
-    // ИСПРАВЛЕНО: Бэкенд блокирует роут /api/loadadmin/{id}/review для статусов, отличных от Pending (Status=1).
-    // Поэтому для просмотра карточки мы дергаем универсальный эндпоинт, который отдает детали ЛЮБОГО груза.
-    const response = await apiClient.get<LoadDetailsBackendResponse>(`/api/load/${id}`);
+    const response = await apiClient.get<LoadDetailsBackendResponse>(`/api/loadadmin/${id}/review`);
     const item = response.data;
     
     return {
         id: item.id,
-        userId: item.userId || 'system_id', 
-        article: item.article ? String(item.article) : item.id.substring(0, 8).toUpperCase(),
-        isSaved: item.isSaved || false, 
-        from: item.routePoints?.[0]?.city || 'Unknown',
-        to: item.routePoints?.[(item.routePoints?.length || 1) - 1]?.city || 'Unknown',
-        dateStart: item.routePoints?.[0]?.arrivalTime || new Date().toISOString(),
-        price: item.payment || 0,
-        weight: item.totalWeight || 0,
-        volume: item.totalVolume || 0,
-        cargo: item.cargoType || 'General Cargo',
-        recommendedVehicle: item.vehicleTypes?.[0] || item.vihicleTypes?.[0] || 'Any',
+        userId: item.userId || 'system_id',
+        // ИСПРАВЛЕНО: Строго конвертируем в Number или undefined
+        article: item.article ? Number(item.article) : undefined,
+        payment: item.payment || 0,
+        totalWeight: item.totalWeight || 0,
+        totalVolume: item.totalVolume || 0,
+        cargoType: item.cargoType || 'General Cargo',
+        vehicleTypes: item.vehicleTypes || item.vihicleTypes || ['Any'],
         about: item.about || '',
         adr: item.adr || 0,
         hScode: item.hScode || '',
         insurance: item.insurance || 0,
         status: item.status || 'Pending',
-        companyName: item.companyName || 'CargoLane Partner',
+        // ИСПРАВЛЕНО: Мапим shipper вместо companyName
+        shipper: item.shipper || 'CargoLane Partner',
+        created: item.created || new Date().toISOString(),
         distance: item.distance || 0,
         duration: item.duration || "00:00:00",
         rejectReason: item.rejectReason || null,
@@ -159,10 +135,48 @@ export const adminService = {
   },
 
   rejectLoad: async (id: string, reason: string): Promise<void> => {
-    await apiClient.post(`/api/loadadmin/${id}/reject`, JSON.stringify(reason), {
-      headers: {
-        'Content-Type': 'application/json'
-      }
+    await apiClient.post(`/api/loadadmin/${id}/reject`, reason, {
+      headers: { 'Content-Type': 'application/json' }
     });
+  },
+
+  getApprovedLoads: async (): Promise<ExtendedLoadListVm[]> => {
+    const response = await apiClient.get<BackendLoadResponse[]>('/api/loadadmin/approved');
+    return response.data.map(item => ({
+        id: item.id,
+        article: item.article ? Number(item.article) : undefined,
+        startCity: item.startCity || '',
+        endCity: item.endCity || '',
+        startDate: item.startDate || new Date().toISOString(),
+        payment: item.payment || 0,
+        totalWeight: item.totalWeight || 0,
+        totalVolume: item.totalVolume || 0,
+        cargoType: item.cargoType || 'General',
+        vehicleTypes: item.vehicleTypes || item.vihicleTypes || ['Any'],
+        status: item.status || 'Active',
+        created: item.created || new Date().toISOString(),
+        shipper: item.shipper || 'CargoLane Partner',
+        payloadCount: item.payloadCount || 0
+    }));
+  },
+
+  getRejectedLoads: async (): Promise<ExtendedLoadListVm[]> => {
+    const response = await apiClient.get<BackendLoadResponse[]>('/api/loadadmin/rejected');
+    return response.data.map(item => ({
+        id: item.id,
+        article: item.article ? Number(item.article) : undefined,
+        startCity: item.startCity || '',
+        endCity: item.endCity || '',
+        startDate: item.startDate || new Date().toISOString(),
+        payment: item.payment || 0,
+        totalWeight: item.totalWeight || 0,
+        totalVolume: item.totalVolume || 0,
+        cargoType: item.cargoType || 'General',
+        vehicleTypes: item.vehicleTypes || item.vihicleTypes || ['Any'],
+        status: item.status || 'Rejected',
+        created: item.created || new Date().toISOString(),
+        shipper: item.shipper || 'CargoLane Partner',
+        payloadCount: item.payloadCount || 0
+    }));
   }
 };

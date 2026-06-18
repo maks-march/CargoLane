@@ -2,6 +2,19 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { adminService, type ExtendedLoadListVm } from '../../services/adminService';
 
+// Выносим чистую функцию за пределы компонента, чтобы ESLint не ругался на impurity
+const timeAgo = (dateStr?: string) => {
+  if (!dateStr) return 'N/A';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  if (diff < 0) return 'Just now';
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d ago`;
+};
+
 export const ApprovedQueuePage: React.FC = () => {
   const navigate = useNavigate();
   const [queue, setQueue] = useState<ExtendedLoadListVm[]>([]);
@@ -21,106 +34,105 @@ export const ApprovedQueuePage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchQueue();
   }, [fetchQueue]);
 
   const filteredQueue = queue.filter(item => {
     const query = searchQuery.toLowerCase();
     const article = item.article ? String(item.article).toLowerCase() : '';
-    const from = item.from ? String(item.from).toLowerCase() : '';
-    const company = item.companyName ? String(item.companyName).toLowerCase() : '';
+    // ИСПРАВЛЕНО: Безопасное обращение к полям из ExtendedLoadListVm / LoadListVm
+    const from = item.startCity ? String(item.startCity).toLowerCase() : '';
+    const company = item.shipper ? String(item.shipper).toLowerCase() : '';
     return article.includes(query) || from.includes(query) || company.includes(query);
   });
 
-  const timeAgo = (dateStr?: string) => {
-    if (!dateStr) return 'N/A';
-    const diff = Date.now() - new Date(dateStr).getTime();
-    if (diff < 0) return 'Just now';
-    const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins}m ago`;
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h ago`;
-    return `${Math.floor(hrs / 24)}d ago`;
-  };
-
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", overflow: "hidden", background: "#F6F7FB" }}>
-      
       <header className="dash-header" style={{ padding: "16px 32px", borderBottom: "1px solid #E6E8EE", background: "white", flexShrink: 0 }}>
-        <div>
-          <div className="dash-breadcrumb" style={{ fontSize: "13px", marginBottom: "4px" }}>
-            <span style={{ color: "#A0AAB9", cursor: "default" }}>Moderation</span>
-            <span style={{ margin: "0 8px", color: "#E6E8EE" }}>›</span>
-            <strong style={{ color: "#0E1116", fontWeight: 500 }}>Approved</strong>
+        <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
+          <div>
+            <div className="dash-breadcrumb">
+              <span style={{ color: "#A0AAB9", cursor: "default" }}>Admin</span>
+              <span className="dash-detail-breadcrumb-arrow" style={{ margin: "0 8px", color: "#E6E8EE" }}>›</span>
+              <strong style={{ color: "#0E1116", fontWeight: 500 }}>Approved Queue</strong>
+            </div>
+            <h1 className="dash-title" style={{ fontSize: "24px", fontWeight: 400, color: "#0E1116", letterSpacing: "-1px", marginTop: "4px" }}>Approved Queue</h1>
           </div>
-          <h1 className="dash-title" style={{ fontSize: "24px", fontWeight: 500, color: "#0E1116", letterSpacing: "-0.5px", margin: 0 }}>Approved</h1>
         </div>
       </header>
 
-      <div style={{ padding: "32px", width: "100%", overflowY: "auto", boxSizing: "border-box" }}>
+      <div style={{ padding: "32px", width: "100%", display: "flex", flexDirection: "column", gap: "24px", overflowY: "auto", boxSizing: "border-box" }}>
         
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <div style={{ position: 'relative', width: '320px' }}>
-            <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#A0AAB9', fontSize: '14px' }}>🔍</span>
-            <input 
-              type="text" 
-              placeholder="Search by ID, Shipper, or Lane..." 
+        <div style={{ background: "white", border: "1px solid #E6E8EE", borderRadius: "12px", padding: "10px 16px", display: "flex", gap: "16px", justifyContent: "space-between", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "8px" }}>
+            <button onClick={() => navigate('/admin/review-queue')} style={{ background: "transparent", color: "#5C6470", border: "none", padding: "8px 12px", borderRadius: "8px", fontSize: "14px", fontWeight: 500, cursor: "pointer", transition: "all 0.2s" }}>
+              Pending
+            </button>
+            <button style={{ background: "#0E1116", color: "white", border: "none", padding: "8px 12px", borderRadius: "8px", fontSize: "14px", fontWeight: 500, cursor: "pointer", transition: "all 0.2s" }}>
+              Approved
+            </button>
+            <button onClick={() => navigate('/admin/rejected-queue')} style={{ background: "transparent", color: "#5C6470", border: "none", padding: "8px 12px", borderRadius: "8px", fontSize: "14px", fontWeight: 500, cursor: "pointer", transition: "all 0.2s" }}>
+              Rejected
+            </button>
+          </div>
+
+          <div style={{ position: "relative", width: "240px" }}>
+            <span style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "#A0AAB9", fontSize: "14px" }}>🔍</span>
+            <input
+              type="text"
+              placeholder="Search ID, city, company..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ padding: '10px 16px 10px 36px', border: '1px solid #E6E8EE', borderRadius: '8px', fontSize: '14px', width: '100%', outline: 'none', color: '#0E1116', boxSizing: 'border-box' }} 
+              style={{ padding: "10px 16px 10px 36px", border: "1px solid #E6E8EE", borderRadius: "8px", fontSize: "14px", width: "100%", outline: "none", color: "#0E1116", boxSizing: "border-box" }}
             />
           </div>
         </div>
 
         <div style={{ background: "white", border: "1px solid #E6E8EE", borderRadius: "12px", overflow: "hidden", width: "100%" }}>
-          
-          <div style={{ padding: "20px 24px", borderBottom: "1px solid #E6E8EE", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ fontSize: "16px", fontWeight: 600, color: "#0E1116" }}>Approved listings</div>
-            <div style={{ fontSize: "14px", fontWeight: 500, color: "#5C6470" }}>{filteredQueue.length} items</div>
-          </div>
-          
           <div style={{ overflowX: "auto", width: "100%" }}>
             <table style={{ width: "100%", minWidth: "1000px", borderCollapse: "collapse", textAlign: "left" }}>
               <thead>
                 <tr style={{ background: "#FAFAFA" }}>
-                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#5C6470", fontWeight: 600, borderBottom: "1px solid #E6E8EE", letterSpacing: "0.05em" }}>Load ID</th>
-                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#5C6470", fontWeight: 600, borderBottom: "1px solid #E6E8EE", letterSpacing: "0.05em" }}>Lane & Cargo</th>
-                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#5C6470", fontWeight: 600, borderBottom: "1px solid #E6E8EE", letterSpacing: "0.05em" }}>Shipper</th>
-                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#5C6470", fontWeight: 600, borderBottom: "1px solid #E6E8EE", letterSpacing: "0.05em" }}>Decision</th>
-                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#5C6470", fontWeight: 600, borderBottom: "1px solid #E6E8EE", letterSpacing: "0.05em" }}>Reviewer</th>
-                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#5C6470", fontWeight: 600, borderBottom: "1px solid #E6E8EE", letterSpacing: "0.05em" }}>Price</th>
-                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#5C6470", fontWeight: 600, borderBottom: "1px solid #E6E8EE", letterSpacing: "0.05em", textAlign: "right" }}>Date</th>
+                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Load ID</th>
+                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Route</th>
+                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Cargo</th>
+                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Shipper</th>
+                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Status</th>
+                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Reviewer</th>
+                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE" }}>Price</th>
+                  <th style={{ padding: "16px 24px", fontSize: "11px", textTransform: "uppercase", color: "#888", fontWeight: 600, borderBottom: "1px solid #E6E8EE", textAlign: "right" }}>Time</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={7} style={{ padding: "40px", textAlign: "center", color: "#A0AAB9" }}>Loading approved loads...</td></tr>
+                  <tr><td colSpan={8} style={{ padding: "40px", textAlign: "center", color: "#888" }}>Loading approved loads...</td></tr>
                 ) : filteredQueue.length === 0 ? (
-                  <tr><td colSpan={7} style={{ padding: "80px", textAlign: "center", color: "#A0AAB9" }}>No approved loads found.</td></tr>
+                  <tr><td colSpan={8} style={{ padding: "80px", textAlign: "center", color: "#A0AAB9" }}>No approved loads found.</td></tr>
                 ) : (
                   filteredQueue.map((load, idx) => (
                     <tr 
                       key={idx} 
                       style={{ borderBottom: "1px solid #F6F7FB", cursor: "pointer" }} 
-                      // ИСПРАВЛЕНО: Теперь переход СТРОГО на /admin/orders/
-                      onClick={() => navigate(`/admin/orders/${load.id}`)} 
+                      onClick={() => navigate(`/admin/load/${load.id}`)}
                       className="table-row-hover"
                     >
                       <td style={{ padding: "16px 24px", verticalAlign: "top" }}>
-                        <div style={{ fontSize: "14px", fontWeight: 600, color: "#0E1116" }}>{load.article ? String(load.article) : load.id.substring(0,8).toUpperCase()}</div>
+                        <div style={{ fontSize: "13px", fontWeight: 600, color: "#5C6470" }}>{load.article || load.id.substring(0,8).toUpperCase()}</div>
                       </td>
                       
                       <td style={{ padding: "16px 24px", verticalAlign: "top" }}>
-                        <div style={{ color: "#0E1116", fontWeight: 600, fontSize: "14px", marginBottom: "4px" }}>
-                          {load.from?.split(',')[0]} → {load.to?.split(',')[0]}
-                        </div>
-                        <div style={{ color: "#5C6470", fontSize: "13px" }}>
-                          {load.cargo} · {load.weight} t
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "14px", fontWeight: 600, color: "#0E1116" }}>
+                          {load.startCity || 'Origin'} <span style={{ color: "#A0AAB9" }}>→</span> {load.endCity || 'Destination'}
                         </div>
                       </td>
-                      
+
+                      <td style={{ padding: "16px 24px", verticalAlign: "top", fontSize: "14px", color: "#0E1116" }}>
+                        {load.cargoType || 'General'} <span style={{ color: "#A0AAB9" }}>• {load.totalWeight || 0}t</span>
+                      </td>
+
                       <td style={{ padding: "16px 24px", verticalAlign: "top" }}>
-                        <div style={{ fontSize: "14px", fontWeight: 500, color: "#0E1116" }}>{load.companyName}</div>
+                        <div style={{ fontSize: "14px", fontWeight: 500, color: "#0E1116" }}>{load.shipper || 'Unknown Company'}</div>
                       </td>
 
                       <td style={{ padding: "16px 24px", verticalAlign: "top" }}>
@@ -130,15 +142,16 @@ export const ApprovedQueuePage: React.FC = () => {
                       </td>
 
                       <td style={{ padding: "16px 24px", verticalAlign: "top" }}>
-                        <div style={{ fontSize: "14px", fontWeight: 500, color: "#5C6470" }}>{load.reviewerName}</div>
+                        {/* ИСПРАВЛЕНО: Нет поля reviewerName в списке, выводим Admin */}
+                        <div style={{ fontSize: "14px", fontWeight: 500, color: "#5C6470" }}>Admin</div>
                       </td>
 
                       <td style={{ padding: "16px 24px", verticalAlign: "top", fontSize: "16px", fontWeight: 600, color: "#0E1116" }}>
-                        €{load.price.toLocaleString('en-US')}
+                        €{(load.payment || 0).toLocaleString('en-US')}
                       </td>
 
                       <td style={{ padding: "16px 24px", verticalAlign: "top", fontSize: "14px", color: "#5C6470", textAlign: "right" }}>
-                        {timeAgo(load.createdDate)}
+                        {timeAgo(load.created)}
                       </td>
                     </tr>
                   ))
@@ -148,9 +161,10 @@ export const ApprovedQueuePage: React.FC = () => {
           </div>
         </div>
       </div>
-      <style>{`.table-row-hover:hover { background-color: #FAFAFA !important; }`}</style>
+      
+      <style>{`
+        .table-row-hover:hover { background-color: #FAFAFA !important; }
+      `}</style>
     </div>
   );
 };
-
-export default ApprovedQueuePage;

@@ -4,7 +4,9 @@ import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
 import type { LoadListVm } from '../../api/types';
 
+// ИСПРАВЛЕНО: Добавлена индексная сигнатура для совместимости с Record<string, string | number | boolean>
 interface LoadSearchFilters {
+  [key: string]: string | number | boolean | undefined;
   query?: string;
   startCity?: string;
   endCity?: string;
@@ -17,26 +19,20 @@ interface LoadSearchFilters {
   isDescending?: boolean;
 }
 
-interface ExtendedLoadVm {
-  id: string;
-  from: string;
-  to: string;
-  dateStart: string;
-  price: number;
-  cargo: string;
-  weight: number;
-  recommendedVehicle: string;
-  status: string;
-  volumeStr?: string;
-  matchPercent?: number;
-}
+const formatMonthDay = (dateStr?: string) => {
+  if (!dateStr) return '--';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '--';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[d.getMonth()]} ${d.getDate()}`;
+};
 
 export const SearchPage: React.FC = () => {
   const navigate = useNavigate();
 
-  const [loads, setLoads] = useState<ExtendedLoadVm[]>([]);
+  const [loads, setLoads] = useState<LoadListVm[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedLoad, setSelectedLoad] = useState<ExtendedLoadVm | null>(null);
+  const [selectedLoad, setSelectedLoad] = useState<LoadListVm | null>(null);
   const [mapData, setMapData] = useState({ distance: '0', duration: '0h 0m' });
 
   const [filters, setFilters] = useState<LoadSearchFilters>({
@@ -47,26 +43,20 @@ export const SearchPage: React.FC = () => {
     const fetchFilteredLoads = async () => {
       setIsLoading(true);
       try {
-        const data = await loadsService.getAllLoads(filters);
+        const data = await loadsService.getAllLoads(filters as Record<string, string | number | boolean>);
 
         if (data) {
-          const mappedData: ExtendedLoadVm[] = data.map((load: LoadListVm) => ({
-            ...load,
-            volumeStr: '0 m³', 
-            matchPercent: Math.floor(Math.random() * 20) + 80
-          }));
-          setLoads(mappedData);
+          setLoads(data);
           
           setSelectedLoad((prevLoad) => {
-            if (prevLoad && !mappedData.find((l) => l.id === prevLoad.id)) {
+            if (prevLoad && !data.find((l) => l.id === prevLoad.id)) {
               return null;
             }
             return prevLoad;
           });
         }
       } catch (error: unknown) {
-        const err = error as Error;
-        console.error("Backend Search API failed:", err.message);
+        console.error("Backend Search API failed:", error);
         setLoads([]); 
       } finally {
         setIsLoading(false);
@@ -80,13 +70,7 @@ export const SearchPage: React.FC = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [filters]); 
 
-  const handleOpenChat = (e: React.MouseEvent, partnerId: string, loadId: string) => {
-    e.stopPropagation(); 
-    navigate(`/chat?partnerId=${partnerId}&loadId=${loadId}`);
-  };
-
   const handleViewDetails = (loadId: string) => {
-    // ИСПРАВЛЕНО: Теперь переходит в детали маршрута, а не на главную
     navigate(`/orders/${loadId}`);
   };
 
@@ -120,9 +104,7 @@ export const SearchPage: React.FC = () => {
       </header>
 
       <div className="split-layout-container">
-        
         <div className="split-layout-left">
-          
           <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
             <div className="filter-select-wrapper">
               <span className="filter-label">From:</span>
@@ -186,17 +168,16 @@ export const SearchPage: React.FC = () => {
                   <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Date</th>
                   <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Cargo</th>
                   <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Mass</th>
+                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Volume</th>
                   <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Vehicle</th>
-                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Price</th>
-                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Match</th>
-                  <th style={{ padding: '12px 16px', borderBottom: '1px solid #E6E8EE' }}></th>
+                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE', textAlign: 'right' }}>Price</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={9} style={{ padding: '40px', textAlign: 'center', color: '#A0AAB9' }}>Loading loads...</td></tr>
+                  <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#A0AAB9' }}>Loading loads...</td></tr>
                 ) : loads.length === 0 ? (
-                  <tr><td colSpan={9} style={{ padding: '40px', textAlign: 'center', color: '#A0AAB9' }}>No loads found.</td></tr>
+                  <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#A0AAB9' }}>No loads found.</td></tr>
                 ) : (
                   loads.map((load, idx) => (
                     <tr 
@@ -206,42 +187,43 @@ export const SearchPage: React.FC = () => {
                       onClick={() => setSelectedLoad(load)}
                       onDoubleClick={() => handleViewDetails(load.id)}
                     >
+                      {/* КОЛОНКА 1: LOAD (ID + Company Name) */}
                       <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 500, color: '#5C6470' }}>{load.id.substring(0, 8).toUpperCase()}</div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#0E1116' }}>{load.article || load.id.substring(0,8).toUpperCase()}</div>
+                        <div style={{ fontSize: '12px', color: '#5C6470', marginTop: '4px' }}>{load.shipper || 'Verified Shipper'}</div>
                       </td>
+                      
+                      {/* КОЛОНКА 2: ROUTE */}
                       <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500, color: '#0E1116', marginBottom: '4px' }}>
-                          <span style={{ width: '6px', height: '6px', background: '#3D5AFE', borderRadius: '50%', display: 'inline-block' }}></span> {load.from.split(',')[0]}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500, color: '#0E1116' }}>
-                          <span style={{ width: '6px', height: '6px', background: '#00C48C', borderRadius: '50%', display: 'inline-block' }}></span> {load.to.split(',')[0]}
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '13px', color: '#0E1116' }}>{new Date(load.dateStart).toLocaleDateString()}</td>
-                      <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '14px', color: '#0E1116' }}>{load.cargo}</td>
-                      <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '14px', color: '#0E1116' }}>{load.weight} t</td>
-                      <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                        <span style={{ padding: '4px 10px', background: '#F6F7FB', color: '#5C6470', borderRadius: '6px', fontSize: '12px', fontWeight: 500 }}>{load.recommendedVehicle}</span>
-                      </td>
-                      <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '16px', fontWeight: 600, color: '#0E1116' }}>
-                        €{load.price.toLocaleString('en-US')}
-                      </td>
-                      <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '40px', height: '4px', background: '#E6E8EE', borderRadius: '2px', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${load.matchPercent || 95}%`, background: (load.matchPercent || 95) > 90 ? '#00C48C' : '#3D5AFE', borderRadius: '2px' }}></div>
-                          </div>
-                          <span style={{ fontSize: '13px', fontWeight: 500, color: '#5C6470' }}>{load.matchPercent || 95}%</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 600, color: '#0E1116' }}>
+                          {load.startCity || 'Origin'} <span style={{ color: '#A0AAB9' }}>→</span> {load.endCity || 'Destination'}
                         </div>
                       </td>
-                      <td style={{ padding: '16px', verticalAlign: 'top', textAlign: 'right' }}>
-                        <button 
-                          onClick={(e) => handleOpenChat(e, 'system_id', load.id)}
-                          style={{ background: 'none', border: 'none', color: '#A0AAB9', cursor: 'pointer', fontSize: '18px' }}
-                          title="Open chat"
-                        >
-                          💬
-                        </button>
+
+                      {/* КОЛОНКА 3: DATE */}
+                      <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '14px', color: '#0E1116', fontWeight: 500 }}>
+                        {formatMonthDay(load.startDate)}
+                      </td>
+
+                      {/* КОЛОНКИ 4, 5, 6: CARGO, MASS, VOLUME */}
+                      <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '14px', color: '#0E1116' }}>{load.cargoType || 'General'}</td>
+                      <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '14px', color: '#0E1116' }}>{load.totalWeight || 0} t</td>
+                      <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '14px', color: '#0E1116' }}>{load.totalVolume || 0} m³</td>
+                      
+                      {/* КОЛОНКА 7: VEHICLE (Все типы машин) */}
+                      <td style={{ padding: '16px', verticalAlign: 'top' }}>
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                          {load.vehicleTypes?.map((v, i) => (
+                            <span key={i} style={{ padding: '4px 10px', background: '#F6F7FB', color: '#5C6470', borderRadius: '6px', fontSize: '12px', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                              {v}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+
+                      {/* КОЛОНКА 8: PRICE */}
+                      <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '16px', fontWeight: 600, color: '#0E1116', textAlign: 'right' }}>
+                        €{(load.payment || 0).toLocaleString('en-US')}
                       </td>
                     </tr>
                   ))
@@ -251,7 +233,6 @@ export const SearchPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ПРАВАЯ ЧАСТЬ С КАРТОЙ */}
         <aside className="split-layout-right dash-map-panel">
           <div className="dash-map-header">
             <h3>Map preview</h3>
@@ -262,8 +243,8 @@ export const SearchPage: React.FC = () => {
             {selectedLoad ? (
               <RoutingMap 
                 stops={[
-                  { address: selectedLoad.from.split(',')[0], type: 'start' },
-                  { address: selectedLoad.to.split(',')[0], type: 'end' }
+                  { address: selectedLoad.startCity?.split(',')[0] || 'Origin', type: 'start' },
+                  { address: selectedLoad.endCity?.split(',')[0] || 'Destination', type: 'end' }
                 ]}
                 hideFloatingWidget={true}
                 onRouteCalculated={(dist, dur) => setMapData({ distance: dist, duration: dur })}
@@ -276,11 +257,11 @@ export const SearchPage: React.FC = () => {
           <div className="dash-map-footer">
             <div className="dash-map-footer-label">Selected lane</div>
             <div className="dash-map-footer-route">
-              {selectedLoad ? `${selectedLoad.from.split(',')[0]} → ${selectedLoad.to.split(',')[0]}` : 'Select a load'}
+              {selectedLoad ? `${selectedLoad.startCity?.split(',')[0] || 'Origin'} → ${selectedLoad.endCity?.split(',')[0] || 'Destination'}` : 'Select a load'}
             </div>
             <div className="dash-map-footer-meta">
               {selectedLoad 
-                ? `${mapData.distance} km • 2 stops • ~${mapData.duration} drive` 
+                ? `${mapData.distance} km • ~${mapData.duration} drive` 
                 : `0 km • ~0h 0m drive`
               }
             </div>
@@ -295,57 +276,14 @@ export const SearchPage: React.FC = () => {
         ::-webkit-scrollbar { width: 0px; height: 0px; background: transparent; }
         * { scrollbar-width: none; -ms-overflow-style: none; }
 
-        .split-layout-container {
-          display: flex;
-          flex-direction: row;
-          flex: 1;
-          width: 100%;
-          overflow: hidden;
-        }
-        
-        .split-layout-left {
-          flex: 1.5 1 600px !important; 
-          display: flex;
-          flex-direction: column;
-          background: white;
-          padding: 24px 32px;
-          overflow-y: auto;
-          min-width: 0;
-          min-height: 350px !important; 
-        }
-        
-        .split-layout-right {
-          flex: 1 1 400px !important; 
-          display: flex;
-          flex-direction: column;
-          background: white;
-          border-left: 1px solid #E6E8EE;
-          min-height: 350px !important; 
-        }
+        .split-layout-container { display: flex; flex-direction: row; flex: 1; width: 100%; overflow: hidden; }
+        .split-layout-left { flex: 1.5 1 600px !important; display: flex; flex-direction: column; background: white; padding: 24px 32px; overflow-y: auto; min-width: 0; min-height: 350px !important; }
+        .split-layout-right { flex: 1 1 400px !important; display: flex; flex-direction: column; background: white; border-left: 1px solid #E6E8EE; min-height: 350px !important; }
 
         @media (max-width: 1200px) {
-          .split-layout-container {
-            flex-direction: column !important;
-            overflow-y: auto !important; 
-            overflow-x: hidden !important;
-          }
-          
-          .split-layout-left {
-            flex: 1 0 400px !important; 
-            min-height: 400px !important; 
-            padding: 16px 32px !important;
-            border-bottom: 1px solid #E6E8EE !important;
-            width: 100% !important;
-            max-width: 100% !important;
-          }
-          
-          .split-layout-right {
-            flex: 1 0 450px !important; 
-            min-height: 450px !important; 
-            width: 100% !important; 
-            max-width: 100% !important;
-            border-left: none !important;
-          }
+          .split-layout-container { flex-direction: column !important; overflow-y: auto !important; overflow-x: hidden !important; }
+          .split-layout-left { flex: 1 0 400px !important; min-height: 400px !important; padding: 16px 32px !important; border-bottom: 1px solid #E6E8EE !important; width: 100% !important; max-width: 100% !important; }
+          .split-layout-right { flex: 1 0 450px !important; min-height: 450px !important; width: 100% !important; max-width: 100% !important; border-left: none !important; }
         }
       `}</style>
     </div>

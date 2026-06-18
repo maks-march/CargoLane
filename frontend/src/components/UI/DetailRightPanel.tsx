@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/auth.store';
 import { loadsService } from '../../services/loadsService';
-import apiClient from '../../api/api-client'; // Импорт для запроса к профилю
+import apiClient from '../../api/api-client'; 
 import type { LoadDetailsVm, UserDetailsVm } from '../../api/types';
 
 interface Props {
@@ -67,8 +67,7 @@ export const DetailRightPanel: React.FC<Props> = ({ load }) => {
     navigate(`/chat?partnerId=${load.userId}&loadId=${load.id}`);
   };
 
-  // ИСПРАВЛЕНО: Берем строго Company Name и Registration Country из БД
-  const shipperName = shipper?.companyName || 'Verified Shipper';
+  const shipperName = shipper?.companyName || load.shipper || 'Verified Shipper';
   const shipperLocation = shipper?.country || 'Location not specified';
   const shipperInitials = shipperName.substring(0, 2).toUpperCase();
 
@@ -99,7 +98,7 @@ export const DetailRightPanel: React.FC<Props> = ({ load }) => {
                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#3D5AFE' }}></div>
               </div>
               <div>
-                <div style={{ fontWeight: 600, fontSize: '15px', color: '#0E1116' }}>{startPoint?.city || load.from.split(',')[0]}</div>
+                <div style={{ fontWeight: 600, fontSize: '15px', color: '#0E1116' }}>{startPoint?.city || 'Origin'}</div>
                 {startPoint?.address && startPoint.address !== startPoint.city && (
                   <div style={{ fontSize: '13px', color: '#5C6470', marginTop: '2px' }}>{startPoint.address}</div>
                 )}
@@ -116,7 +115,7 @@ export const DetailRightPanel: React.FC<Props> = ({ load }) => {
                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: '#059669' }}></div>
               </div>
               <div>
-                <div style={{ fontWeight: 600, fontSize: '15px', color: '#0E1116' }}>{endPoint?.city || load.to.split(',')[0]}</div>
+                <div style={{ fontWeight: 600, fontSize: '15px', color: '#0E1116' }}>{endPoint?.city || 'Destination'}</div>
                 {endPoint?.address && endPoint.address !== endPoint.city && (
                   <div style={{ fontSize: '13px', color: '#5C6470', marginTop: '2px' }}>{endPoint.address}</div>
                 )}
@@ -157,7 +156,6 @@ export const DetailRightPanel: React.FC<Props> = ({ load }) => {
       <div className="detail-card" style={{ padding: '24px', background: 'white', borderRadius: '12px', border: '1px solid #E6E8EE' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 600, color: '#0E1116', margin: '0 0 16px 0' }}>Shipper Info</h3>
         
-        {/* ИСПРАВЛЕНО: Выводим реальную Компанию и Страну из БД */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
           <div style={{ width: '48px', height: '48px', background: '#EEF1FF', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3D5AFE', fontWeight: 600, fontSize: '18px' }}>
             {shipperInitials}

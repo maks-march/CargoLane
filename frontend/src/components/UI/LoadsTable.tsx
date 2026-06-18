@@ -30,12 +30,10 @@ export const LoadsTable: React.FC<LoadsTableProps> = ({
       </thead>
       <tbody>
         {loads.map((load) => {
-          // ИСПРАВЛЕНО: Убран any, добавлена строгая промежуточная типизация
-          const loadData = load as unknown as { startCity?: string; from?: string; endCity?: string; to?: string; company?: string; companyName?: string };
-          
-          const startCity = loadData.startCity || loadData.from || 'Origin';
-          const endCity = loadData.endCity || loadData.to || 'Destination';
-          const company = loadData.company || loadData.companyName || 'Verified Shipper';
+          // ИСПРАВЛЕНО: Теперь берем официальные поля из контракта LoadListVm
+          const startCity = load.startCity || 'Origin';
+          const endCity = load.endCity || 'Destination';
+          const company = load.shipper || 'Verified Shipper';
           
           return (
             <tr 
@@ -60,11 +58,11 @@ export const LoadsTable: React.FC<LoadsTableProps> = ({
                 </div>
               </td>
               <td className="date-cell" style={{ color: '#5C6470' }}>
-                 {load.dateStart ? new Date(load.dateStart).toLocaleDateString() : 'Flexible'}
+                 {load.startDate ? new Date(load.startDate).toLocaleDateString() : 'Flexible'}
               </td>
-              <td><span className="cargo-tag" style={{ background: '#F6F7FB', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 500 }}>{load.cargo || 'General'}</span></td>
-              <td><span className="vehicle-tag" style={{ color: '#5C6470', fontSize: '13px' }}>{load.recommendedVehicle || 'Tautliner'}</span></td>
-              <td className="price-cell" style={{ fontWeight: 600, color: '#0E1116' }}>€{load.price || 'Offer'}</td>
+              <td><span className="cargo-tag" style={{ background: '#F6F7FB', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 500 }}>{load.cargoType || 'General'}</span></td>
+              <td><span className="vehicle-tag" style={{ color: '#5C6470', fontSize: '13px' }}>{load.vehicleTypes?.[0] || 'Tautliner'}</span></td>
+              <td className="price-cell" style={{ fontWeight: 600, color: '#0E1116' }}>€{load.payment || 'Offer'}</td>
               <td>
                  <span style={{ background: '#ECFDF5', color: '#059669', padding: '4px 8px', borderRadius: '4px', fontWeight: 600, fontSize: '12px' }}>
                    98%

@@ -61,78 +61,34 @@ export const authService = {
       login: data.email || data.login,
       password: data.password
     };
-    
     const response = await apiClient.post<ApiAuthResult>('/api/auth/login', payload);
-    const responseData = response.data;
-    
-    const result: AuthResponse = {
-      token: responseData.accessToken || responseData.token || '',
-      accessToken: responseData.accessToken || responseData.token || '',
-      refreshToken: responseData.refreshToken || '',
-      userId: responseData.userId,
-      role: responseData.role || 'Carrier',
-      username: responseData.userName || responseData.username || '',
-      userName: responseData.userName || responseData.username || ''
+    const result = response.data;
+    return {
+      token: result.accessToken || result.token || '',
+      accessToken: result.accessToken || result.token,
+      userId: result.userId,
+      role: result.role || 'User',
+      username: result.userName || result.username || '',
+      refreshToken: result.refreshToken
     };
-
-    localStorage.setItem('tokens', JSON.stringify(result));
-    
-    if (result.token) {
-      localStorage.setItem('accessToken', result.token);
-      localStorage.setItem('userId', result.userId);
-      // ИСПРАВЛЕНО: Сохраняем реальную роль пользователя при логине
-      localStorage.setItem('userRole', result.role);
-      
-      if (result.username) {
-         localStorage.setItem('userName', result.username);
-      }
-    }
-    return result;
   },
 
   async register(data: RegisterCommand): Promise<AuthResponse> {
     const payload = {
       login: data.email || data.login,
       password: data.password,
-      username: data.name || data.username || data.email || 'User'
+      username: data.username || data.name || data.email
     };
-    
-    const response = await apiClient.post<{token?: string; id?: string; role?: string}>('/api/auth/register', payload);
+    const response = await apiClient.post<ApiAuthResult>('/api/auth/register', payload);
+    const result = response.data;
     return {
-      token: response.data.token || '',
-      accessToken: response.data.token || '',
-      userId: response.data.id || '',
-      role: response.data.role || 'Carrier', 
-      username: payload.username || ''
+      token: result.accessToken || result.token || '',
+      accessToken: result.accessToken || result.token,
+      userId: result.userId || '',
+      role: result.role || 'User',
+      username: result.userName || result.username || '',
+      refreshToken: result.refreshToken
     };
-  },
-
-  async refresh(data: RefreshCommand): Promise<AuthResponse> {
-    const response = await apiClient.post<ApiAuthResult>('/api/auth/refresh', data);
-    const responseData = response.data;
-    const result: AuthResponse = {
-      token: responseData.accessToken || responseData.token || '',
-      accessToken: responseData.accessToken || responseData.token || '',
-      refreshToken: responseData.refreshToken || '',
-      userId: responseData.userId,
-      role: responseData.role || 'Carrier',
-      username: responseData.userName || responseData.username || '',
-      userName: responseData.userName || responseData.username || ''
-    };
-    localStorage.setItem('tokens', JSON.stringify(result));
-    if (result.token) {
-      localStorage.setItem('accessToken', result.token);
-      localStorage.setItem('userId', result.userId);
-      localStorage.setItem('userRole', result.role);
-      if (result.username) {
-         localStorage.setItem('userName', result.username);
-      }
-    }
-    return result;
-  },
-
-  async confirmEmail(data: ConfirmEmailCommand): Promise<void> {
-    await apiClient.post('/api/auth/confirm-email', data);
   },
 
   async changePassword(userId: string, currentPassword: string, newPassword: string): Promise<void> {
@@ -160,13 +116,15 @@ export const authService = {
     if (tokensStr) {
         try {
             return JSON.parse(tokensStr);
-        } catch {}
+        } catch {
+            // ИСПРАВЛЕНО: Комментарий решает проблему "Empty block statement"
+            // Игнорируем ошибку парсинга, фоллбек ниже
+        }
     }
 
     const accessToken = localStorage.getItem('accessToken');
     const userId = localStorage.getItem('userId');
     const userName = localStorage.getItem('userName');
-    // ИСПРАВЛЕНО: Достаем сохраненную роль
     const userRole = localStorage.getItem('userRole');
 
     if (accessToken && userId) {
@@ -174,9 +132,8 @@ export const authService = {
         token: accessToken, 
         accessToken: accessToken, 
         userId: userId, 
-        role: userRole || 'Carrier',
-        username: userName || '',
-        userName: userName || ''
+        role: userRole || 'User',
+        username: userName || '' 
       };
     }
     return null;

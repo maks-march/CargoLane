@@ -4,6 +4,7 @@ import axios from 'axios';
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
 import { authService } from '../../services/auth.service';
+import type { LoadListVm } from '../../api/types';
 
 interface RouteStop {
   address: string;
@@ -41,12 +42,13 @@ export const RecoveryPage: React.FC = () => {
       try {
         const data = await loadsService.getAllLoads();
         if (data && data.length > 0) {
-          const latestLoad = data[data.length - 1];
+          const latestLoad = data[data.length - 1] as LoadListVm;
           
-          if (latestLoad.from && latestLoad.to) {
+          // ИСПРАВЛЕНО: Безопасное обращение к полям из Сваггера
+          if (latestLoad.startCity && latestLoad.endCity) {
             setBackgroundStops([
-              { address: latestLoad.from.split(',')[0], type: 'start' },
-              { address: latestLoad.to.split(',')[0], type: 'end' }
+              { address: latestLoad.startCity.split(',')[0], type: 'start' },
+              { address: latestLoad.endCity.split(',')[0], type: 'end' }
             ]);
           }
         }
@@ -132,14 +134,12 @@ export const RecoveryPage: React.FC = () => {
           <h1 className="auth-title">Reset password</h1>
           <p className="auth-subtitle">Enter your email to receive a code and set a new password</p>
 
-          {/* ТОТ САМЫЙ ОРИГИНАЛЬНЫЙ БЛОК ОШИБКИ */}
           {error && (
             <div style={{ color: '#EF4444', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#FEF2F2', borderRadius: '8px', border: '1px solid #EF4444' }}>
               {error}
             </div>
           )}
 
-          {/* СТАРЫЙ БЛОК УСПЕХА */}
           {message && (
             <div style={{ color: '#059669', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#ECFDF5', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
               {message}

@@ -19,7 +19,7 @@ export interface ChatMessageDto {
     senderId: string; 
     text: string;
     timestamp: string;
-    date: string; // ИСПРАВЛЕНО: Поле для отображения даты в стиле Телеграм
+    date: string; 
     isSystemMessage?: boolean;
 }
 
@@ -52,8 +52,11 @@ interface BackendChatVm {
 interface BackendMessageVm {
     id: string;
     senderId: string;
-    text: string;
-    created: string;
+    senderName?: string;
+    text?: string;
+    created?: string;
+    isRead?: boolean;
+    isSystem?: boolean;
 }
 
 export const messagesService = {
@@ -61,27 +64,32 @@ export const messagesService = {
         try {
             const response = await apiClient.get<BackendChatVm[]>('/api/chat/me');
             
-            const rawChats = response.data.map((chat) => {
-                const name = chat.chatName || chat.username || 'Unknown User';
+            return response.data.map(chat => {
+                const name = chat.username || chat.chatName || 'Unknown Partner';
+                const company = chat.userCompany || 'Verified Shipper';
+                const initials = name.substring(0, 2).toUpperCase();
+                
+                let timeFormatted = '';
+                if (chat.lastMessageTime) {
+                    const date = new Date(chat.lastMessageTime);
+                    timeFormatted = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                }
+
                 return {
                     id: chat.id,
-                    partnerName: name, 
-                    partnerCompany: chat.userCompany || 'CargoLane Partner', 
-                    avatarInitials: name.substring(0, 2).toUpperCase(),
-                    avatarColor: 'blue' as const,
-                    loadId: chat.loadId || null, 
-                    lastMessage: chat.lastMessageText || '', 
-                    lastMessageTime: chat.lastMessageTime ? new Date(chat.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+                    partnerName: name,
+                    partnerCompany: company,
+                    avatarInitials: initials,
+                    avatarColor: initials.charCodeAt(0) % 2 === 0 ? 'blue' : 'green',
+                    loadId: chat.loadId || null,
+                    lastMessage: chat.lastMessageText || '',
+                    lastMessageTime: timeFormatted,
                     unreadCount: chat.unreadCount || 0,
-                    isOnline: true 
+                    isOnline: Math.random() > 0.5
                 };
             });
-
-            const uniqueChats = Array.from(new Map(rawChats.map(item => [item.id, item])).values());
-            return uniqueChats;
-
         } catch (error) {
-            console.warn('Failed to load chat history from backend.', error);
+            console.error("Failed to fetch chats from backend", error);
             return [];
         }
     },
@@ -90,42 +98,45 @@ export const messagesService = {
         try {
             const response = await apiClient.get<BackendMessageVm[]>(`/api/chat/${chatId}/messages`);
             
-            const mappedMessages = response.data.map((msg) => {
-                const d = new Date(msg.created);
+            const history = response.data.reverse().map(msg => {
+                const dateObj = msg.created ? new Date(msg.created) : new Date();
+                const timeStr = `${dateObj.getHours().toString().padStart(2, '0')}:${dateObj.getMinutes().toString().padStart(2, '0')}`;
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const dateStr = `${months[dateObj.getMonth()]} ${dateObj.getDate()}`;
+
                 return {
                     id: msg.id,
                     senderId: msg.senderId,
-                    text: msg.text,
-                    timestamp: d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    date: d.toLocaleDateString('en-US', { day: 'numeric', month: 'long' }), // Пример: "18 June"
-                    isSystemMessage: false 
+                    text: msg.text || '',
+                    timestamp: timeStr,
+                    date: dateStr,
+                    isSystemMessage: msg.isSystem
                 };
             });
-
-            return mappedMessages.reverse();
-
+            return history;
         } catch (error) {
-            console.error(`Failed to fetch chat history for ${chatId}:`, error);
+            console.error(`Failed to fetch history for chat ${chatId}`, error);
             return [];
         }
     },
 
     getActiveDeal: async (loadId: string): Promise<ActiveDealDto | null> => {
-        if (!loadId || loadId === 'Support') return null;
-
         try {
             const item = await loadsService.getLoadById(loadId);
-            const startCity = item.routePoints?.[0]?.city || item.from || 'Unknown';
-            const endCity = item.routePoints?.[(item.routePoints?.length || 1) - 1]?.city || item.to || 'Unknown';
+            if (!item) return null;
             
+            // ИСПРАВЛЕНО: Безопасное извлечение городов из routePoints для LoadDetailsVm
+            const startCity = item.routePoints?.[0]?.city || 'Origin';
+            const endCity = item.routePoints?.[(item.routePoints?.length || 1) - 1]?.city || 'Destination';
+
             return {
-                loadId: item.id.substring(0, 8).toUpperCase(),
+                loadId: item.article ? String(item.article) : item.id.substring(0,8).toUpperCase(),
                 route: `${startCity} → ${endCity}`,
-                details: `${item.cargo || 'General Cargo'} • ${item.weight || 0}kg`,
-                price: `€${item.price || 0}`,
+                details: `${item.cargoType || 'General Cargo'} • ${item.totalWeight || 0}t`,
+                price: `€${(item.payment || 0).toLocaleString('en-US')}`,
                 status: item.status === 'Active' || item.status === '0' ? 'Active' : 'Closed',
                 timeline: [
-                    { title: 'Load Created', time: new Date().toLocaleDateString(), status: 'completed' },
+                    { title: 'Load Created', time: new Date(item.created || new Date()).toLocaleDateString(), status: 'completed' },
                     { title: 'Chat Started', time: 'Now', status: 'current' },
                     { title: 'Pending Agreement', time: '', status: 'pending' }
                 ]
@@ -153,6 +164,6 @@ export const messagesService = {
         
         return typeof response.data === 'string' 
             ? { chatId: response.data } 
-            : { chatId: response.data.id || response.data };
+            : response.data;
     }
 };
