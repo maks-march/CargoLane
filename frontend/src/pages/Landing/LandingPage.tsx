@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
-import { Weight } from 'lucide-react';
+
 
 const formatCount = (num: number): string => {
   if (num === 0) return '0';

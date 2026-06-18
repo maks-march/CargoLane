@@ -16,7 +16,6 @@ export const DetailRightPanel: React.FC<Props> = ({ load }) => {
   const user = useAuthStore((state) => state.user);
   
   const isMyLoad = 
-    (user?.companyName && load.companyName === user.companyName) || 
     (user?.name && load.companyName === user.name) || 
     load.companyName === 'CargoLane Partner'; 
 

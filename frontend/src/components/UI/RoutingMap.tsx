@@ -13,8 +13,8 @@ const createCustomIcon = (color: string) => {
   return L.divIcon({
     className: 'custom-leaflet-icon',
     html: `<div style="width: 16px; height: 16px; background: ${color}; border: 3px solid white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8]
+    iconSize: [16, 16] as L.PointExpression,
+    iconAnchor: [8, 8] as L.PointExpression
   });
 };
 
@@ -24,7 +24,7 @@ const ICONS = {
   stop: createCustomIcon('#F59E0B')
 };
 
-// ИСПРАВЛЕНИЕ 429 ОШИБКИ: Расширенный кэш. Карта больше не будет спамить внешний API!
+// Расширенный кэш городов — карта не будет спамить внешний API
 const GEO_CACHE: Record<string, [number, number]> = {
   'surgut': [61.25, 73.4167],
   'ufa': [54.7388, 55.9721],
@@ -55,14 +55,12 @@ const geocodeCity = async (city: string): Promise<[number, number] | null> => {
     if (data && data.length > 0) {
       return [parseFloat(data[0].lat), parseFloat(data[0].lon)];
     }
-  // ИСПРАВЛЕНО: Убран неиспользуемый аргумент error
   } catch {
     console.warn("Geocoding API limited (429) for", city);
   }
   return null;
 };
 
-// ИСПРАВЛЕНО: Заменен any на строгий интерфейс
 interface RouteCalculatorProps {
   stops: { address: string; type: string }[];
   onCalc?: (distance: string, duration: string) => void;
@@ -80,11 +78,9 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({ stops, onCalc, setRou
     const fetchRoute = async () => {
       if (!stops || stops.length < 2) return;
       
-      // ИСПРАВЛЕНО: Заменен any на строгий тип
       const validStops = stops.filter((s: { address: string; type: string }) => s.address && s.address.length > 2);
       if (validStops.length < 2) return;
 
-      // ИСПРАВЛЕНО: Заменен any на строгий тип
       const coordsPromises = validStops.map(async (s: { address: string; type: string }) => {
         const coords = await geocodeCity(s.address);
         return { pos: coords, type: s.type };
@@ -116,7 +112,6 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({ stops, onCalc, setRou
           } else {
              setRoutePath(validMarkers.map(m => m.pos));
           }
-        // ИСПРАВЛЕНО: Убран неиспользуемый аргумент e
         } catch {
           setRoutePath(validMarkers.map(m => m.pos));
         }
@@ -155,16 +150,16 @@ export const RoutingMap: React.FC<RoutingMapProps> = ({ stops, hideFloatingWidge
         </div>
       )}
       
-      <MapContainer center={[51.1657, 10.4515]} zoom={4} style={{ height: '100%', width: '100%', zIndex: 1 }} zoomControl={false}>
+      <MapContainer center={[51.1657, 10.4515] as L.LatLngExpression} zoom={4} style={{ height: '100%', width: '100%', zIndex: 1 }} zoomControl={false}>
         <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" />
         <RouteCalculator stops={stops} onCalc={onRouteCalculated} setRouteData={setRouteData} setRoutePath={setRoutePath} setMarkers={setMarkers} />
         
         {markers.map((m, i) => (
-          <Marker key={i} position={m.pos} icon={ICONS[m.type as keyof typeof ICONS] || ICONS.stop} />
+          <Marker key={i} position={m.pos as L.LatLngExpression} icon={ICONS[m.type as keyof typeof ICONS] || ICONS.stop} />
         ))}
         
         {routePath.length > 1 && (
-          <Polyline positions={routePath} color="#3D5AFE" weight={4} opacity={0.7} />
+          <Polyline positions={routePath as L.LatLngExpression[]} pathOptions={{ color: '#3D5AFE', weight: 4, opacity: 0.7 }} />
         )}
       </MapContainer>
     </div>

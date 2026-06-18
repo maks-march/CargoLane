@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useNavigate } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import MainLayout from '../components/Layout/MainLayout';
 
@@ -19,6 +19,12 @@ import LoadDetailPage from '../pages/Dashboard/LoadDetailPage';
 import SavedPage from '../pages/Dashboard/SavedPage';
 import { SettingsPage } from '../pages/Dashboard/SettingsPage';
 import MessagesPage from '../pages/Dashboard/MessagesPage';
+
+/** Обёртка для CreateLoadPage — прокидывает navigate через пропс onNavigate */
+const CreateLoadPageWrapper = () => {
+  const navigate = useNavigate();
+  return <CreateLoadPage onNavigate={(path) => navigate(path)} />;
+};
 
 export const router = createBrowserRouter([
   {
@@ -57,7 +63,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/orders/create',
-            element: <CreateLoadPage />,
+            element: <CreateLoadPageWrapper />,
           },
           {
             path: '/my-listings',

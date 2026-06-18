@@ -2,7 +2,7 @@ import axios from 'axios';
 import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 import type { AuthResponse, RefreshCommand } from './types';
 
-const API_BASE_URL = 'http://localhost:5024'; // Тот самый порт докера
+const API_BASE_URL = 'http://localhost:8080'; // Тот самый порт докера
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

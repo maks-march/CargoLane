@@ -6,23 +6,6 @@ interface Props {
 }
 
 export const DetailHeaderCard: React.FC<Props> = ({ load }) => {
-  const getCountryCode = (city?: string) => {
-    if (!city) return 'EU';
-    const c = city.toLowerCase();
-    if (c.includes('rotterdam') || c.includes('amsterdam')) return 'NL';
-    if (c.includes('berlin') || c.includes('munich') || c.includes('hamburg')) return 'DE';
-    if (c.includes('warsaw')) return 'PL';
-    if (c.includes('paris') || c.includes('lyon')) return 'FR';
-    if (c.includes('milan')) return 'IT';
-    if (c.includes('madrid')) return 'ES';
-    return 'EU'; 
-  };
-
-  // Безопасный доступ к массиву routePoints для получения стран
-  const startCity = load.routePoints?.[0]?.city || load.from?.split(',')[0] || 'Origin';
-  const endCity = load.routePoints?.[(load.routePoints?.length || 1) - 1]?.city || load.to?.split(',')[0] || 'Destination';
-  const borderStr = `${getCountryCode(startCity)} → ${getCountryCode(endCity)}`;
-
   // Подсчет количества и выбор имени груза из БД
   let totalItems = 0;
   let payloadType = 'General Cargo';

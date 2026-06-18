@@ -116,7 +116,7 @@ interface CreateLoadDraftCommand {
   insurance: number | null;
   hScode: string | null;
   adr: number | null;
-  vihicleTypes?: string[]; 
+  vehicleTypes?: string[]; 
   cargoType?: string;
   about: string | null;
   payloads?: PayloadInputDto[];
@@ -134,7 +134,7 @@ interface LoadDraftVm {
   insurance: number | null;
   hScode: string | null;
   adr: number | null;
-  vihicleTypes: string[] | null;
+  vehicleTypes: string[] | null;
   cargoType: string | null;
   about: string | null;
   payloads: PayloadDraftVm[] | null;

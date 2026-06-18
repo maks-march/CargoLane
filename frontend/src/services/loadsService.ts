@@ -18,6 +18,7 @@ interface LoadDetailsBackendResponse {
   payment?: number;
   totalWeight?: number;
   totalVolume?: number;
+  distance?: number;
   cargoType?: string;
   vihicleTypes?: string[]; // ОПЕЧАТКА БЭКЕНДА
   about?: string;
@@ -130,6 +131,7 @@ export const loadsService = {
         price: item.payment || 0,
         weight: item.totalWeight || 0,
         volume: item.totalVolume || 0,
+        distance: item.distance || 0,
         cargo: item.cargoType || 'General Cargo',
         recommendedVehicle: item.vihicleTypes?.[0] || 'Any',
         about: item.about || '',
@@ -172,7 +174,7 @@ export const loadsService = {
       insurance: uiData.insurance || 0,
       hScode: uiData.hScode || null,
       adr: uiData.adr || 0,
-      vihicleTypes: vTypes, // ОТПРАВЛЯЕМ С ОПЕЧАТКОЙ (КАК ЖДЕТ БЭКЕНД)
+      vehicleTypes: vTypes,
       cargoType: uiData.cargoType || "General",
       about: uiData.about || null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -203,7 +205,7 @@ export const loadsService = {
       insurance: uiData.insurance || 0,
       hScode: uiData.hScode || null,
       adr: uiData.adr || 0,
-      vihicleTypes: vTypes, // С ОПЕЧАТКОЙ
+      vehicleTypes: vTypes,
       cargoType: uiData.cargoType || "General",
       about: uiData.about || null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -235,7 +237,7 @@ export const loadsService = {
       insurance: uiData.insurance || 0,
       hScode: uiData.hScode || null,
       adr: uiData.adr || 0,
-      vihicleTypes: vTypes, // С ОПЕЧАТКОЙ
+      vehicleTypes: vTypes,
       cargoType: uiData.cargoType || "General",
       about: uiData.about || null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
