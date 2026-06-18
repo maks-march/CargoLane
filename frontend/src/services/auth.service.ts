@@ -80,6 +80,9 @@ export const authService = {
     if (result.token) {
       localStorage.setItem('accessToken', result.token);
       localStorage.setItem('userId', result.userId);
+      // ИСПРАВЛЕНО: Сохраняем реальную роль пользователя при логине
+      localStorage.setItem('userRole', result.role);
+      
       if (result.username) {
          localStorage.setItem('userName', result.username);
       }
@@ -93,13 +96,13 @@ export const authService = {
       password: data.password,
       username: data.name || data.username || data.email || 'User'
     };
-    // ИСПРАВЛЕНО: Убран any, добавлена строгая типизация ответа
-    const response = await apiClient.post<{token?: string; id?: string}>('/api/auth/register', payload);
+    
+    const response = await apiClient.post<{token?: string; id?: string; role?: string}>('/api/auth/register', payload);
     return {
       token: response.data.token || '',
       accessToken: response.data.token || '',
       userId: response.data.id || '',
-      role: 'Carrier', 
+      role: response.data.role || 'Carrier', 
       username: payload.username || ''
     };
   },
@@ -120,6 +123,7 @@ export const authService = {
     if (result.token) {
       localStorage.setItem('accessToken', result.token);
       localStorage.setItem('userId', result.userId);
+      localStorage.setItem('userRole', result.role);
       if (result.username) {
          localStorage.setItem('userName', result.username);
       }
@@ -148,6 +152,7 @@ export const authService = {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
   },
 
   getCurrentUserTokens(): AuthResponse | null {
@@ -155,21 +160,21 @@ export const authService = {
     if (tokensStr) {
         try {
             return JSON.parse(tokensStr);
-        } catch {
-            // ИСПРАВЛЕНО: Убрано объявление пустой переменной
-        }
+        } catch {}
     }
 
     const accessToken = localStorage.getItem('accessToken');
     const userId = localStorage.getItem('userId');
     const userName = localStorage.getItem('userName');
+    // ИСПРАВЛЕНО: Достаем сохраненную роль
+    const userRole = localStorage.getItem('userRole');
 
     if (accessToken && userId) {
       return { 
         token: accessToken, 
         accessToken: accessToken, 
         userId: userId, 
-        role: 'Carrier',
+        role: userRole || 'Carrier',
         username: userName || '',
         userName: userName || ''
       };

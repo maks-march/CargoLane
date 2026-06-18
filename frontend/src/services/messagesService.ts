@@ -61,7 +61,7 @@ export const messagesService = {
         try {
             const response = await apiClient.get<BackendChatVm[]>('/api/chat/me');
             
-            return response.data.map((chat) => {
+            const rawChats = response.data.map((chat) => {
                 const name = chat.chatName || chat.username || 'Unknown User';
                 return {
                     id: chat.id,
@@ -76,6 +76,13 @@ export const messagesService = {
                     isOnline: true 
                 };
             });
+
+            // ИСПРАВЛЕНО БАГ 1: Жесткая защита от дубликатов. 
+            // Если бэкенд прислал несколько чатов с одинаковым ID (например, Support), оставляем только уникальные.
+            const uniqueChats = Array.from(new Map(rawChats.map(item => [item.id, item])).values());
+            
+            return uniqueChats;
+
         } catch (error) {
             console.warn('Failed to load chat history from backend.', error);
             return [];

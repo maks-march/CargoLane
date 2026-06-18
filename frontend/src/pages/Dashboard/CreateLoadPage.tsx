@@ -1,9 +1,9 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom'; // ИСПРАВЛЕНО
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import type { PageType } from '../../utils/types'; 
 import { RoutingMap } from '../../components/UI/RoutingMap';
 import { loadsService } from '../../services/loadsService';
-import type { CreateLoadCommand, CreateLoadDraftCommand } from '../../api/types';
+import type { CreateLoadDraftCommand } from '../../api/types';
 
 interface CreateLoadPageProps {
   onNavigate: (page: PageType) => void;
@@ -19,11 +19,11 @@ interface RouteStop {
 interface PackageItem {
   id: string;
   type: string;
-  length: number | '';
-  width: number | '';
-  height: number | '';
-  weight: number | '';
-  qty: number | '';
+  length: number | string;
+  width: number | string;
+  height: number | string;
+  weight: number | string;
+  qty: number | string;
 }
 
 interface LoadFormData {
@@ -34,7 +34,7 @@ interface LoadFormData {
   insuredValue: string;
   hsCode: string;
   adrClass: string;
-  vehicle: string;
+  vehicles: string[]; 
   price: string;
   about: string; 
 }
@@ -42,26 +42,28 @@ interface LoadFormData {
 export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) => {
   const [searchParams] = useSearchParams();
   const draftIdParam = searchParams.get('draftId');
-  const navigate = useNavigate(); // ИСПРАВЛЕНО
+  const navigate = useNavigate(); 
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadedPhotos, setUploadedPhotos] = useState<{ id: string; name: string; preview: string }[]>([]);
+  const [uploadedPhotos, setUploadedPhotos] = useState<{ id: string; name: string; preview: string; rawFile: File }[]>([]);
   const [isDragActive, setIsDragActive] = useState(false);
+
+  const [mapStats, setMapStats] = useState({ distance: 0, duration: "00:00:00" });
 
   const [formData, setFormData] = useState<LoadFormData>({
     stops: [
-      { id: '1', type: 'start', address: '', datetime: '' },
-      { id: '2', type: 'end', address: '', datetime: '' }
+      { id: 'start-node', type: 'start', address: '', datetime: '' },
+      { id: 'end-node', type: 'end', address: '', datetime: '' }
     ],
-    cargoCategory: 'Pallets',
+    cargoCategory: '', 
     packages: [
-      { id: '1', type: 'EUR pallet', length: '', width: '', height: '', weight: '', qty: '' }
+      { id: 'pkg-1', type: 'EUR pallet', length: '', width: '', height: '', weight: '', qty: '' }
     ],
     temperature: 'Ambient',
     insuredValue: '',
     hsCode: '',
     adrClass: '',
-    vehicle: '',
+    vehicles: ['Tautliner trailer'], 
     price: '',
     about: '' 
   });
@@ -73,13 +75,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [draftSuccessMsg, setDraftSavedMessage] = useState<string>('');
 
-  const [debouncedStops, setDebouncedStops] = useState(formData.stops);
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedStops(formData.stops);
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [formData.stops]);
+  const [mapStops, setMapStops] = useState<RouteStop[]>([]);
 
   useEffect(() => {
     if (draftIdParam) {
@@ -94,18 +90,18 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
             hsCode: res.hScode || prev.hsCode,
             adrClass: res.adr ? String(res.adr) : prev.adrClass,
             cargoCategory: res.cargoType || prev.cargoCategory,
-            vehicle: res.vehicleTypes?.[0] || prev.vehicle,
+            vehicles: res.vehicleTypes?.length > 0 ? res.vehicleTypes : ['Tautliner trailer'], 
             about: res.about || prev.about, 
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             stops: res.routePoints?.length > 0 ? res.routePoints.map((p: any, i: number) => ({
-              id: Date.now().toString() + i,
+              id: `draft-stop-${i}`,
               type: i === 0 ? 'start' : (i === res.routePoints.length - 1 ? 'end' : 'stop'),
               address: p.address || p.city || '',
               datetime: p.arrivalTime ? new Date(p.arrivalTime).toISOString().slice(0, 16) : ''
             })) : prev.stops,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             packages: res.payloads?.length > 0 ? res.payloads.map((p: any, i: number) => ({
-              id: Date.now().toString() + i,
+              id: `draft-pkg-${i}`,
               type: p.type || 'EUR pallet',
               length: p.length || '',
               width: p.width || '',
@@ -122,7 +118,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
   let activeStep = 1;
   const hasRoute = formData.stops.every(s => s.address.trim() !== '');
   const hasCargo = formData.cargoCategory !== '' && formData.packages.some(p => Number(p.qty) > 0);
-  const hasVehicle = formData.vehicle !== '';
+  const hasVehicle = formData.vehicles.length > 0; 
   const hasPrice = formData.price !== '';
 
   if (hasRoute) {
@@ -174,7 +170,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
 
   const handleAddStop = () => {
     const newStops = [...formData.stops];
-    const newStop: RouteStop = { id: Date.now().toString(), type: 'stop', address: '', datetime: '' };
+    const newStop: RouteStop = { id: `stop-${Math.random().toString(36).substring(2,9)}`, type: 'stop', address: '', datetime: '' };
     newStops.splice(newStops.length - 1, 0, newStop);
     setFormData({ ...formData, stops: newStops });
   };
@@ -194,8 +190,22 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
     }
   };
 
+  const handleSetRoute = () => {
+    const validStops = formData.stops.filter(s => s.address.trim() !== '');
+    const newAddressesStr = validStops.map(s => s.address.trim().toLowerCase()).join('|');
+    const oldAddressesStr = mapStops.map(s => s.address.trim().toLowerCase()).join('|');
+    
+    if (newAddressesStr === oldAddressesStr) return; 
+    
+    if (validStops.length >= 2) {
+      setMapStops(JSON.parse(JSON.stringify(validStops)));
+    } else {
+      setMapStops([]);
+    }
+  };
+
   const handleAddPackage = () => {
-    const newPkg: PackageItem = { id: Date.now().toString(), type: 'Custom Cargo', length: '', width: '', height: '', weight: '', qty: '' };
+    const newPkg: PackageItem = { id: `pkg-${Math.random().toString(36).substring(2,9)}`, type: 'Custom Cargo', length: '', width: '', height: '', weight: '', qty: '' };
     setFormData({ ...formData, packages: [...formData.packages, newPkg] });
   };
 
@@ -217,7 +227,8 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
     const newPhotos = Array.from(files).map(file => ({
       id: Math.random().toString(36).substring(2, 9),
       name: file.name,
-      preview: URL.createObjectURL(file)
+      preview: URL.createObjectURL(file),
+      rawFile: file 
     }));
     setUploadedPhotos(prev => [...prev, ...newPhotos]);
   };
@@ -244,17 +255,42 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
     setUploadedPhotos(prev => prev.filter(p => p.id !== id));
   };
 
-  const getMappedPayload = (): CreateLoadCommand => {
-    const vType = formData.vehicle ? [formData.vehicle] : [];
+  const handleRouteCalculated = useCallback((distStr: string, durStr: string) => {
+    const distNum = parseFloat(distStr.replace(/[^\d.-]/g, '')) || 0;
+    
+    let hours = 0, minutes = 0;
+    const hMatch = durStr.match(/(\d+)\s*h/i);
+    const mMatch = durStr.match(/(\d+)\s*m/i);
+    
+    if (hMatch) hours = parseInt(hMatch[1], 10);
+    if (mMatch) minutes = parseInt(mMatch[1], 10);
+    
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    const finalDuration = `${pad(hours)}:${pad(minutes)}:00`;
+    
+    setMapStats(prev => {
+      if (prev.distance === distNum && prev.duration === finalDuration) {
+        return prev;
+      }
+      return { distance: distNum, duration: finalDuration };
+    });
+  }, []);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const getMappedPayload = (): any => {
+    const finalVehicles = formData.vehicles.length > 0 ? formData.vehicles : ["Tautliner trailer"];
+    const finalDistance = mapStats.distance > 0 ? mapStats.distance : 1;
+    
     return {
       payment: Number(formData.price.replace(/\D/g, '')) || 0,
       insurance: Number(formData.insuredValue.replace(/\D/g, '')) || 0,
       hScode: formData.hsCode.trim() !== '' ? formData.hsCode : null,
       adr: formData.adrClass && formData.adrClass !== 'None' ? 1 : 0,
-      vehicleTypes: vType, 
+      vehicleTypes: finalVehicles, 
       cargoType: formData.cargoCategory || "General",
-      about: formData.about, 
+      about: formData.about,
+      distance: finalDistance, 
+      duration: mapStats.duration, 
       payloads: formData.packages.map(pkg => ({
         length: Number(pkg.length) || 0,
         width: Number(pkg.width) || 0,
@@ -265,10 +301,15 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
         type: pkg.type || "General" 
       })),
       routePoints: formData.stops.map((stop, idx) => {
-        let arrTime = stop.datetime ? new Date(stop.datetime) : new Date();
-        if (arrTime.getTime() <= Date.now()) {
+        let arrTime = new Date();
+        if (stop.datetime) {
+            arrTime = new Date(stop.datetime);
+        }
+        
+        if (isNaN(arrTime.getTime()) || arrTime.getTime() <= Date.now()) {
           arrTime = new Date(Date.now() + (idx + 1) * 24 * 60 * 60 * 1000); 
         }
+
         return {
           city: stop.address.split(',')[0].trim() || "Unknown",
           address: stop.address || "Unknown",
@@ -279,6 +320,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
     };
   };
 
+  // ИСПРАВЛЕНО: Черновик больше НЕ пытается загружать фотографии.
   const handleSaveDraft = async () => {
     setIsSubmitting(true);
     setErrorMsg('');
@@ -295,14 +337,14 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
         finalId = returnedId || 'DFT-' + Math.floor(1000 + Math.random() * 9000);
         setDraftId(finalId);
       }
-      
+
       setDraftSavedMessage(`Draft ${finalId} saved successfully! Redirecting...`);
-      // ИСПРАВЛЕНО: Редирект в личный кабинет
       setTimeout(() => navigate('/my-listings'), 1500);
 
-    } catch (error: unknown) {
-      const err = error as Error;
-      setErrorMsg(`Draft failed: ${err.message}`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      const errMsg = error?.response?.data?.details || error?.response?.data?.message || error?.message || 'Server connection error';
+      setErrorMsg(`Draft failed: ${errMsg}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -317,6 +359,16 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
       const payload = getMappedPayload();
       const returnedId = await loadsService.createLoad(payload);
       
+      // ИСПРАВЛЕНО: Фотографии загружаются ТОЛЬКО при реальном сохранении
+      if (returnedId && returnedId.length > 10 && uploadedPhotos.length > 0) {
+        try {
+          const filesToUpload = uploadedPhotos.map(p => p.rawFile);
+          await loadsService.uploadLoadFiles(returnedId, filesToUpload);
+        } catch (uploadError) {
+          console.error("Photos upload failed:", uploadError);
+        }
+      }
+
       setGeneratedId(returnedId || '#L-' + Math.floor(1000 + Math.random() * 9000));
       setIsSubmitted(true);
       
@@ -324,9 +376,11 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
         try { await loadsService.deleteLoadDraft(draftId); } catch (e) { console.warn('Skipped draft cleanup', e); }
       }
       window.scrollTo(0, 0);
-    } catch (error: unknown) {
-      const err = error as Error;
-      setErrorMsg(`Failed to create load: ${err.message}`);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (error: any) {
+      const errMsg = error?.response?.data?.details || error?.response?.data?.message || error?.message || 'Validation failed. Please check your data.';
+      setErrorMsg(`Failed to create load: ${errMsg}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -389,7 +443,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
             </div>
             <div>
               <div className="step-info-title">Vehicle</div>
-              <div className="step-info-sub">{formData.vehicle || 'In progress'}</div>
+              <div className="step-info-sub">{formData.vehicles.length > 0 ? (formData.vehicles.length > 1 ? 'Multiple' : formData.vehicles[0]) : 'In progress'}</div>
             </div>
           </div>
 
@@ -426,8 +480,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
 
         <div className="create-content">
           
-          {errorMsg && <div style={{ color: '#EF4444', background: '#FEF2F2', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid #EF4444' }}>{errorMsg}</div>}
-
+          {errorMsg && <div style={{ color: '#EF4444', background: '#FEF2F2', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid #EF4444', whiteSpace: 'pre-wrap' }}>{errorMsg}</div>}
           {draftSuccessMsg && <div style={{ color: '#10B981', background: '#ECFDF5', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid #10B981' }}>{draftSuccessMsg}</div>}
 
           {isSubmitted && (
@@ -444,7 +497,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
                   <div className="status-badge pending">Moderation pending</div>
                 </div>
                 <div className="success-actions">
-                  {/* ИСПРАВЛЕНО: Кнопки на странице успеха теперь работают через роутер! */}
                   <button className="btn-figma-secondary" onClick={() => navigate('/orders')}>Back to Dashboard</button>
                   <button className="btn-figma-primary" onClick={() => navigate('/my-listings')}>View my listings</button>
                 </div>
@@ -497,7 +549,12 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
                   </div>
                 );
               })}
-              <button className="btn-figma-text" style={{ color: '#3D5AFE', padding: '12px 0 0 0' }} onClick={handleAddStop}>+ Add stop</button>
+              
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px' }}>
+                <button className="btn-figma-text" style={{ color: '#3D5AFE', padding: '0' }} onClick={handleAddStop}>+ Add stop</button>
+                <button className="btn-figma-secondary" style={{ padding: '6px 16px', fontSize: '13px' }} onClick={handleSetRoute}>Set route</button>
+              </div>
+
             </div>
           </div>
 
@@ -574,17 +631,29 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
           <div className={`step-row ${isSubmitted ? 'step-disabled' : ''}`}>
             <div className="step-main-card">
               <div className="step-title-row"><h2>Vehicle type</h2><span className="step-count">Step 3 of 6</span></div>
-              <p style={{ fontSize: '14px', color: '#5C6470', marginBottom: '16px' }}>Select target trailer category:</p>
+              <p style={{ fontSize: '14px', color: '#5C6470', marginBottom: '16px' }}>Select target trailer category (multiple allowed):</p>
+              
               <div className="chip-group" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {['Tautliner trailer', 'Mega trailer', 'Box truck', 'Curtainsider', 'Container', 'Reefer'].map(type => (
-                  <div 
-                    key={type} 
-                    className={`chip ${formData.vehicle === type ? 'active success' : ''}`} 
-                    onClick={() => setFormData({...formData, vehicle: type})}
-                  >
-                    {type}
-                  </div>
-                ))}
+                {['Tautliner trailer', 'Mega trailer', 'Box truck', 'Curtainsider', 'Container', 'Reefer'].map(type => {
+                  const isActive = formData.vehicles.includes(type);
+                  return (
+                    <div 
+                      key={type} 
+                      className={`chip ${isActive ? 'active success' : ''}`} 
+                      onClick={() => {
+                        if (isActive) {
+                          if (formData.vehicles.length > 1) {
+                            setFormData({...formData, vehicles: formData.vehicles.filter(v => v !== type)});
+                          }
+                        } else {
+                          setFormData({...formData, vehicles: [...formData.vehicles, type]});
+                        }
+                      }}
+                    >
+                      {type}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>
@@ -705,7 +774,10 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
           <div className="figma-map-card">
               <div style={{ padding: '12px 16px', fontSize: '13px', fontWeight: 600, borderBottom: '1px solid #E6E8EE', background: 'white' }}>Map preview</div>
               <div style={{ flex: 1, width: '100%', position: 'relative', minHeight: '300px' }}>
-                <RoutingMap stops={debouncedStops} />
+                <RoutingMap 
+                  stops={mapStops} 
+                  onRouteCalculated={handleRouteCalculated}
+                />
               </div>
           </div>
 
