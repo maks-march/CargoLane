@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { RoutingMap } from '../../components/UI/RoutingMap';
-import { loadsService } from '../../services/loadsService';
 import { authService } from '../../services/auth.service';
 
 interface RouteStop {
@@ -31,31 +30,11 @@ export const RecoveryPage: React.FC = () => {
   const [timer, setTimer] = useState(0);
   const [isCodeSent, setIsCodeSent] = useState(false);
 
-  const [backgroundStops, setBackgroundStops] = useState<RouteStop[]>([
+  // Хардкодим остановки без вызова API
+  const [backgroundStops] = useState<RouteStop[]>([
     { address: 'Brussels', type: 'start' },
     { address: 'Frankfurt', type: 'end' }
   ]);
-
-  useEffect(() => {
-    const fetchLatestRoute = async () => {
-      try {
-        const data = await loadsService.getAllLoads();
-        if (data && data.length > 0) {
-          const latestLoad = data[data.length - 1];
-          
-          if (latestLoad.from && latestLoad.to) {
-            setBackgroundStops([
-              { address: latestLoad.from.split(',')[0], type: 'start' },
-              { address: latestLoad.to.split(',')[0], type: 'end' }
-            ]);
-          }
-        }
-      } catch {
-        console.warn('Using default background route for recovery page.');
-      }
-    };
-    fetchLatestRoute();
-  }, []);
 
   useEffect(() => {
     let interval: ReturnType<typeof setInterval>;
@@ -67,7 +46,6 @@ export const RecoveryPage: React.FC = () => {
     return () => clearInterval(interval);
   }, [timer]);
 
-  // Проверка: является ли введенный текст валидным Email
   const isEmailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleSendCode = async () => {
@@ -118,7 +96,6 @@ export const RecoveryPage: React.FC = () => {
     }
   };
 
-  // Проверка: заполнены ли все 4 поля для финальной кнопки
   const isFormValid = email.trim() !== '' && code.trim() !== '' && newPassword.trim() !== '' && confirmPassword.trim() !== '';
 
   return (
@@ -132,14 +109,12 @@ export const RecoveryPage: React.FC = () => {
           <h1 className="auth-title">Reset password</h1>
           <p className="auth-subtitle">Enter your email to receive a code and set a new password</p>
 
-          {/* ТОТ САМЫЙ ОРИГИНАЛЬНЫЙ БЛОК ОШИБКИ */}
           {error && (
             <div style={{ color: '#EF4444', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#FEF2F2', borderRadius: '8px', border: '1px solid #EF4444' }}>
               {error}
             </div>
           )}
 
-          {/* СТАРЫЙ БЛОК УСПЕХА */}
           {message && (
             <div style={{ color: '#059669', marginBottom: '16px', fontSize: '14px', padding: '10px', background: '#ECFDF5', borderRadius: '8px', border: '1px solid #A7F3D0' }}>
               {message}

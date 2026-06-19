@@ -5,7 +5,7 @@ import { loadsService } from '../../services/loadsService';
 import type { LoadListVm } from '../../api/types';
 
 interface LoadSearchFilters {
-  query?: string;
+  searchBy?: string; 
   startCity?: string;
   endCity?: string;
   fromDate?: string;
@@ -19,16 +19,19 @@ interface LoadSearchFilters {
 
 interface ExtendedLoadVm {
   id: string;
+  article?: string | number;
+  companyName?: string; 
   from: string;
   to: string;
   dateStart: string;
+  dateEnd?: string; 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  routePoints?: any[];
   price: number;
   cargo: string;
   weight: number;
-  recommendedVehicle: string;
+  vehicleTypes: string[]; 
   status: string;
-  volumeStr?: string;
-  matchPercent?: number;
 }
 
 export const SavedPage: React.FC = () => {
@@ -40,24 +43,36 @@ export const SavedPage: React.FC = () => {
   const [mapData, setMapData] = useState({ distance: '0', duration: '0h 0m' });
 
   const [filters, setFilters] = useState<LoadSearchFilters>({
-    query: '', startCity: '', endCity: '', fromDate: '', cargoType: '', weight: '', volume: '', vehicleType: '', sortChoices: 0, isDescending: false
+    searchBy: '', startCity: '', endCity: '', fromDate: '', cargoType: '', weight: '', volume: '', vehicleType: '', sortChoices: 0, isDescending: false
   });
 
   useEffect(() => {
     const fetchSavedLoads = async () => {
       setIsLoading(true);
       try {
-        const data = await loadsService.getAllLoads(filters);
+        const data = await loadsService.getSavedLoads(filters);
 
         if (data) {
-          const mappedData: ExtendedLoadVm[] = data.map((load: LoadListVm) => ({
-            ...load,
-            volumeStr: '0 m³', 
-            matchPercent: Math.floor(Math.random() * 20) + 80
-          }));
+          const mappedData: ExtendedLoadVm[] = data.map((item: LoadListVm) => {
+            return {
+              id: item.id,
+              article: item.article,
+              companyName: item.companyName || '',
+              from: item.from || 'Unknown',
+              to: item.to || 'Unknown',
+              dateStart: item.dateStart || '',
+              dateEnd: item.dateEnd || '',
+              routePoints: item.routePoints || [],
+              price: item.price || 0,
+              cargo: item.cargo || 'General Cargo',
+              weight: item.weight || 0,
+              vehicleTypes: item.vehicleTypes || [],
+              status: item.status || 'Active'
+            };
+          });
+
           setLoads(mappedData);
           
-          // Функциональное обновление стейта решает проблему react-hooks/exhaustive-deps
           setSelectedLoad((prevLoad) => {
             if (prevLoad && !mappedData.find((l) => l.id === prevLoad.id)) {
               return null;
@@ -81,13 +96,25 @@ export const SavedPage: React.FC = () => {
     return () => clearTimeout(delayDebounceFn);
   }, [filters]); 
 
-  const handleOpenChat = (e: React.MouseEvent, partnerId: string, loadId: string) => {
-    e.stopPropagation(); 
-    navigate(`/chat?partnerId=${partnerId}&loadId=${loadId}`);
+  const handleViewDetails = (loadId: string) => {
+    navigate(`/orders/${loadId}`);
   };
 
-  const handleViewDetails = (loadId: string) => {
-    navigate(`/load-details?loadId=${loadId}`);
+  const formatRouteDates = (start?: string, end?: string) => {
+    const formatDayMonth = (dateStr: string) => {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '';
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      return `${months[d.getMonth()]} ${d.getDate()}`;
+    };
+    
+    const s = start ? formatDayMonth(start) : '';
+    const e = end ? formatDayMonth(end) : '';
+    
+    if (s && e && s !== e) return `${s} ⇒ ${e}`;
+    if (s) return s;
+    return '--';
   };
 
   return (
@@ -101,18 +128,17 @@ export const SavedPage: React.FC = () => {
               <span className="dash-detail-breadcrumb-arrow" style={{ margin: '0 8px', color: '#E6E8EE' }}>›</span>
               <strong style={{ color: '#0E1116', fontWeight: 500 }}>Saved searches</strong>
             </div>
-            <h1 className="dash-title" style={{ fontSize: '24px', fontWeight: 400, color: '#0E1116', letterSpacing:'-1px',marginTop: '4px' }}>Saved searches</h1>
+            <h1 className="dash-title" style={{ fontSize: '24px', fontWeight: 400, color: '#0E1116', letterSpacing:'-1px',marginTop: '4px' }}>Saved loads</h1>
           </div>
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', flex: 1, maxWidth: '500px', justifyContent: 'flex-end' }}>
-            {/* ИСПРАВЛЕНО: Кнопка Post Load удалена, инпут растянут (flex: 1) */}
-            <div style={{ position: 'relative', flex: 1, width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', flex: 1, maxWidth: '800px', marginLeft: '32px' }}>
+            <div style={{ position: 'relative', width: '100%' }}>
               <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#A0AAB9' }}>🔍</span>
               <input 
                 type="text" 
                 placeholder="Search lanes, cargo, ID..." 
-                value={filters.query || ''}
-                onChange={(e) => setFilters({...filters, query: e.target.value})}
+                value={filters.searchBy || ''}
+                onChange={(e) => setFilters({...filters, searchBy: e.target.value})}
                 style={{ padding: '10px 16px 10px 36px', border: '1px solid #E6E8EE', borderRadius: '8px', width: '100%', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }} 
               />
             </div>
@@ -122,7 +148,6 @@ export const SavedPage: React.FC = () => {
 
       <div className="split-layout-container">
         
-        {/* ЛЕВАЯ ЧАСТЬ С ТАБЛИЦЕЙ */}
         <div className="split-layout-left">
           
           <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
@@ -183,22 +208,20 @@ export const SavedPage: React.FC = () => {
             <table style={{ width: '100%', minWidth: '800px', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead>
                 <tr>
-                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Load</th>
+                  <th style={{ width: '150px', padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Load</th>
                   <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Route</th>
-                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Date</th>
-                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Cargo</th>
-                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Mass</th>
-                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Vehicle</th>
-                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Price</th>
-                  <th style={{ padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Match</th>
-                  <th style={{ padding: '12px 16px', borderBottom: '1px solid #E6E8EE' }}></th>
+                  <th style={{ width: '130px', padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Date</th>
+                  <th style={{ width: '150px', padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Cargo</th>
+                  <th style={{ width: '100px', padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Mass</th>
+                  <th style={{ width: '160px', padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Vehicle</th>
+                  <th style={{ width: '120px', padding: '12px 16px', fontSize: '11px', fontWeight: 600, color: '#A0AAB9', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #E6E8EE' }}>Price</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={9} style={{ padding: '40px', textAlign: 'center', color: '#A0AAB9' }}>Loading saved loads...</td></tr>
+                  <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#A0AAB9' }}>Loading saved loads...</td></tr>
                 ) : loads.length === 0 ? (
-                  <tr><td colSpan={9} style={{ padding: '40px', textAlign: 'center', color: '#A0AAB9' }}>You have no saved loads yet.</td></tr>
+                  <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#A0AAB9' }}>You have no saved loads yet.</td></tr>
                 ) : (
                   loads.map((load, idx) => (
                     <tr 
@@ -209,41 +232,56 @@ export const SavedPage: React.FC = () => {
                       onDoubleClick={() => handleViewDetails(load.id)}
                     >
                       <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                        <div style={{ fontSize: '13px', fontWeight: 500, color: '#5C6470' }}>{load.id}</div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: '#0E1116' }}>{load.article}</div>
+                        {load.companyName && (
+                          <div style={{ fontSize: '12px', color: '#5C6470', marginTop: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '130px' }}>
+                            {load.companyName}
+                          </div>
+                        )}
                       </td>
+                      
                       <td style={{ padding: '16px', verticalAlign: 'top' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500, color: '#0E1116', marginBottom: '4px' }}>
-                          <span style={{ width: '6px', height: '6px', background: '#3D5AFE', borderRadius: '50%', display: 'inline-block' }}></span> {load.from.split(',')[0]}
+                          <span style={{ width: '6px', height: '6px', background: '#3D5AFE', borderRadius: '50%', display: 'inline-block', flexShrink: 0 }}></span> 
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{load.from.split(',')[0]}</span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500, color: '#0E1116' }}>
-                          <span style={{ width: '6px', height: '6px', background: '#00C48C', borderRadius: '50%', display: 'inline-block' }}></span> {load.to.split(',')[0]}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 500, color: '#0E1116', marginBottom: load.routePoints && load.routePoints.length > 2 ? '4px' : '0' }}>
+                          <span style={{ width: '6px', height: '6px', background: '#00C48C', borderRadius: '50%', display: 'inline-block', flexShrink: 0 }}></span> 
+                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{load.to.split(',')[0]}</span>
                         </div>
+                        {load.routePoints && load.routePoints.length > 2 && (
+                          <div style={{ fontSize: '12px', color: '#5C6470', paddingLeft: '14px' }}>
+                            + {load.routePoints.length - 2} stop{load.routePoints.length - 2 > 1 ? 's' : ''}
+                          </div>
+                        )}
                       </td>
-                      <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '13px', color: '#0E1116' }}>{load.dateStart}</td>
+                      
+                      <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '13px', color: '#0E1116', whiteSpace: 'nowrap' }}>
+                        {formatRouteDates(load.dateStart, load.dateEnd)}
+                      </td>
+                      
                       <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '14px', color: '#0E1116' }}>{load.cargo}</td>
+                      
                       <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '14px', color: '#0E1116' }}>{load.weight} t</td>
+                      
                       <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                        <span style={{ padding: '4px 10px', background: '#F6F7FB', color: '#5C6470', borderRadius: '6px', fontSize: '12px', fontWeight: 500 }}>{load.recommendedVehicle}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          {load.vehicleTypes && load.vehicleTypes.length > 0 ? (
+                            load.vehicleTypes.map((v, i) => (
+                              <span key={i} style={{ padding: '4px 10px', background: '#F6F7FB', color: '#5C6470', borderRadius: '6px', fontSize: '12px', fontWeight: 500, width: 'fit-content', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', maxWidth: '140px' }}>
+                                {v}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ padding: '4px 10px', background: '#F6F7FB', color: '#5C6470', borderRadius: '6px', fontSize: '12px', fontWeight: 500, width: 'fit-content' }}>
+                              Any
+                            </span>
+                          )}
+                        </div>
                       </td>
+                      
                       <td style={{ padding: '16px', verticalAlign: 'top', fontSize: '16px', fontWeight: 600, color: '#0E1116' }}>
                         €{load.price.toLocaleString('en-US')}
-                      </td>
-                      <td style={{ padding: '16px', verticalAlign: 'top' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <div style={{ width: '40px', height: '4px', background: '#E6E8EE', borderRadius: '2px', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${load.matchPercent}%`, background: (load.matchPercent || 0) > 90 ? '#00C48C' : '#3D5AFE', borderRadius: '2px' }}></div>
-                          </div>
-                          <span style={{ fontSize: '13px', fontWeight: 500, color: '#5C6470' }}>{load.matchPercent}%</span>
-                        </div>
-                      </td>
-                      <td style={{ padding: '16px', verticalAlign: 'top', textAlign: 'right' }}>
-                        <button 
-                          onClick={(e) => handleOpenChat(e, 'system_id', load.id)}
-                          style={{ background: 'none', border: 'none', color: '#A0AAB9', cursor: 'pointer', fontSize: '18px' }}
-                          title="Open chat"
-                        >
-                          💬
-                        </button>
                       </td>
                     </tr>
                   ))
@@ -253,7 +291,6 @@ export const SavedPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ПРАВАЯ ЧАСТЬ С КАРТОЙ */}
         <aside className="split-layout-right dash-map-panel">
           <div className="dash-map-header">
             <h3>Map preview</h3>
@@ -313,7 +350,7 @@ export const SavedPage: React.FC = () => {
           padding: 24px 32px;
           overflow-y: auto;
           min-width: 0;
-          min-height: 350px !important; /* Базовая защита от сжатия в десктопе */
+          min-height: 350px !important; 
         }
         
         .split-layout-right {
@@ -322,19 +359,17 @@ export const SavedPage: React.FC = () => {
           flex-direction: column;
           background: white;
           border-left: 1px solid #E6E8EE;
-          min-height: 350px !important; /* Базовая защита от сжатия в десктопе */
+          min-height: 350px !important; 
         }
 
-        /* АДАПТИВНАЯ МАГИЯ (МЕНЕЕ 1200PX) */
         @media (max-width: 1200px) {
           .split-layout-container {
             flex-direction: column !important;
-            overflow-y: auto !important; /* Включаем общий скролл страницы */
+            overflow-y: auto !important; 
             overflow-x: hidden !important;
           }
           
           .split-layout-left {
-            /* flex-shrink 0 ЗАПРЕЩАЕТ сжиматься меньше 400px! Таблица всегда будет видна! */
             flex: 1 0 400px !important; 
             min-height: 400px !important; 
             padding: 16px 32px !important;
@@ -344,7 +379,6 @@ export const SavedPage: React.FC = () => {
           }
           
           .split-layout-right {
-            /* flex-shrink 0 ЗАПРЕЩАЕТ сжиматься меньше 450px! Карта всегда будет видна! */
             flex: 1 0 450px !important; 
             min-height: 450px !important; 
             width: 100% !important; 

@@ -11,6 +11,10 @@ export const Sidebar: React.FC = () => {
 
   const isModerator = user?.role === 'Admin' || user?.role === 'Moderator'; 
 
+  // ИСПРАВЛЕНО: Динамические безопасные пути в зависимости от роли
+  const chatPath = isModerator ? '/admin/chat' : '/chat';
+  const settingsPath = isModerator ? '/admin/settings' : '/settings';
+
   useEffect(() => {
     const fetchUserStats = async () => {
       try {
@@ -32,11 +36,14 @@ export const Sidebar: React.FC = () => {
 
   const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U';
-    const parts = name.split(' ');
-    if (parts.length > 1 && parts[0] && parts[1]) return (parts[0][0] + parts[1][0]).toUpperCase();
-    if (parts.length === 1 && parts[0].length > 0) return parts[0][0].toUpperCase();
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2 && parts[0] && parts[1]) return (parts[0][0] + parts[1][0]).toUpperCase();
+    if (parts.length === 1 && parts[0].length > 0) return parts[0].substring(0, 2).toUpperCase();
     return 'U';
   };
+
+  const displayName = user?.displayName || user?.name || user?.email?.split('@')[0] || 'User';
+  const companyName = user?.companyName || (isModerator ? 'Moderator' : (user?.role || 'Carrier Pro'));
 
   return (
     <aside className="dash-sidebar">
@@ -70,7 +77,6 @@ export const Sidebar: React.FC = () => {
           <div className={`dash-nav-item ${isActive('/admin/reviews') ? 'active' : ''}`} onClick={() => navigate('/admin/reviews')}>
             🛡️ Review queue
           </div>
-          {/* ИСПРАВЛЕНО: Добавлены вкладки из макета */}
           <div className={`dash-nav-item ${isActive('/admin/approved') ? 'active' : ''}`} onClick={() => navigate('/admin/approved')}>
             ✓ Approved
           </div>
@@ -95,7 +101,7 @@ export const Sidebar: React.FC = () => {
 
       {/* СООБЩЕНИЯ */}
       {!isModerator ? (
-        <div className={`dash-nav-item ${isActive('/chat') ? 'active' : ''}`} onClick={() => navigate('/chat')}>
+        <div className={`dash-nav-item ${isActive(chatPath) ? 'active' : ''}`} onClick={() => navigate(chatPath)}>
           💬 Messages 
           {sidebarStats.messages > 0 && (
             <span className="dash-nav-badge" style={{ background: '#F6F7FB', color: '#5C6470' }}>{sidebarStats.messages}</span>
@@ -104,7 +110,7 @@ export const Sidebar: React.FC = () => {
       ) : (
         <>
           <div className="dash-nav-section" style={{ marginTop: '16px' }}>Other</div>
-          <div className={`dash-nav-item ${isActive('/chat') ? 'active' : ''}`} onClick={() => navigate('/chat')}>
+          <div className={`dash-nav-item ${isActive(chatPath) ? 'active' : ''}`} onClick={() => navigate(chatPath)}>
             💬 Messages 
             {sidebarStats.messages > 0 && (
               <span className="dash-nav-badge" style={{ background: '#F6F7FB', color: '#5C6470' }}>{sidebarStats.messages}</span>
@@ -117,17 +123,30 @@ export const Sidebar: React.FC = () => {
       {!isModerator && (
         <div className="dash-nav-section" style={{ marginTop: '16px' }}>Other</div>
       )}
-      <div className={`dash-nav-item ${isActive('/settings') ? 'active' : ''}`} onClick={() => navigate('/settings')}>
+      
+      {/* НАСТРОЙКИ */}
+      <div 
+        className={`dash-nav-item ${isActive(settingsPath) ? 'active' : ''}`} 
+        onClick={() => navigate(settingsPath)}
+      >
         ⚙ Settings
       </div>
 
       <div className="dash-user">
-        <div className="dash-user-avatar">{getInitials(user?.name)}</div>
-        <div className="dash-user-info">
-          <div className="dash-user-name">{user?.name || 'User'}</div>
-          <div className="dash-user-company">{isModerator ? 'Moderator' : (user?.role || 'Carrier Pro')}</div>
+        <div className="dash-user-avatar" style={{ padding: 0, overflow: 'hidden' }}>
+          {user?.avatarUrl ? (
+             <img src={user.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+             getInitials(displayName)
+          )}
+        </div>
+        <div className="dash-user-info" style={{ overflow: 'hidden' }}>
+          <div className="dash-user-name" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{displayName}</div>
+          <div className="dash-user-company" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{companyName}</div>
         </div>
       </div>
     </aside>
   );
 };
+
+export default Sidebar;

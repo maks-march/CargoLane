@@ -3,10 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { loadsService } from "../../services/loadsService";
 import type { LoadListVm } from "../../api/types";
 
+const formatMonthDay = (dateStr?: string) => {
+  if (!dateStr) return '--';
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return '--';
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${months[d.getMonth()]} ${d.getDate()}`;
+};
+
 export const MyListingsPage: React.FC = () => {
   const navigate = useNavigate();
   
-  // Вкладки: All, Active, Pending, Booked, Rejected, Closed + Отдельно Drafts
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -16,75 +23,86 @@ export const MyListingsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchMyListings = async () => {
       setIsLoading(true);
       try {
-        // ИСПРАВЛЕНО: Теперь мы запрашиваем строгие статусы, которые прописаны в C# (LoadStatus.cs)
-        // Бэкенд отдает Pending, а не ModerationPending!
-        const [active, pending, booked, rejected, closed, draftsData] = await Promise.all([
-          loadsService.getUserLoads({ status: 'Active' }),
-          loadsService.getUserLoads({ status: 'Pending' }), // Исправлено здесь!
-          loadsService.getUserLoads({ status: 'Booked' }),
-          loadsService.getUserLoads({ status: 'Rejected' }),
-          loadsService.getUserLoads({ status: 'Closed' }),
-          loadsService.getUserDrafts()
-        ]);
+        // ИСПРАВЛЕНО: Последовательная загрузка статусов. 
+        // Спасает SQLite от блокировки (Parallel Locks) и забирает АБСОЛЮТНО ВСЕ заявки с бэкенда.
+        const statuses = ["Active", "Pending", "Booked", "Rejected", "Closed"];
+        let allLoads: LoadListVm[] = [];
         
-        // Объединяем все полученные заявки в один массив
-        const allListings = [
-          ...(active || []), 
-          ...(pending || []), 
-          ...(booked || []), 
-          ...(rejected || []), 
-          ...(closed || [])
-        ];
-
-        setListings(allListings);
-        if (draftsData) setDrafts(draftsData);
+        for (const st of statuses) {
+          try {
+            const loadsForStatus = await loadsService.getMyLoads(st);
+            if (loadsForStatus && loadsForStatus.length > 0) {
+              allLoads = [...allLoads, ...loadsForStatus];
+            }
+          } catch (err) {
+            console.warn(`Failed to fetch ${st} loads`);
+          }
+        }
+        
+        const draftsData = await loadsService.getMyDrafts();
+        
+        if (isMounted) {
+          // Сортируем по свежести
+          allLoads.sort((a, b) => new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime());
+          setListings(allLoads);
+          if (draftsData) setDrafts(draftsData);
+        }
       } catch (error) {
         console.warn("API Error while fetching listings:", error);
       } finally {
-        setIsLoading(false);
+        if (isMounted) setIsLoading(false);
       }
     };
+    
     fetchMyListings();
+
+    return () => { isMounted = false; };
   }, []);
 
   const getTabCount = (tabName: string) => {
     if (tabName === "All") return listings.length;
-    // Считаем заявки по строгому статусу бэкенда
-    return listings.filter((load) => (load.status || "Active") === tabName).length;
+    return listings.filter((load) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const status = (load as any).status || "Active";
+      return status === tabName;
+    }).length;
   };
 
   const getFilteredData = () => {
-    let targetData: any[] = []; // eslint-disable-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let targetData: any[] = []; 
     
-    // Строгое разделение: если нажаты черновики - работаем только с массивом черновиков
     if (activeTab === "Drafts") {
       targetData = drafts;
     } else {
-      // Иначе работаем только с опубликованными заявками
       if (activeTab === "All") {
         targetData = listings;
       } else {
-        targetData = listings.filter(l => (l.status || "Active") === activeTab);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        targetData = listings.filter(l => ((l as any).status || "Active") === activeTab);
       }
     }
     
-    // Применяем текстовый поиск
     return targetData.filter((item) => {
+      if (!searchQuery) return true;
+
       const searchStr = searchQuery.toLowerCase();
-      const isDraft = 'routePoints' in item;
+      const isDraft = activeTab === "Drafts";
       
       const start = isDraft 
         ? (item.routePoints?.[0]?.city || "") 
-        : (item.from || "");
+        : (item.from || item.startCity || "");
         
       const end = isDraft 
         ? (item.routePoints?.[item.routePoints.length - 1]?.city || "") 
-        : (item.to || "");
+        : (item.to || item.endCity || "");
         
-      const article = item.article ? item.article.toString() : "";
+      const article = item.article ? String(item.article) : "";
       const id = item.id || "";
       
       return (
@@ -98,10 +116,22 @@ export const MyListingsPage: React.FC = () => {
 
   const displayData = getFilteredData();
 
+  const handleDeleteDraft = async (e: React.MouseEvent, draftId: string) => {
+    e.stopPropagation();
+    if (window.confirm('Are you sure you want to delete this draft?')) {
+      try {
+        await loadsService.deleteDraft(draftId);
+        setDrafts(prev => prev.filter(d => d.id !== draftId));
+      } catch (error) {
+        console.error('Failed to delete draft', error);
+        alert('Failed to delete draft. It might have already been removed.');
+      }
+    }
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", width: "100%", overflow: "hidden", background: "#F6F7FB" }}>
       
-      {/* ХЕДЕР СТРАНИЦЫ */}
       <header className="dash-header" style={{ padding: "16px 32px", borderBottom: "1px solid #E6E8EE", background: "white", flexShrink: 0 }}>
         <div style={{ display: "flex", justifyContent: "space-between", width: "100%", alignItems: "center" }}>
           <div>
@@ -115,13 +145,10 @@ export const MyListingsPage: React.FC = () => {
         </div>
       </header>
 
-      {/* ОСНОВНОЙ КОНТЕНТ */}
       <div style={{ padding: "32px 32px", width: "100%", display: "flex", flexDirection: "column", gap: "24px", overflowY: "auto", boxSizing: "border-box" }}>
         
-        {/* ПАНЕЛЬ ФИЛЬТРОВ И ПОИСКА */}
         <div style={{ background: "white", border: "1px solid #E6E8EE", borderRadius: "12px", padding: "10px 16px", display: "flex", gap: "16px", justifyContent: "space-between", alignItems: "center", overflowX: "auto" }}>
           
-          {/* Левая часть: Фильтры реальных заявок */}
           <div style={{ display: "flex", gap: "8px", overflowX: "auto", flexShrink: 0 }}>
             {["All", "Active", "Pending", "Booked", "Rejected", "Closed"].map((tab) => (
               <button
@@ -149,9 +176,7 @@ export const MyListingsPage: React.FC = () => {
             ))}
           </div>
 
-          {/* Правая часть: Кнопка Drafts + Строка поиска */}
           <div style={{ display: "flex", alignItems: "center", gap: "16px", flexShrink: 0 }}>
-            
             <button
               onClick={() => setActiveTab("Drafts")}
               style={{
@@ -174,7 +199,6 @@ export const MyListingsPage: React.FC = () => {
               <span style={{ fontSize: "12px", fontWeight: 600 }}>{drafts.length}</span>
             </button>
 
-            {/* Вертикальный разделитель */}
             <div style={{ width: "1px", height: "24px", background: "#E6E8EE" }}></div> 
 
             <div style={{ position: "relative", width: "240px" }}>
@@ -190,12 +214,9 @@ export const MyListingsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* ТАБЛИЦА */}
         <div style={{ background: "white", border: "1px solid #E6E8EE", borderRadius: "12px", overflow: "hidden", width: "100%" }}>
           <div style={{ overflowX: "auto", width: "100%" }}>
             <table style={{ width: "100%", minWidth: "800px", borderCollapse: "collapse", textAlign: "left" }}>
-              
-              {/* ДИНАМИЧЕСКИЙ ХЕДЕР ТАБЛИЦЫ */}
               <thead>
                 {activeTab === "Drafts" ? (
                   <tr style={{ background: "#FAFAFA" }}>
@@ -217,7 +238,6 @@ export const MyListingsPage: React.FC = () => {
                 )}
               </thead>
 
-              {/* ТЕЛО ТАБЛИЦЫ */}
               <tbody>
                 {isLoading ? (
                   <tr>
@@ -232,8 +252,8 @@ export const MyListingsPage: React.FC = () => {
                     </td>
                   </tr>
                 ) : activeTab === "Drafts" ? (
-                  /* РЕНДЕР ЧЕРНОВИКОВ */
-                  displayData.map((draft, idx) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  displayData.map((draft: any, idx) => {
                     const startCity = draft.routePoints?.[0]?.city || draft.routePoints?.[0]?.address || 'Incomplete route';
                     const endCity = draft.routePoints?.[draft.routePoints.length - 1]?.city || draft.routePoints?.[draft.routePoints.length - 1]?.address || '...';
                     
@@ -260,10 +280,16 @@ export const MyListingsPage: React.FC = () => {
                         <td style={{ padding: "16px 24px", verticalAlign: "top", fontSize: "15px", fontWeight: 600, color: "#0E1116" }}>
                           {draft.payment ? `€${draft.payment.toLocaleString('en-US')}` : '-'}
                         </td>
-                        <td style={{ padding: "16px 24px", verticalAlign: "top", textAlign: "right" }}>
+                        <td style={{ padding: "16px 24px", verticalAlign: "top", textAlign: "right", display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+                          <button 
+                            onClick={(e) => handleDeleteDraft(e, draft.id)}
+                            style={{ color: '#EF4444', border: '1px solid #FCA5A5', background: '#FEF2F2', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer', transition: "background 0.2s" }}
+                          >
+                            Delete
+                          </button>
                           <button 
                             onClick={(e) => { e.stopPropagation(); navigate(`/orders/create?draftId=${draft.id}`); }}
-                            style={{ color: "#3D5AFE", background: "#EEF1FF", padding: "8px 16px", borderRadius: "6px", border: "none", fontWeight: 600, cursor: "pointer", fontSize: "13px", transition: "background 0.2s" }}
+                            style={{ color: "#3D5AFE", background: "#EEF1FF", padding: "6px 16px", borderRadius: "6px", border: "none", fontWeight: 600, cursor: "pointer", fontSize: "13px", transition: "background 0.2s" }}
                           >
                             Edit draft ›
                           </button>
@@ -272,9 +298,9 @@ export const MyListingsPage: React.FC = () => {
                     )
                   })
                 ) : (
-                  /* РЕНДЕР ОПУБЛИКОВАННЫХ ЗАЯВОК */
-                  displayData.map((load, idx) => {
-                    let rawStatus = load.status || "Active";
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  displayData.map((load: any, idx) => {
+                    const rawStatus = load.status || "Active";
                     
                     let statusColor = "#059669"; 
                     let statusBg = "#ECFDF5"; 
@@ -313,7 +339,7 @@ export const MyListingsPage: React.FC = () => {
                           </div>
                         </td>
                         <td style={{ padding: "16px 24px", verticalAlign: "top", fontSize: "13px", color: "#0E1116" }}>
-                          {load.dateStart ? new Date(load.dateStart).toLocaleDateString() : 'N/A'}
+                          {formatMonthDay(load.dateStart)}
                         </td>
                         <td style={{ padding: "16px 24px", verticalAlign: "top", fontSize: "14px", color: "#0E1116" }}>
                           {load.cargo} <span style={{ color: "#A0AAB9" }}>• {load.weight}t</span>
@@ -336,7 +362,6 @@ export const MyListingsPage: React.FC = () => {
         </div>
       </div>
       
-      {/* СТИЛИ */}
       <style>{`
         .table-row-hover:hover { background-color: #FAFAFA !important; }
         ::-webkit-scrollbar { width: 0px; height: 0px; background: transparent; }

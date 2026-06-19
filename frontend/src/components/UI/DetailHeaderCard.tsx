@@ -1,11 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { LoadDetailsVm } from '../../api/types';
+import apiClient from '../../api/api-client';
 
 interface Props {
   load: LoadDetailsVm;
 }
 
 export const DetailHeaderCard: React.FC<Props> = ({ load }) => {
+  // ИСПРАВЛЕНО: Стейт для хранения реального названия компании из БД
+  const [fetchedCompany, setFetchedCompany] = useState<string>('');
+
+  // ИСПРАВЛЕНО: Делаем запрос к профилю владельца заявки (GET /api/user/{id})
+  useEffect(() => {
+    const fetchCompany = async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const userId = (load as any).userId;
+      if (userId && userId !== 'system_id') {
+        try {
+          const res = await apiClient.get(`/api/user/${userId}`);
+          if (res.data && res.data.companyName) {
+            setFetchedCompany(res.data.companyName);
+          }
+        } catch (err) {
+          console.warn("Could not fetch user company info", err);
+        }
+      }
+    };
+    fetchCompany();
+  }, [load]);
+
+  const getCountryCode = (city?: string) => {
+    if (!city) return 'EU';
+    const c = city.toLowerCase();
+    if (c.includes('rotterdam') || c.includes('amsterdam')) return 'NL';
+    if (c.includes('berlin') || c.includes('munich') || c.includes('hamburg')) return 'DE';
+    if (c.includes('warsaw')) return 'PL';
+    if (c.includes('paris') || c.includes('lyon')) return 'FR';
+    if (c.includes('milan')) return 'IT';
+    if (c.includes('madrid')) return 'ES';
+    return 'EU'; 
+  };
+
+  // Безопасный доступ к массиву routePoints для получения стран
+  const startCity = load.routePoints?.[0]?.city || load.from?.split(',')[0] || 'Origin';
+  const endCity = load.routePoints?.[(load.routePoints?.length || 1) - 1]?.city || load.to?.split(',')[0] || 'Destination';
+  const borderStr = `${getCountryCode(startCity)} → ${getCountryCode(endCity)}`;
+
   // Подсчет количества и выбор имени груза из БД
   let totalItems = 0;
   let payloadType = 'General Cargo';
@@ -36,6 +76,10 @@ export const DetailHeaderCard: React.FC<Props> = ({ load }) => {
   const stopsCount = load.routePoints ? load.routePoints.length : 0;
   const stopsVal = stopsCount > 2 ? `${stopsCount - 1} + final` : (stopsCount === 2 ? '1 + final' : `${stopsCount}`);
 
+  // ИСПРАВЛЕНО: Формируем итоговую строку субтитра (Артикул • Компания из БД)
+  const article = loadAny.article || ''; 
+  const displaySubtitle = fetchedCompany ? `${article} • ${fetchedCompany}` : article;
+
   return (
     <div className="detail-card">
       <div className="detail-header-top">
@@ -43,7 +87,8 @@ export const DetailHeaderCard: React.FC<Props> = ({ load }) => {
           <h2 className="detail-title">
             {cargoPallets} <span style={{ color: 'rgb(160, 170, 185)', margin: '0 4px' }}>•</span> <span style={{ color: '#0E1116', fontWeight: 400 }}>{vehicleType}</span>
           </h2>  
-          <p className="detail-subtitle">{load.id.substring(0, 8).toUpperCase()} · {load.companyName || 'Unknown Company'}</p>
+          {/* ИСПРАВЛЕНО: Вывод строки с артикулом и реальной компанией */}
+          <p className="detail-subtitle">{displaySubtitle}</p>
         </div>
         <div className="detail-price">
           <div className="detail-price-value">{priceStr}</div>

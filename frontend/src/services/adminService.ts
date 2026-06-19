@@ -4,7 +4,7 @@ import type { LoadListVm, LoadDetailsVm } from '../api/types';
 interface LoadDetailsBackendResponse {
   id: string;
   userId?: string; 
-  article?: string | number; // ИСПРАВЛЕНО: Бэкенд может вернуть число
+  article?: string | number; 
   payment?: number;
   totalWeight?: number;
   totalVolume?: number;
@@ -18,7 +18,6 @@ interface LoadDetailsBackendResponse {
   status?: string;
   distance?: number | null; 
   duration?: string | null; 
-  isSaved?: boolean; 
   rejectReason?: string | null; 
   payloads?: Array<{
     length?: number;
@@ -39,7 +38,7 @@ interface LoadDetailsBackendResponse {
 
 interface BackendLoadResponse {
   id: string;
-  article?: string | number; // ИСПРАВЛЕНО: Бэкенд может вернуть число
+  article?: string | number; 
   startCity?: string;
   endCity?: string;
   startDate?: string;
@@ -47,15 +46,12 @@ interface BackendLoadResponse {
   totalWeight?: number;
   cargoType?: string;
   vehicleTypes?: string[]; 
-  vihicleTypes?: string[]; 
-  vehicleType?: string;
+  vihicleTypes?: string[];
   status?: string;
-  companyName?: string;
   reviewerName?: string;
   created?: string;
 }
 
-// Расширяем тип для фронта
 export interface ExtendedLoadListVm extends LoadListVm {
   companyName?: string;
   reviewerName?: string;
@@ -64,7 +60,6 @@ export interface ExtendedLoadListVm extends LoadListVm {
 
 const mapToListVm = (item: BackendLoadResponse): ExtendedLoadListVm => ({
   id: item.id,
-  // ИСПРАВЛЕНО: Жесткая конвертация артикула в строку, чтобы избежать краша
   article: item.article ? String(item.article) : item.id.substring(0, 8).toUpperCase(), 
   from: item.startCity || 'Unknown',
   to: item.endCity || 'Unknown',
@@ -72,9 +67,10 @@ const mapToListVm = (item: BackendLoadResponse): ExtendedLoadListVm => ({
   price: item.payment || 0,
   weight: item.totalWeight || 0,
   cargo: item.cargoType || 'General Cargo', 
-  recommendedVehicle: item.vehicleTypes?.[0] || item.vihicleTypes?.[0] || item.vehicleType || 'Any',
+  recommendedVehicle: item.vehicleTypes?.[0] || item.vihicleTypes?.[0] || 'Any',
+  // Если бэкенд не прислал статус, считаем его Pending по умолчанию
   status: item.status || 'Pending',
-  companyName: item.companyName || 'CargoLane Partner',
+  companyName: 'CargoLane Partner',
   reviewerName: item.reviewerName || 'System Admin',
   createdDate: item.created || item.startDate || new Date().toISOString()
 });
@@ -83,7 +79,10 @@ export const adminService = {
   getReviews: async (): Promise<ExtendedLoadListVm[]> => {
     try {
       const response = await apiClient.get<BackendLoadResponse[]>('/api/loadadmin/reviews');
-      return response.data.map(mapToListVm);
+      // ИСПРАВЛЕНО: Строго оставляем только те, что ждут ревью
+      return response.data
+        .map(mapToListVm)
+        .filter(load => load.status === 'Pending' || load.status === '2');
     } catch (error) {
       console.error("Failed to fetch admin reviews", error);
       return [];
@@ -92,8 +91,11 @@ export const adminService = {
 
   getApprovedLoads: async (): Promise<ExtendedLoadListVm[]> => {
     try {
-      const response = await apiClient.get<BackendLoadResponse[]>('/api/load', { params: { Status: 'Active' } });
-      return response.data.map(mapToListVm);
+      const response = await apiClient.get<BackendLoadResponse[]>('/api/loadadmin/approved');
+      // ИСПРАВЛЕНО: Жестко вырезаем все заявки, которые еще Pending
+      return response.data
+        .map(mapToListVm)
+        .filter(load => load.status !== 'Pending' && load.status !== '2');
     } catch (error) {
       console.error("Failed to fetch approved loads", error);
       return [];
@@ -102,8 +104,11 @@ export const adminService = {
 
   getRejectedLoads: async (): Promise<ExtendedLoadListVm[]> => {
     try {
-      const response = await apiClient.get<BackendLoadResponse[]>('/api/load', { params: { Status: 'Rejected' } });
-      return response.data.map(mapToListVm);
+      const response = await apiClient.get<BackendLoadResponse[]>('/api/loadadmin/rejected');
+      // ИСПРАВЛЕНО: Оставляем строго отклоненные
+      return response.data
+        .map(mapToListVm)
+        .filter(load => load.status === 'Rejected' || load.status === '3');
     } catch (error) {
       console.error("Failed to fetch rejected loads", error);
       return [];
@@ -111,14 +116,14 @@ export const adminService = {
   },
 
   getReviewDetails: async (id: string): Promise<LoadDetailsVm> => {
-    const response = await apiClient.get<LoadDetailsBackendResponse>(`/api/loadadmin/${id}/review`);
+    const response = await apiClient.get<LoadDetailsBackendResponse>(`/api/load/${id}`);
     const item = response.data;
     
     return {
         id: item.id,
         userId: item.userId || 'system_id', 
         article: item.article ? String(item.article) : item.id.substring(0, 8).toUpperCase(),
-        isSaved: item.isSaved || false, 
+        isSaved: false, 
         from: item.routePoints?.[0]?.city || 'Unknown',
         to: item.routePoints?.[(item.routePoints?.length || 1) - 1]?.city || 'Unknown',
         dateStart: item.routePoints?.[0]?.arrivalTime || new Date().toISOString(),
@@ -132,7 +137,7 @@ export const adminService = {
         hScode: item.hScode || '',
         insurance: item.insurance || 0,
         status: item.status || 'Pending',
-        companyName: item.companyName || 'CargoLane Partner',
+        companyName: 'CargoLane Partner',
         distance: item.distance || 0,
         duration: item.duration || "00:00:00",
         rejectReason: item.rejectReason || null,

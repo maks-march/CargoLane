@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import useAuthStore from '../../store/auth.store';
 import { RoutingMap } from '../../components/UI/RoutingMap';
-import { loadsService } from '../../services/loadsService';
 
 interface RouteStop {
   address: string;
@@ -25,31 +24,11 @@ export const SignInPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const [backgroundStops, setBackgroundStops] = useState<RouteStop[]>([
+  // Хардкодим маршрут, убираем загрузку с бэкенда
+  const [backgroundStops] = useState<RouteStop[]>([
     { address: 'Rotterdam', type: 'start' },
     { address: 'Warsaw', type: 'end' }
   ]);
-
-  useEffect(() => {
-    const fetchLatestRoute = async () => {
-      try {
-        const data = await loadsService.getAllLoads();
-        if (data && data.length > 0) {
-          const latestLoad = data[data.length - 1];
-          
-          if (latestLoad.from && latestLoad.to) {
-            setBackgroundStops([
-              { address: latestLoad.from.split(',')[0], type: 'start' },
-              { address: latestLoad.to.split(',')[0], type: 'end' }
-            ]);
-          }
-        }
-      } catch {
-        console.warn('Backend is down or empty. Using default background route.');
-      }
-    };
-    fetchLatestRoute();
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,21 +38,27 @@ export const SignInPage: React.FC = () => {
     setError('');
 
     try {
-      await login({ login: email, password });
+      // Отправляем email (бэкенд ждет email, а не login)
+      await login({ email, password });
       navigate('/orders');
     } catch (err: unknown) {
-      if (axios.isAxiosError(err) && err.response?.data) {
-        const data = err.response.data as ApiErrorResponse;
-        setError(data.details || data.error || data.message || 'Invalid email or password.');
+      if (axios.isAxiosError(err)) {
+        if (err.response?.status === 404) {
+          setError('User not found. Please register first.');
+        } else if (err.response?.status === 401) {
+          setError('Invalid email or password.');
+        } else {
+          const data = err.response?.data as ApiErrorResponse;
+          setError(data?.details || data?.error || data?.message || 'Login failed.');
+        }
       } else {
-        setError('Invalid email or password.');
+        setError('Login failed. Check your connection.');
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Проверка: заполнены ли все поля
   const isFormValid = email.trim() !== '' && password.trim() !== '';
 
   return (
@@ -87,7 +72,6 @@ export const SignInPage: React.FC = () => {
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-subtitle">Enter your details to sign in to your account</p>
 
-          {/* ТОТ САМЫЙ ОРИГИНАЛЬНЫЙ БЛОК ОШИБКИ ИЗ ПЕРВОЙ ВЕТКИ */}
           {error && <div style={{ color: '#EF4444', background: '#FEF2F2', padding: '12px', borderRadius: '8px', marginBottom: '16px', fontSize: '14px', border: '1px solid #EF4444' }}>{error}</div>}
 
           <form onSubmit={handleSubmit}>

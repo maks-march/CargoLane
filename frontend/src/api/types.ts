@@ -168,14 +168,17 @@ interface LoadListVm {
   from: string;
   to: string;
   dateStart: string;
+  dateEnd?: string; // ИСПРАВЛЕНО: Для хранения даты прибытия в конечную точку
   price: number;
   cargo: string;
   weight: number;
   recommendedVehicle: string;
+  vehicleTypes?: string[]; // ИСПРАВЛЕНО: Массив видов транспорта
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  routePoints?: any[]; // ИСПРАВЛЕНО: Массив точек маршрута для извлечения дат
   status: string;
   volumeStr?: string;
   matchPercent?: number;
-  // ИСПРАВЛЕНО: Добавлены новые поля прямо сюда!
   companyName?: string;
   reviewerName?: string;
   createdDate?: string;

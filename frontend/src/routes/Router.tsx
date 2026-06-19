@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate, useNavigate } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import ProtectedRoute from './ProtectedRoute';
 import MainLayout from '../components/Layout/MainLayout';
 
@@ -21,11 +21,11 @@ import SavedPage from '../pages/Dashboard/SavedPage';
 import { SettingsPage } from '../pages/Dashboard/SettingsPage';
 import MessagesPage from '../pages/Dashboard/MessagesPage';
 
-/** Обёртка для CreateLoadPage — прокидывает navigate через пропс onNavigate */
-const CreateLoadPageWrapper = () => {
-  const navigate = useNavigate();
-  return <CreateLoadPage onNavigate={(path) => navigate(path)} />;
-};
+// --- ADMIN / MODERATION ---
+import { ReviewQueuePage } from '../pages/Admin/ReviewQueuePage';
+import { ApprovedQueuePage } from '../pages/Admin/ApprovedQueuePage';
+import { RejectedQueuePage } from '../pages/Admin/RejectedQueuePage';
+import { AdminLoadDetailPage } from '../pages/Admin/AdminLoadDetailPage';
 
 export const router = createBrowserRouter([
   {
@@ -68,7 +68,7 @@ export const router = createBrowserRouter([
           },
           {
             path: '/orders/create',
-            element: <CreateLoadPageWrapper />,
+            element: <CreateLoadPage />,
           },
           {
             path: '/my-listings',
@@ -92,8 +92,16 @@ export const router = createBrowserRouter([
             element: <RejectedQueuePage />,
           },
           {
-            path: '/admin/orders/:id', // <--- НОВЫЙ ЗАЩИЩЕННЫЙ ПУТЬ
+            path: '/admin/orders/:id',
             element: <AdminLoadDetailPage />,
+          },
+          {
+            path: '/admin/chat', // <--- ДОБАВЛЕНО: Защищенный путь чата для админа
+            element: <MessagesPage />,
+          },
+          {
+            path: '/admin/settings', // <--- ДОБАВЛЕНО: Защищенный путь настроек для админа
+            element: <SettingsPage />,
           },
           // ---------------------
           {

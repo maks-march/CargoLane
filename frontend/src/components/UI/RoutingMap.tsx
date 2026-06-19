@@ -24,7 +24,6 @@ const ICONS = {
   stop: createCustomIcon('#F59E0B')
 };
 
-// Расширенный кэш городов — карта не будет спамить внешний API
 const GEO_CACHE: Record<string, [number, number]> = {
   'surgut': [61.25, 73.4167], 'ufa': [54.7388, 55.9721],
   'rotterdam': [51.9225, 4.47927], 'warsaw': [52.2297, 21.0122],
@@ -77,23 +76,32 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({ stops, onCalc, setRou
       const validStops = stops.filter((s: { address: string; type: string }) => s.address && s.address.length > 2);
       if (validStops.length < 2) return;
 
-      const coordsPromises = validStops.map(async (s: { address: string; type: string }) => {
+      // ИСПРАВЛЕНО: Объявлен массив, чтобы избежать ошибки "resolvedCoords is not defined"
+      const resolvedCoords: {pos: [number, number], type: string}[] = [];
+
+      for (let i = 0; i < validStops.length; i++) {
+        if (!isMounted) break;
+        
+        const s = validStops[i];
         const coords = await geocodeCity(s.address);
         
         if (coords) {
           resolvedCoords.push({ pos: coords, type: s.type });
         }
         
-        // Ждем 2000 мс (2 секунды) перед следующим запросом (если город не из кэша)
         if (i < validStops.length - 1 && !GEO_CACHE[s.address.toLowerCase().split(',')[0].trim()]) {
           await delay(2000);
         }
-      });
+      }
 
       if (resolvedCoords.length >= 2 && isMounted) {
         setMarkers(resolvedCoords);
-        const bounds = L.latLngBounds(resolvedCoords.map(m => m.pos));
-        map.fitBounds(bounds, { padding: [50, 50] });
+        try {
+            const bounds = L.latLngBounds(resolvedCoords.map(m => m.pos));
+            map.fitBounds(bounds, { padding: [50, 50] });
+        } catch (e) {
+            console.warn("Bounds error", e);
+        }
 
         const coordsString = resolvedCoords.map(c => `${c.pos[1]},${c.pos[0]}`).join(';');
         try {
@@ -116,6 +124,8 @@ const RouteCalculator: React.FC<RouteCalculatorProps> = ({ stops, onCalc, setRou
         } catch {
           setRoutePath(resolvedCoords.map(m => m.pos));
         }
+      } else if (isMounted) {
+          setRoutePath([]);
       }
     };
 
@@ -159,7 +169,7 @@ export const RoutingMap: React.FC<RoutingMapProps> = ({ stops, hideFloatingWidge
           <Marker key={i} position={m.pos as L.LatLngExpression} icon={ICONS[m.type as keyof typeof ICONS] || ICONS.stop} />
         ))}
         
-        {routePath.length > 1 && (
+        {routePath && routePath.length > 1 && (
           <Polyline positions={routePath as L.LatLngExpression[]} pathOptions={{ color: '#3D5AFE', weight: 4, opacity: 0.7 }} />
         )}
       </MapContainer>

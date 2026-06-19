@@ -102,7 +102,7 @@ export const RejectedQueuePage: React.FC = () => {
                     <tr 
                       key={idx} 
                       style={{ borderBottom: "1px solid #F6F7FB", cursor: "pointer" }} 
-                      // ИСПРАВЛЕНО: Переход СТРОГО на админскую изолированную страницу
+                      // ИСПРАВЛЕНО: Теперь переход СТРОГО на /admin/orders/
                       onClick={() => navigate(`/admin/orders/${load.id}`)} 
                       className="table-row-hover"
                     >

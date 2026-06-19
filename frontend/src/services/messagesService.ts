@@ -1,5 +1,6 @@
 import apiClient from '../api/api-client';
-import { loadsService } from './loadsService'; // Импортируем для получения данных сделки
+import { loadsService } from './loadsService';
+import useAuthStore from '../store/auth.store';
 
 export interface ChatDto {
     id: string;
@@ -7,11 +8,12 @@ export interface ChatDto {
     partnerCompany: string;
     avatarInitials: string;
     avatarColor: 'blue' | 'green';
+    avatarUrl?: string; 
     loadId: string | null; 
     lastMessage: string;
     lastMessageTime: string;
+    rawMessageTime: string; 
     unreadCount: number;
-    isOnline: boolean;
 }
 
 export interface ChatMessageDto {
@@ -19,6 +21,7 @@ export interface ChatMessageDto {
     senderId: string; 
     text: string;
     timestamp: string;
+    date: string; 
     isSystemMessage?: boolean;
 }
 
@@ -40,11 +43,11 @@ export interface ActiveDealDto {
 interface BackendChatVm {
     id: string;
     chatName?: string;
-    username?: string;
-    userCompany?: string;
+    companyName?: string; 
+    chatAvatarUrl?: string;
     lastMessageText?: string;
     lastMessageTime?: string;
-    unreadCount?: number;
+    unreadCount: number;
     loadId?: string | null; 
 }
 
@@ -55,78 +58,196 @@ interface BackendMessageVm {
     created: string;
 }
 
+const partnerInfoCache = new Map<string, { name: string; company: string; avatar?: string }>();
+let cachedTimezone: number | null = null;
+
+const getUserTimezone = async (): Promise<number> => {
+    if (cachedTimezone !== null) return cachedTimezone;
+    try {
+        const res = await apiClient.get('/api/user/me');
+        cachedTimezone = Number(res.data.timezone) || 0;
+        return cachedTimezone;
+    } catch {
+        return 0;
+    }
+};
+
+const fetchPartnerInfoSafe = async (loadId: string) => {
+    if (!loadId) return null;
+    if (partnerInfoCache.has(loadId)) return partnerInfoCache.get(loadId);
+
+    try {
+        const load = await loadsService.getLoadById(loadId);
+        const currentUserId = useAuthStore.getState().user?.id;
+        
+        if (load && load.userId && load.userId !== 'system_id' && load.userId !== currentUserId) {
+            const userRes = await apiClient.get(`/api/user/${load.userId}`);
+            const u = userRes.data;
+            const info = {
+                name: u.displayName || u.firstName || '',
+                company: u.companyName || '',
+                avatar: u.avatarPath || u.avatarUrl || undefined
+            };
+            partnerInfoCache.set(loadId, info);
+            return info;
+        }
+    } catch (e) {
+    }
+    
+    const emptyInfo = { name: '', company: '' };
+    partnerInfoCache.set(loadId, emptyInfo);
+    return emptyInfo;
+};
+
 export const messagesService = {
-    // 1. Получение списка чатов (ТОЛЬКО ИЗ БД, без фейковых админов)
+    markChatAsRead: (chatId: string, rawMessageTime: string) => {
+        try {
+            const readMap = JSON.parse(localStorage.getItem('cargo_chat_read_states') || '{}');
+            readMap[chatId] = rawMessageTime;
+            localStorage.setItem('cargo_chat_read_states', JSON.stringify(readMap));
+        } catch (e) {
+            console.error("Local storage error", e);
+        }
+    },
+
     getChats: async (): Promise<ChatDto[]> => {
         try {
             const response = await apiClient.get<BackendChatVm[]>('/api/chat/me');
             
-            const rawChats = response.data.map((chat) => {
-                const name = chat.chatName || chat.username || 'Unknown User';
+            let readMap: Record<string, string> = {};
+            try {
+                readMap = JSON.parse(localStorage.getItem('cargo_chat_read_states') || '{}');
+            } catch (e) {}
+
+            const tz = await getUserTimezone();
+
+            const enrichedChats = await Promise.all(response.data.map(async (chat) => {
+                let name = chat.chatName || 'Unknown Partner';
+                let company = chat.companyName || ''; 
+                let avatar = chat.chatAvatarUrl || undefined;
+
+                if (chat.loadId) {
+                    const partnerInfo = await fetchPartnerInfoSafe(chat.loadId);
+                    if (partnerInfo && partnerInfo.name) {
+                        name = partnerInfo.name;
+                        if (partnerInfo.company) company = partnerInfo.company;
+                        if (partnerInfo.avatar) avatar = partnerInfo.avatar;
+                    }
+                }
+
+                const rawTime = chat.lastMessageTime || '';
+                
+                let unread = chat.unreadCount || 0;
+                if (rawTime && readMap[chat.id] === rawTime) {
+                    unread = 0; 
+                } else if (unread > 0) {
+                    unread = 1; 
+                }
+
+                let formattedTime = '';
+                if (rawTime) {
+                    let s = rawTime;
+                    if (!s.endsWith('Z')) s += 'Z'; 
+                    const d = new Date(s);
+                    const targetMs = d.getTime() + (tz * 3600 * 1000);
+                    const targetDate = new Date(targetMs);
+                    const hours = targetDate.getUTCHours().toString().padStart(2, '0');
+                    const minutes = targetDate.getUTCMinutes().toString().padStart(2, '0');
+                    formattedTime = `${hours}:${minutes}`;
+                }
+
+                let initials = 'U';
+                const parts = name.trim().split(' ');
+                if (parts.length >= 2 && parts[0] && parts[1]) {
+                    initials = (parts[0][0] + parts[1][0]).toUpperCase();
+                } else if (parts.length === 1 && parts[0].length > 0) {
+                    initials = parts[0].substring(0, 2).toUpperCase();
+                }
+
                 return {
                     id: chat.id,
                     partnerName: name, 
-                    partnerCompany: chat.userCompany || 'CargoLane Partner', 
-                    avatarInitials: name.substring(0, 2).toUpperCase(),
-                    avatarColor: 'blue' as const,
+                    partnerCompany: company, 
+                    avatarInitials: initials,
+                    avatarColor: name.toLowerCase().includes('admin') ? 'green' : 'blue',
+                    avatarUrl: avatar,
                     loadId: chat.loadId || null, 
                     lastMessage: chat.lastMessageText || '', 
-                    lastMessageTime: chat.lastMessageTime ? new Date(chat.lastMessageTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
-                    unreadCount: chat.unreadCount || 0,
-                    isOnline: true 
-                };
+                    lastMessageTime: formattedTime,
+                    rawMessageTime: rawTime,
+                    unreadCount: unread
+                } as ChatDto;
+            }));
+
+            const uniqueChatsMap = new Map<string, ChatDto>();
+            enrichedChats.forEach(chat => {
+                uniqueChatsMap.set(chat.id, chat);
             });
 
-            // ИСПРАВЛЕНО БАГ 1: Жесткая защита от дубликатов. 
-            // Если бэкенд прислал несколько чатов с одинаковым ID (например, Support), оставляем только уникальные.
-            const uniqueChats = Array.from(new Map(rawChats.map(item => [item.id, item])).values());
-            
-            return uniqueChats;
-
+            return Array.from(uniqueChatsMap.values()).sort((a, b) => {
+                if (!a.rawMessageTime) return 1;
+                if (!b.rawMessageTime) return -1;
+                return new Date(b.rawMessageTime).getTime() - new Date(a.rawMessageTime).getTime();
+            });
         } catch (error) {
             console.warn('Failed to load chat history from backend.', error);
             return [];
         }
     },
 
-    // 2. Получение истории переписки и правильная сортировка
     getChatHistory: async (chatId: string): Promise<ChatMessageDto[]> => {
         try {
             const response = await apiClient.get<BackendMessageVm[]>(`/api/chat/${chatId}/messages`);
             
-            const mappedMessages = response.data.map((msg) => ({
-                id: msg.id,
-                senderId: msg.senderId,
-                text: msg.text,
-                timestamp: new Date(msg.created).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                isSystemMessage: false 
-            }));
+            const tz = await getUserTimezone();
+            
+            const mappedMessages = response.data.map((msg) => {
+                let s = msg.created;
+                if (!s.endsWith('Z')) s += 'Z'; 
+                const d = new Date(s);
+                
+                const targetMs = d.getTime() + (tz * 3600 * 1000);
+                const targetDate = new Date(targetMs);
+                
+                const hours = targetDate.getUTCHours().toString().padStart(2, '0');
+                const minutes = targetDate.getUTCMinutes().toString().padStart(2, '0');
+                const timeStr = `${hours}:${minutes}`;
+                
+                const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+                const dateStr = `${months[targetDate.getUTCMonth()]} ${targetDate.getUTCDate()}`;
 
-            // ИСПРАВЛЕНО: Переворачиваем массив, чтобы новые сообщения были внизу
+                return {
+                    id: msg.id,
+                    senderId: msg.senderId,
+                    text: msg.text,
+                    timestamp: timeStr,
+                    date: dateStr, 
+                    isSystemMessage: false 
+                };
+            });
+
             return mappedMessages.reverse();
-
         } catch (error) {
             console.error(`Failed to fetch chat history for ${chatId}:`, error);
             return [];
         }
     },
 
-    // 3. Получение информации о сделке по LoadId для правой панели
     getActiveDeal: async (loadId: string): Promise<ActiveDealDto | null> => {
         if (!loadId || loadId === 'Support') return null;
 
         try {
-            // Дергаем реальные данные маршрута из базы
             const item = await loadsService.getLoadById(loadId);
-            const startCity = item.routePoints?.[0]?.city || item.from || 'Unknown';
-            const endCity = item.routePoints?.[(item.routePoints?.length || 1) - 1]?.city || item.to || 'Unknown';
+            const startCity = item.from || 'Unknown';
+            const endCity = item.to || 'Unknown';
             
             return {
-                loadId: item.id.substring(0, 8).toUpperCase(),
+                loadId: item.article ? String(item.article) : item.id.substring(0, 8).toUpperCase(),
                 route: `${startCity} → ${endCity}`,
-                details: `${item.cargo || 'General Cargo'} • ${item.weight || 0}kg`,
+                details: `${item.cargo || 'General Cargo'} • ${item.weight || 0}t`,
                 price: `€${item.price || 0}`,
-                status: item.status === 'Active' || item.status === '0' ? 'Active' : 'Closed',
+                // ИСПРАВЛЕНО: Теперь статус берется строго из БД. Убран костыль с "Closed"
+                status: item.status || 'Active', 
                 timeline: [
                     { title: 'Load Created', time: new Date().toLocaleDateString(), status: 'completed' },
                     { title: 'Chat Started', time: 'Now', status: 'current' },
@@ -139,23 +260,23 @@ export const messagesService = {
         }
     },
 
-    // 4. Отправка сообщения
     sendMessage: async (chatId: string, text: string): Promise<void> => {
-        await apiClient.post(`/api/chat/${chatId}/messages`, JSON.stringify(text), {
+        await apiClient.post(`/api/chat/${chatId}/message`, JSON.stringify(text), {
             headers: {
                 'Content-Type': 'application/json'
             }
         });
     },
 
-    // 5. Инициализация нового чата
     startChat: async (partnerId: string, loadId: string | null): Promise<{ chatId: string }> => {
-        const payload: Record<string, string> = { targetUserId: partnerId };
-        if (loadId) {
-            payload.loadId = loadId; 
-        }
+        const url = loadId 
+            ? `/api/chat/start/${partnerId}?loadId=${loadId}` 
+            : `/api/chat/start/${partnerId}`;
+            
+        const response = await apiClient.post<{ id: string } | string>(url);
         
-        const response = await apiClient.post(`/api/chat`, payload);
-        return typeof response.data === 'string' ? { chatId: response.data } : { chatId: response.data.id || response.data };
+        return typeof response.data === 'string' 
+            ? { chatId: response.data } 
+            : { chatId: response.data.id };
     }
 };

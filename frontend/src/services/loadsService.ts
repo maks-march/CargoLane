@@ -1,9 +1,9 @@
 import apiClient from '../api/api-client';
-import type { LoadListVm, LoadDetailsVm, CreateLoadCommand, CreateLoadDraftCommand } from '../api/types';
+import type { LoadListVm, LoadDetailsVm } from '../api/types';
 
 interface BackendLoadResponse {
   id: string;
-  article?: string;
+  article?: string | number;
   startCity?: string;
   endCity?: string;
   startDate?: string;
@@ -14,16 +14,24 @@ interface BackendLoadResponse {
   vihicleTypes?: string[]; 
   vehicleType?: string;
   status?: string;
+  // ИСПРАВЛЕНО: Добавлены поля, которые мы раньше теряли
+  companyName?: string;
+  shipper?: string;
+  routePoints?: Array<{
+    city: string;
+    address: string;
+    arrivalTime: string | null;
+    orderIndex: number;
+  }>;
 }
 
 interface LoadDetailsBackendResponse {
   id: string;
   userId?: string; 
-  article?: string;
+  article?: string | number;
   payment?: number;
   totalWeight?: number;
   totalVolume?: number;
-  distance?: number;
   cargoType?: string;
   vehicleTypes?: string[]; 
   vihicleTypes?: string[];
@@ -35,14 +43,22 @@ interface LoadDetailsBackendResponse {
   distance?: number | null; 
   duration?: string | null; 
   isSaved?: boolean; 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payloads?: any[];
-  routePoints?: {
+  rejectReason?: string | null;
+  payloads?: Array<{
+    length?: number;
+    width?: number;
+    height?: number;
+    weight?: number;
+    volume?: number;
+    amount?: number;
+    type?: string;
+  }>;
+  routePoints?: Array<{
     city: string;
     address: string;
     arrivalTime: string | null;
     orderIndex: number;
-  }[];
+  }>;
 }
 
 interface LoadSearchFilters {
@@ -61,89 +77,120 @@ interface LoadSearchFilters {
   weight?: string;
   volume?: string;
   sortChoices?: number;
-  isDescending?: boolean;
   status?: string;
 }
 
 const mapPayloadTypeToString = (typeStr: string): string => {
   if (!typeStr) return "Pallets";
   const type = String(typeStr).toLowerCase();
-  
   if (type.includes('box')) return "Boxes";
   if (type.includes('container')) return "Containers";
   if (type.includes('refrig') || type.includes('temp')) return "Refrigerated"; 
   if (type.includes('adr') || type.includes('hazmat')) return "ADR";
-  
   return "Pallets"; 
 };
 
 export const loadsService = {
   getAllLoads: async (params?: LoadSearchFilters): Promise<LoadListVm[]> => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const backendParams: Record<string, any> = {};
-      
-      if (params?.searchBy || params?.query) backendParams.SearchBy = params.searchBy || params.query;
-      
-      if (params?.startCity || params?.from) backendParams.StartCity = params.startCity || params.from;
-      if (params?.endCity || params?.to) backendParams.EndCity = params.endCity || params.to;
-      if (params?.fromDate || params?.date) backendParams.FromDate = params.fromDate || params.date;
+      const backendParams: Record<string, string | number> = {};
+      if (params?.searchBy || params?.query) backendParams.SearchBy = params.searchBy || params.query || '';
+      if (params?.startCity || params?.from) backendParams.StartCity = params.startCity || params.from || '';
+      if (params?.endCity || params?.to) backendParams.EndCity = params.endCity || params.to || '';
+      if (params?.fromDate || params?.date) backendParams.FromDate = params.fromDate || params.date || '';
       if (params?.cargoType) backendParams.CargoType = params.cargoType;
-      if (params?.vehicleType || params?.vehicle) backendParams.VehicleType = params.vehicleType || params.vehicle;
+      if (params?.vehicleType || params?.vehicle) backendParams.VehicleType = params.vehicleType || params.vehicle || '';
       if (params?.weight || params?.mass) backendParams.Weight = Number(params.weight || params.mass);
       if (params?.volume) backendParams.Volume = Number(params.volume);
       if (params?.sortChoices !== undefined) backendParams.SortBy = params.sortChoices;
-      
       backendParams.Status = params?.status || 'Active';
 
       const response = await apiClient.get<BackendLoadResponse[]>('/api/load', { params: backendParams });
       
-      return response.data.map((item) => ({
-        id: item.id,
-        article: item.article || item.id.substring(0, 8).toUpperCase(), 
-        from: item.startCity || 'Unknown',
-        to: item.endCity || 'Unknown',
-        dateStart: item.startDate || new Date().toISOString(),
-        price: item.payment || 0,
-        weight: item.totalWeight || 0,
-        cargo: item.cargoType || 'General Cargo', 
-        recommendedVehicle: item.vehicleTypes?.[0] || item.vihicleTypes?.[0] || item.vehicleType || 'Any',
-        status: item.status || 'Active' 
-      }));
+      return response.data.map((item) => {
+        // ИСПРАВЛЕНО: Жесткая сортировка точек по orderIndex
+        let stops: any[] = [];
+        if (Array.isArray(item.routePoints)) {
+           stops = [...item.routePoints].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+        }
+        
+        let vehicles: string[] = [];
+        if (Array.isArray(item.vehicleTypes) && item.vehicleTypes.length > 0) vehicles = item.vehicleTypes;
+        else if (Array.isArray(item.vihicleTypes) && item.vihicleTypes.length > 0) vehicles = item.vihicleTypes;
+        else if (item.vehicleType) vehicles = [item.vehicleType];
+
+        return {
+          id: item.id,
+          article: item.article ? String(item.article) : item.id.substring(0, 8).toUpperCase(), 
+          from: stops.length > 0 ? stops[0].city : (item.startCity || 'Unknown'),
+          to: stops.length > 0 ? stops[stops.length - 1].city : (item.endCity || 'Unknown'),
+          dateStart: stops.length > 0 ? stops[0].arrivalTime : (item.startDate || new Date().toISOString()),
+          dateEnd: stops.length > 0 ? stops[stops.length - 1].arrivalTime : '',
+          price: item.payment || 0,
+          weight: item.totalWeight || 0,
+          cargo: item.cargoType || 'General Cargo', 
+          recommendedVehicle: vehicles.length > 0 ? vehicles[0] : 'Any',
+          vehicleTypes: vehicles,
+          routePoints: stops,
+          companyName: item.companyName || item.shipper || '', // shipper - как у тебя в Сваггере!
+          status: item.status || 'Active' 
+        };
+      });
     } catch {
       return [];
     }
   },
   
-  getUserLoads: async (params?: LoadSearchFilters): Promise<LoadListVm[]> => {
+  getMyLoads: async (status?: string): Promise<LoadListVm[]> => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const backendParams: Record<string, any> = {};
-      if (params?.startCity) backendParams.StartCity = params.startCity;
-      if (params?.endCity) backendParams.EndCity = params.endCity;
-      if (params?.cargoType) backendParams.CargoType = params.cargoType;
-      if (params?.status) backendParams.Status = params.status;
+      const backendParams: Record<string, string> = {};
+      if (status && status !== 'All') {
+          backendParams.status = status;
+      }
 
       const response = await apiClient.get<BackendLoadResponse[]>('/api/load/me', { params: backendParams });
       
-      return response.data.map((item) => ({
-        id: item.id,
-        article: item.article || item.id.substring(0, 8).toUpperCase(),
-        from: item.startCity || 'Unknown',
-        to: item.endCity || 'Unknown',
-        dateStart: item.startDate || new Date().toISOString(),
-        price: item.payment || 0,
-        weight: item.totalWeight || 0,
-        cargo: item.cargoType || 'General Cargo',
-        recommendedVehicle: item.vehicleTypes?.[0] || item.vihicleTypes?.[0] || item.vehicleType || 'Any',
-        status: item.status || 'Active'
-      }));
+      return response.data.map((item) => {
+        let stops: any[] = [];
+        if (Array.isArray(item.routePoints)) {
+           stops = [...item.routePoints].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+        }
+        
+        let vehicles: string[] = [];
+        if (Array.isArray(item.vehicleTypes) && item.vehicleTypes.length > 0) vehicles = item.vehicleTypes;
+        else if (Array.isArray(item.vihicleTypes) && item.vihicleTypes.length > 0) vehicles = item.vihicleTypes;
+        else if (item.vehicleType) vehicles = [item.vehicleType];
+
+        return {
+          id: item.id,
+          article: item.article ? String(item.article) : item.id.substring(0, 8).toUpperCase(), 
+          from: stops.length > 0 ? stops[0].city : (item.startCity || 'Unknown'),
+          to: stops.length > 0 ? stops[stops.length - 1].city : (item.endCity || 'Unknown'),
+          dateStart: stops.length > 0 ? stops[0].arrivalTime : (item.startDate || new Date().toISOString()),
+          dateEnd: stops.length > 0 ? stops[stops.length - 1].arrivalTime : '',
+          price: item.payment || 0,
+          weight: item.totalWeight || 0,
+          cargo: item.cargoType || 'General Cargo', 
+          recommendedVehicle: vehicles.length > 0 ? vehicles[0] : 'Any',
+          vehicleTypes: vehicles,
+          routePoints: stops,
+          companyName: item.companyName || item.shipper || '',
+          status: item.status || 'Active' 
+        };
+      });
     } catch {
       return [];
     }
   },
 
-  getUserDrafts: async (): Promise<any[]> => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getLoadDraft: async (id: string): Promise<any> => {
+    const response = await apiClient.get(`/api/load/draft/${id}`);
+    return response.data;
+  },
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getMyDrafts: async (): Promise<any[]> => {
     try {
       const response = await apiClient.get('/api/load/draft/me');
       return response.data || [];
@@ -159,7 +206,7 @@ export const loadsService = {
     return {
         id: item.id,
         userId: item.userId || 'system_id', 
-        article: item.article || item.id.substring(0, 8).toUpperCase(),
+        article: item.article ? String(item.article) : item.id.substring(0, 8).toUpperCase(),
         isSaved: item.isSaved || false, 
         from: item.routePoints?.[0]?.city || 'Unknown',
         to: item.routePoints?.[(item.routePoints?.length || 1) - 1]?.city || 'Unknown',
@@ -167,7 +214,6 @@ export const loadsService = {
         price: item.payment || 0,
         weight: item.totalWeight || 0,
         volume: item.totalVolume || 0,
-        distance: item.distance || 0,
         cargo: item.cargoType || 'General Cargo',
         recommendedVehicle: item.vehicleTypes?.[0] || item.vihicleTypes?.[0] || 'Any',
         about: item.about || '',
@@ -175,6 +221,7 @@ export const loadsService = {
         hScode: item.hScode || '',
         insurance: item.insurance || 0,
         status: item.status || 'Active',
+        rejectReason: item.rejectReason || null, 
         companyName: 'CargoLane Partner',
         distance: item.distance || 0,
         duration: item.duration || "00:00:00",
@@ -196,32 +243,22 @@ export const loadsService = {
     };
   },
 
-  getLoadDraft: async (id: string): Promise<unknown> => {
-    const response = await apiClient.get(`/api/load/draft/${id}`);
-    return response.data;
-  },
-  
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createLoad: async (uiData: any): Promise<string> => {
     let vTypes = Array.isArray(uiData.vehicleTypes) ? uiData.vehicleTypes : [];
-    if (vTypes.length === 0) {
-      vTypes = ["Tautliner trailer"];
-    }
+    if (vTypes.length === 0) vTypes = ["Tautliner trailer"];
 
-    const storedUserId = localStorage.getItem('userId') || undefined;
     const defaultDate = new Date().toISOString();
-    
     const safeDistance = Number(uiData.distance) > 0 ? Number(uiData.distance) : 1;
 
-    const payload: CreateLoadCommand = {
-      userId: storedUserId,
+    const payload = {
       startDate: uiData.routePoints?.[0]?.arrivalTime || defaultDate,
-      payment: Number(uiData.payment) || 0,
+      payment: Number(uiData.payment || uiData.price) || 0,
       insurance: Number(uiData.insurance) || 0,
       hScode: uiData.hScode || null,
-      adr: uiData.adr || 0,
-      vehicleTypes: vTypes,
-      cargoType: uiData.cargoType || "General",
+      adr: Number(uiData.adr) || 0,
+      vehicleTypes: vTypes, 
+      cargoType: uiData.cargoType || uiData.cargo || "General",
       about: uiData.about || null,
       distance: safeDistance, 
       duration: uiData.duration || "00:00:00",
@@ -245,20 +282,15 @@ export const loadsService = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   createLoadDraft: async (uiData: any): Promise<string> => {
     let vTypes = Array.isArray(uiData.vehicleTypes) ? uiData.vehicleTypes : [];
-    if (vTypes.length === 0) {
-      vTypes = ["Tautliner trailer"];
-    }
+    if (vTypes.length === 0) vTypes = ["Tautliner trailer"];
 
-    const storedUserId = localStorage.getItem('userId') || undefined;
-
-    const payload: CreateLoadDraftCommand = {
-      userId: storedUserId,
-      payment: Number(uiData.payment) || 0,
+    const payload = {
+      payment: Number(uiData.payment || uiData.price) || 0,
       insurance: Number(uiData.insurance) || 0,
       hScode: uiData.hScode || null,
-      adr: uiData.adr || 0,
-      vehicleTypes: vTypes,
-      cargoType: uiData.cargoType || "General",
+      adr: Number(uiData.adr) || 0,
+      vehicleTypes: vTypes, 
+      cargoType: uiData.cargoType || uiData.cargo || "General",
       about: uiData.about || null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       payloads: (uiData.payloads || []).map((p: any) => ({
@@ -280,21 +312,16 @@ export const loadsService = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   updateLoadDraft: async (id: string, uiData: any): Promise<void> => {
     let vTypes = Array.isArray(uiData.vehicleTypes) ? uiData.vehicleTypes : [];
-    if (vTypes.length === 0) {
-      vTypes = ["Tautliner trailer"];
-    }
-
-    const storedUserId = localStorage.getItem('userId') || undefined;
+    if (vTypes.length === 0) vTypes = ["Tautliner trailer"];
 
     const payload = {
       id: id,
-      userId: storedUserId,
-      payment: Number(uiData.payment) || 0,
+      payment: Number(uiData.payment || uiData.price) || 0,
       insurance: Number(uiData.insurance) || 0,
       hScode: uiData.hScode || null,
-      adr: uiData.adr || 0,
-      vehicleTypes: vTypes,
-      cargoType: uiData.cargoType || "General",
+      adr: Number(uiData.adr) || 0,
+      vehicleTypes: vTypes, 
+      cargoType: uiData.cargoType || uiData.cargo || "General",
       about: uiData.about || null,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       payloads: (uiData.payloads || []).map((p: any) => ({
@@ -314,21 +341,21 @@ export const loadsService = {
 
   uploadLoadFiles: async (id: string, files: File[]): Promise<void> => {
     if (!files || files.length === 0) return;
-    
     const formData = new FormData();
     files.forEach(file => {
       formData.append('files', file); 
     });
-
     await apiClient.put(`/api/load/${id}/files`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
+      headers: { 'Content-Type': 'multipart/form-data' }
     });
   },
   
   deleteLoad: async (id: string): Promise<void> => {
     await apiClient.put(`/api/load/${id}/close`);
+  },
+
+  deleteDraft: async (id: string): Promise<void> => {
+    await apiClient.delete(`/api/load/draft/${id}`);
   },
 
   deleteLoadDraft: async (id: string): Promise<void> => {
@@ -339,38 +366,44 @@ export const loadsService = {
     await apiClient.post(`/api/load/${id}/book`);
   },
 
-  acceptLoad: async (id: string): Promise<void> => {
-    await apiClient.post(`/api/load/${id}/accept`);
-  },
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  getCities: async (_query: string): Promise<string[]> => {
-    return Promise.resolve([]);
-  },
-
   getSavedLoads: async (params?: LoadSearchFilters): Promise<LoadListVm[]> => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const backendParams: Record<string, any> = {};
-      if (params?.searchBy || params?.query) backendParams.SearchBy = params.searchBy || params.query;
-      if (params?.startCity || params?.from) backendParams.StartCity = params.startCity || params.from;
-      if (params?.endCity || params?.to) backendParams.EndCity = params.endCity || params.to;
+      const backendParams: Record<string, string | number> = {};
+      if (params?.searchBy || params?.query) backendParams.SearchBy = params.searchBy || params.query || '';
+      if (params?.startCity || params?.from) backendParams.StartCity = params.startCity || params.from || '';
+      if (params?.endCity || params?.to) backendParams.EndCity = params.endCity || params.to || '';
       if (params?.cargoType) backendParams.CargoType = params.cargoType;
       
       const response = await apiClient.get<BackendLoadResponse[]>('/api/load/user/saved', { params: backendParams });
       
-      return response.data.map((item) => ({
-        id: item.id,
-        article: item.article || item.id.substring(0, 8).toUpperCase(),
-        from: item.startCity || 'Unknown',
-        to: item.endCity || 'Unknown',
-        dateStart: item.startDate || new Date().toISOString(),
-        price: item.payment || 0,
-        weight: item.totalWeight || 0,
-        cargo: item.cargoType || 'General Cargo',
-        recommendedVehicle: item.vehicleTypes?.[0] || item.vihicleTypes?.[0] || item.vehicleType || 'Any',
-        status: item.status || 'Active'
-      }));
+      return response.data.map((item) => {
+        let stops: any[] = [];
+        if (Array.isArray(item.routePoints)) {
+           stops = [...item.routePoints].sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
+        }
+        
+        let vehicles: string[] = [];
+        if (Array.isArray(item.vehicleTypes) && item.vehicleTypes.length > 0) vehicles = item.vehicleTypes;
+        else if (Array.isArray(item.vihicleTypes) && item.vihicleTypes.length > 0) vehicles = item.vihicleTypes;
+        else if (item.vehicleType) vehicles = [item.vehicleType];
+
+        return {
+          id: item.id,
+          article: item.article ? String(item.article) : item.id.substring(0, 8).toUpperCase(), 
+          from: stops.length > 0 ? stops[0].city : (item.startCity || 'Unknown'),
+          to: stops.length > 0 ? stops[stops.length - 1].city : (item.endCity || 'Unknown'),
+          dateStart: stops.length > 0 ? stops[0].arrivalTime : (item.startDate || new Date().toISOString()),
+          dateEnd: stops.length > 0 ? stops[stops.length - 1].arrivalTime : '',
+          price: item.payment || 0,
+          weight: item.totalWeight || 0,
+          cargo: item.cargoType || 'General Cargo', 
+          recommendedVehicle: vehicles.length > 0 ? vehicles[0] : 'Any',
+          vehicleTypes: vehicles,
+          routePoints: stops,
+          companyName: item.companyName || item.shipper || '',
+          status: item.status || 'Active' 
+        };
+      });
     } catch {
       return [];
     }

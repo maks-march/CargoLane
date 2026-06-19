@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import apiClient from '../../api/api-client';
+import useAuthStore from '../../store/auth.store';
+import { userService } from '../../services/userService';
 
 type TabType = 'profile' | 'company' | 'security';
 
@@ -8,11 +10,15 @@ interface ApiError {
     data?: {
       details?: string;
       message?: string;
+      errors?: Record<string, string[]>;
     }
   }
 }
 
 export const SettingsPage: React.FC = () => {
+  const user = useAuthStore(state => state.user);
+  const updateUser = useAuthStore(state => state.updateUser);
+
   const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
@@ -27,19 +33,19 @@ export const SettingsPage: React.FC = () => {
     email: '',
     phone: '',
     role: 'Carrier',
-    language: 'English',
-    currency: 'EUR — Euro (€)',
-    timezone: '(GMT+01:00) Central European — Hamburg',
-    units: 'Metric: km, t, m³',
+    timezone: '0',
+    units: 'metric', 
     companyName: '',
     companyType: 'Freight forwarder',
-    regCountry: 'Germany',
+    regCountry: '',
     street: '',
     city: '',
     zip: '',
     region: '',
-    country: 'Germany'
+    country: ''
   });
+
+  const [initialForm, setInitialForm] = useState(userForm);
 
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -48,49 +54,52 @@ export const SettingsPage: React.FC = () => {
   });
 
   useEffect(() => {
+    let isMounted = true;
     const fetchUserData = async () => {
       try {
-        const storedName = localStorage.getItem('userName') || 'Sergey G.';
-        const storedRole = localStorage.getItem('role') || 'Carrier Pro';
-        const nameParts = storedName.split(' ');
-        
-        setUserData(prev => ({
-          ...prev,
-          firstName: nameParts[0] || '',
-          lastName: nameParts.slice(1).join(' ') || '',
-          displayName: storedName,
-          role: storedRole,
-        }));
+        const profile = await userService.getProfile();
+        if (profile && isMounted) {
+          const newData = { 
+            ...userForm,
+            ...profile,
+            phone: profile.phone || '',
+            regCountry: profile.companyCountry || '',
+            street: profile.address || '',
+            zip: profile.postalCode || '',
+            displayName: profile.displayName || user?.displayName || user?.name || '',
+            companyName: profile.companyName || user?.companyName || '',
+            role: profile.role || user?.role || 'Carrier',
+            timezone: profile.timezone !== undefined && profile.timezone !== null ? String(profile.timezone) : '0',
+            // Бэкенд возвращает 1/0 или true/false. Проверяем всё.
+            units: (profile.isMetric === 1 || profile.isMetric === true) ? 'metric' : 'imperial'
+          };
+          
+          setUserData(newData);
+          setInitialForm(newData);
 
-        const response = await apiClient.get('/api/user/me');
-        if (response.data) {
-          setUserData(prev => ({ 
-            ...prev, 
-            ...response.data,
-            phone: response.data.phone || prev.phone,
-            regCountry: response.data.companyCountry || prev.regCountry,
-            street: response.data.address || prev.street,
-            zip: response.data.postalCode || prev.zip
-          }));
-          if (response.data.avatarPath) {
-            setAvatarPreview(response.data.avatarPath);
+          const avatar = profile.avatarPath || profile.avatarUrl;
+          if (avatar) {
+            setAvatarPreview(avatar);
           }
+          
+          updateUser({ 
+            displayName: newData.displayName, 
+            companyName: newData.companyName,
+            avatarUrl: avatar
+          });
         }
-      } catch {
-        console.warn("Using local cache for user profile data.");
+      } catch (err) {
+        console.warn("Failed to fetch user profile from backend.");
       }
     };
     fetchUserData();
+    return () => { isMounted = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const isFormValid = useMemo(() => {
-    return (
-      userForm.firstName.trim() !== '' &&
-      userForm.lastName.trim() !== '' &&
-      userForm.displayName.trim() !== '' &&
-      userForm.phone.trim() !== ''
-    );
-  }, [userForm.firstName, userForm.lastName, userForm.displayName, userForm.phone]);
+  const isDirty = useMemo(() => {
+    return JSON.stringify(userForm) !== JSON.stringify(initialForm);
+  }, [userForm, initialForm]);
 
   const initials = useMemo(() => {
     const parts = userForm.displayName.trim().split(' ');
@@ -102,27 +111,28 @@ export const SettingsPage: React.FC = () => {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setAvatarPreview(URL.createObjectURL(file));
+      const localUrl = URL.createObjectURL(file);
+      setAvatarPreview(localUrl);
       
       try {
-        const formData = new FormData();
-        formData.append('file', file);
-        await apiClient.post('/api/user/avatar', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        });
+        const serverUrl = await userService.uploadAvatar(file);
+        setAvatarPreview(serverUrl);
+        updateUser({ avatarUrl: serverUrl });
         setMessage({ type: 'success', text: 'Avatar uploaded successfully.' });
       } catch (err: unknown) {
         const error = err as ApiError;
+        setAvatarPreview(null);
         setMessage({ type: 'error', text: error.response?.data?.details || error.response?.data?.message || 'Failed to upload avatar.' });
       }
     }
   };
 
   const handleRemovePhoto = async () => {
-    setAvatarPreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
     try {
-      await apiClient.delete('/api/user/avatar');
+      await userService.removeAvatar();
+      setAvatarPreview(null);
+      updateUser({ avatarUrl: undefined });
+      if (fileInputRef.current) fileInputRef.current.value = '';
       setMessage({ type: 'success', text: 'Avatar removed.' });
     } catch (err: unknown) {
       const error = err as ApiError;
@@ -130,27 +140,28 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
+  // ИСПРАВЛЕНО: Информативная валидация. Пишет конкретно, какое поле пустое.
   const validateInputs = () => {
-    const nameRegex = /^[A-Za-zА-Яа-яЁё\s-]+$/;
-    if (!nameRegex.test(userForm.firstName) || !nameRegex.test(userForm.lastName) || !nameRegex.test(userForm.displayName)) {
-      setMessage({ type: 'error', text: 'First name, Last name, and Display name can contain letters only.' });
-      return false;
-    }
-    if (userForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userForm.email)) {
-      setMessage({ type: 'error', text: 'Please enter a valid email address.' });
-      return false;
-    }
-    return true;
-  };
+    const requiredFields = [
+      { name: 'First name', value: userForm.firstName },
+      { name: 'Last name', value: userForm.lastName },
+      { name: 'Display name', value: userForm.displayName },
+      { name: 'Phone', value: userForm.phone }
+    ];
 
-  const sanitizePayload = (data: Record<string, unknown>) => {
-    const sanitized = { ...data };
-    Object.keys(sanitized).forEach(key => {
-      if (typeof sanitized[key] === 'string' && (sanitized[key] as string).trim() === '') {
-        sanitized[key] = null;
+    for (const field of requiredFields) {
+      if (!field.value || field.value.trim() === '') {
+        setMessage({ type: 'error', text: `Validation Error: ${field.name} is required.` });
+        return false;
       }
-    });
-    return sanitized;
+    }
+
+    if (userForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(userForm.email)) {
+      setMessage({ type: 'error', text: 'Validation Error: Please enter a valid email address.' });
+      return false;
+    }
+
+    return true;
   };
 
   const handleSaveAllData = async () => {
@@ -159,29 +170,54 @@ export const SettingsPage: React.FC = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const payload = sanitizePayload({
-        firstName: userForm.firstName,
-        lastName: userForm.lastName,
-        displayName: userForm.displayName,
-        timezone: 0,
-        isMetric: userForm.units.toLowerCase().includes('metric'),
-        phone: userForm.phone,
-        companyName: userForm.companyName,
-        companyCountry: userForm.regCountry,
-        companyType: userForm.companyType,
-        country: userForm.country,
-        region: userForm.region,
-        city: userForm.city,
-        address: userForm.street,
-        postalCode: userForm.zip
-      });
+      // ИСПРАВЛЕНО: Автоматическое добавление "+" к номеру
+      let cleanPhone = userForm.phone.replace(/[^\d+]/g, '');
+      if (!cleanPhone.startsWith('+') && cleanPhone.length > 0) {
+        cleanPhone = '+' + cleanPhone.replace(/\+/g, '');
+      }
 
-      await apiClient.patch('/api/user/me', payload);
-      localStorage.setItem('userName', userForm.displayName);
+      // ИСПРАВЛЕНО: Строгое следование контракту Swagger (Никаких null! Только строки и числа)
+      const payload = {
+        firstName: userForm.firstName.trim() || "",
+        lastName: userForm.lastName.trim() || "",
+        displayName: userForm.displayName.trim() || "",
+        timezone: parseInt(userForm.timezone, 10) || 0,
+        isMetric: userForm.units === 'metric' ? 1 : 0, // 1 для метрической, 0 для имперской
+        phone: cleanPhone,
+        companyName: userForm.companyName.trim() || "",
+        companyCountry: userForm.regCountry.trim() || "",
+        companyType: userForm.companyType.trim() || "",
+        country: userForm.country.trim() || "",
+        region: userForm.region.trim() || "",
+        city: userForm.city.trim() || "",
+        address: userForm.street.trim() || "",
+        postalCode: userForm.zip.trim() || ""
+      };
+
+      await userService.updateProfile(payload);
+      
+      updateUser({ 
+        displayName: payload.displayName, 
+        companyName: payload.companyName 
+      });
+      
+      setInitialForm(userForm); 
       setMessage({ type: 'success', text: 'Changes successfully saved.' });
     } catch (err: unknown) {
       const error = err as ApiError;
-      setMessage({ type: 'error', text: error.response?.data?.details || error.response?.data?.message || 'Failed to save changes.' });
+      const respData = error.response?.data;
+      let errMsg = 'Failed to save changes. Check console for details.';
+      
+      if (respData?.errors && typeof respData.errors === 'object') {
+         const firstKey = Object.keys(respData.errors)[0];
+         errMsg = Array.isArray(respData.errors[firstKey]) ? respData.errors[firstKey][0] : respData.errors[firstKey];
+      } else if (respData?.details) {
+         errMsg = respData.details;
+      } else if (respData?.message) {
+         errMsg = respData.message;
+      }
+      
+      setMessage({ type: 'error', text: `Server Error: ${errMsg}` });
     } finally {
       setIsLoading(false);
       setTimeout(() => setMessage({ type: '', text: '' }), 4000);
@@ -199,7 +235,9 @@ export const SettingsPage: React.FC = () => {
     setMessage({ type: '', text: '' });
 
     try {
-      const storedUserId = localStorage.getItem('userId') || "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+      const storedUserId = user?.id;
+      if (!storedUserId) throw new Error('User ID not found');
+
       await apiClient.post('/api/auth/change-password', {
         userId: storedUserId,
         currentPassword: passwordData.currentPassword,
@@ -259,9 +297,11 @@ export const SettingsPage: React.FC = () => {
             </div>
             <h1 className="dash-title" style={{ fontSize: '24px', fontWeight: 600, color: '#0E1116', marginTop: '4px' }}>Settings</h1>
           </div>
-          <button className="btn-figma-primary" onClick={handleGlobalSave} disabled={isLoading || (!isFormValid && activeTab === 'profile')}>
-            {isLoading ? 'Saving...' : 'Save changes'}
-          </button>
+          {activeTab !== 'security' && (
+            <button className="btn-figma-primary" onClick={handleGlobalSave} disabled={isLoading || !isDirty}>
+              {isLoading ? 'Saving...' : 'Save changes'}
+            </button>
+          )}
         </div>
       </header>
 
@@ -349,7 +389,7 @@ export const SettingsPage: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <div className="form-label"><label>Phone</label></div>
-                  <input type="text" className="figma-input" value={userForm.phone} placeholder="+49 40 328 114" onChange={(e) => setUserData({...userForm, phone: e.target.value})} required />
+                  <input type="text" className="figma-input" value={userForm.phone} placeholder="e.g. +4912345678" onChange={(e) => setUserData({...userForm, phone: e.target.value})} required />
                 </div>
                 <div className="form-group">
                   <div className="form-label"><label>Role</label></div>
@@ -360,26 +400,47 @@ export const SettingsPage: React.FC = () => {
 
             <div className="detail-card" style={{ padding: '32px', backgroundColor: 'white' }}>
               <div style={{ marginBottom: '24px' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0E1116', marginBottom: '4px' }}>Language & region</h2>
+                <h2 style={{ fontSize: '18px', fontWeight: 600, color: '#0E1116', marginBottom: '4px' }}>Region & Units</h2>
                 <p style={{ fontSize: '14px', color: '#5C6470' }}>Cargolane auto-translates listings — these settings control your interface.</p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
                 <div className="form-group">
-                  <div className="form-label"><label>Interface language</label></div>
-                  <select className="figma-input" value={userForm.language} onChange={(e) => setUserData({...userForm, language: e.target.value})}><option>English</option><option>Russian</option></select>
-                </div>
-                <div className="form-group">
-                  <div className="form-label"><label>Currency</label></div>
-                  <select className="figma-input" value={userForm.currency} onChange={(e) => setUserData({...userForm, currency: e.target.value})}><option>EUR — Euro (€)</option><option>RUB — Ruble (₽)</option></select>
-                </div>
-                <div className="form-group">
                   <div className="form-label"><label>Time zone</label></div>
-                  <select className="figma-input" value={userForm.timezone} onChange={(e) => setUserData({...userForm, timezone: e.target.value})}><option>(GMT+01:00) Central European — Hamburg</option></select>
+                  <select className="figma-input" value={userForm.timezone} onChange={(e) => setUserData({...userForm, timezone: e.target.value})}>
+                     <option value="-12">(GMT-12:00) International Date Line West</option>
+                     <option value="-11">(GMT-11:00) Midway Island, Samoa</option>
+                     <option value="-10">(GMT-10:00) Hawaii</option>
+                     <option value="-9">(GMT-09:00) Alaska</option>
+                     <option value="-8">(GMT-08:00) Pacific Time (US & Canada)</option>
+                     <option value="-7">(GMT-07:00) Mountain Time (US & Canada)</option>
+                     <option value="-6">(GMT-06:00) Central Time (US & Canada)</option>
+                     <option value="-5">(GMT-05:00) Eastern Time (US & Canada)</option>
+                     <option value="-4">(GMT-04:00) Atlantic Time (Canada)</option>
+                     <option value="-3">(GMT-03:00) Buenos Aires, Georgetown</option>
+                     <option value="-2">(GMT-02:00) Mid-Atlantic</option>
+                     <option value="-1">(GMT-01:00) Azores, Cape Verde Is.</option>
+                     <option value="0">(GMT+00:00) London, Dublin, Lisbon</option>
+                     <option value="1">(GMT+01:00) Berlin, Rome, Paris</option>
+                     <option value="2">(GMT+02:00) Athens, Istanbul, Minsk</option>
+                     <option value="3">(GMT+03:00) Moscow, St. Petersburg</option>
+                     <option value="4">(GMT+04:00) Abu Dhabi, Muscat, Baku</option>
+                     <option value="5">(GMT+05:00) Ekaterinburg, Islamabad</option>
+                     <option value="6">(GMT+06:00) Almaty, Dhaka, Colombo</option>
+                     <option value="7">(GMT+07:00) Bangkok, Hanoi, Jakarta</option>
+                     <option value="8">(GMT+08:00) Beijing, Perth, Singapore</option>
+                     <option value="9">(GMT+09:00) Tokyo, Seoul, Osaka</option>
+                     <option value="10">(GMT+10:00) Sydney, Melbourne, Guam</option>
+                     <option value="11">(GMT+11:00) Magadan, Solomon Is.</option>
+                     <option value="12">(GMT+12:00) Auckland, Wellington, Fiji</option>
+                  </select>
                 </div>
                 <div className="form-group">
                   <div className="form-label"><label>Units</label></div>
-                  <select className="figma-input" value={userForm.units} onChange={(e) => setUserData({...userForm, units: e.target.value})}><option>Metric: km, t, m³</option><option>Imperial: mi, lbs, ft³</option></select>
+                  <select className="figma-input" value={userForm.units} onChange={(e) => setUserData({...userForm, units: e.target.value})}>
+                     <option value="metric">Metric: km, t, m³</option>
+                     <option value="imperial">Imperial: mi, lbs, ft³</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -403,7 +464,7 @@ export const SettingsPage: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <div className="form-label"><label>Registration country</label></div>
-                  <select className="figma-input" value={userForm.regCountry} onChange={(e) => setUserData({...userForm, regCountry: e.target.value})}><option>Germany</option><option>Russia</option><option>Poland</option></select>
+                  <input type="text" className="figma-input" placeholder="e.g. Germany" value={userForm.regCountry} onChange={(e) => setUserData({...userForm, regCountry: e.target.value})} />
                 </div>
               </div>
             </div>
@@ -427,8 +488,8 @@ export const SettingsPage: React.FC = () => {
                     type="text" 
                     className="figma-input" 
                     value={userForm.zip} 
-                    onChange={(e) => setUserData({...userForm, zip: e.target.value.replace(/\D/g, '')})} 
-                    placeholder="20457"
+                    onChange={(e) => setUserData({...userForm, zip: e.target.value})} 
+                    placeholder="e.g. 20457"
                   />
                 </div>
                 <div className="form-group">
@@ -437,13 +498,7 @@ export const SettingsPage: React.FC = () => {
                 </div>
                 <div className="form-group">
                   <div className="form-label"><label>Country</label></div>
-                  <select className="figma-input" value={userForm.country} onChange={(e) => setUserData({...userForm, country: e.target.value})}>
-                    <option>Germany</option>
-                    <option>Russia</option>
-                    <option>Poland</option>
-                    <option>France</option>
-                    <option>Netherlands</option>
-                  </select>
+                  <input type="text" className="figma-input" placeholder="e.g. Germany" value={userForm.country} onChange={(e) => setUserData({...userForm, country: e.target.value})} />
                 </div>
               </div>
             </div>
@@ -469,7 +524,9 @@ export const SettingsPage: React.FC = () => {
                   <div className="form-label"><label>Confirm new password</label></div>
                   <input type="password" className="form-input" value={passwordData.confirmPassword} onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})} required />
                 </div>
-                <button type="submit" className="btn-figma-primary">Update password</button>
+                <button type="submit" className="btn-figma-primary" disabled={isLoading}>
+                  {isLoading ? 'Updating...' : 'Update password'}
+                </button>
               </form>
             </div>
 

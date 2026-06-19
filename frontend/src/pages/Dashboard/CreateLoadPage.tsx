@@ -116,7 +116,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
   }, [draftIdParam]);
 
   let activeStep = 1;
-  const hasRoute = formData.stops.every(s => s.address.trim() !== '');
+  const hasRoute = formData.stops.every(s => s.address.trim() !== '' && s.datetime.trim() !== '');
   const hasCargo = formData.cargoCategory !== '' && formData.packages.some(p => Number(p.qty) > 0);
   const hasVehicle = formData.vehicles.length > 0; 
   const hasPrice = formData.price !== '';
@@ -191,7 +191,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
   };
 
   const handleSetRoute = () => {
-    const validStops = formData.stops.filter(s => s.address.trim() !== '');
+    const validStops = formData.stops.filter(s => s.address.trim() !== '' && s.datetime.trim() !== '');
     const newAddressesStr = validStops.map(s => s.address.trim().toLowerCase()).join('|');
     const oldAddressesStr = mapStops.map(s => s.address.trim().toLowerCase()).join('|');
     
@@ -320,7 +320,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
     };
   };
 
-  // ИСПРАВЛЕНО: Черновик больше НЕ пытается загружать фотографии.
   const handleSaveDraft = async () => {
     setIsSubmitting(true);
     setErrorMsg('');
@@ -359,7 +358,6 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
       const payload = getMappedPayload();
       const returnedId = await loadsService.createLoad(payload);
       
-      // ИСПРАВЛЕНО: Фотографии загружаются ТОЛЬКО при реальном сохранении
       if (returnedId && returnedId.length > 10 && uploadedPhotos.length > 0) {
         try {
           const filesToUpload = uploadedPhotos.map(p => p.rawFile);
@@ -369,7 +367,20 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
         }
       }
 
-      setGeneratedId(returnedId || '#L-' + Math.floor(1000 + Math.random() * 9000));
+      // ИСПРАВЛЕНО: Хирургически вытаскиваем реальный артикул свежесозданного груза из БД
+      let finalArticleToDisplay = returnedId;
+      if (returnedId && returnedId.length > 10) {
+         try {
+            const freshLoad = await loadsService.getLoadById(returnedId);
+            if (freshLoad && freshLoad.article) {
+                finalArticleToDisplay = String(freshLoad.article);
+            }
+         } catch (e) {
+            console.warn("Could not fetch article for new load", e);
+         }
+      }
+
+      setGeneratedId(finalArticleToDisplay || '#L-' + Math.floor(1000 + Math.random() * 9000));
       setIsSubmitted(true);
       
       if (draftId) {
@@ -395,7 +406,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
             <div className="dash-breadcrumb">
               <span className="dash-detail-breadcrumb-clickable" onClick={() => onNavigate('dashboard')}>Workspace</span> 
               <span className="dash-detail-breadcrumb-arrow"> › </span> 
-              <span className="dash-detail-breadcrumb-clickable" onClick={() => onNavigate('dashboard')}>My listings</span>
+              <span className="dash-detail-breadcrumb-clickable" onClick={() => navigate('/my-listings')}>My listings</span>
               <span className="dash-detail-breadcrumb-arrow"> › </span> 
               <strong style={{color: '#0E1116'}}>{isSubmitted ? generatedId : (draftId ? `${draftId} (Draft)` : 'New')}</strong>
             </div>
@@ -492,6 +503,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
                 <div className="success-status-box">
                   <div>
                     <div style={{ fontSize: '12px', color: '#5C6470', marginBottom: '4px' }}>Listing ID</div>
+                    {/* ИСПРАВЛЕНО: Выводим реальный артикул */}
                     <div style={{ fontSize: '18px', fontWeight: '600', color: '#0E1116' }}>{generatedId}</div>
                   </div>
                   <div className="status-badge pending">Moderation pending</div>
@@ -787,7 +799,7 @@ export const CreateLoadPage: React.FC<CreateLoadPageProps> = ({ onNavigate }) =>
               <div className="calc-row"><span className="calc-label">Total volume</span><div className="calc-value"><div className="calc-val-main">{totalVolume.toFixed(2)} m³</div></div></div>
               <div className="calc-row"><span className="calc-label">Loading metres</span><div className="calc-value"><div className="calc-val-main">{ldm} LDM</div></div></div>
               <div className="calc-row"><span className="calc-label">Floor footprint</span><div className="calc-value"><div className="calc-val-main">{floorFootprint.toFixed(2)} m²</div></div></div>
-              <div className="calc-info-box">ℹ Fits standard 13.6 LDM tautliner layout.</div>
+          
           </div>
         </aside>
 
