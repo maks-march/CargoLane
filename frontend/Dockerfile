@@ -4,8 +4,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 COPY . .
-RUN npm run build
-
+CMD npm run dev & \
+    sleep infinity
 # Этап 2: Раздача
 FROM nginx:alpine
 # Копируем билд из первого этапа в стандартную папку nginx
