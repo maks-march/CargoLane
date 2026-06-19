@@ -1,18 +1,17 @@
-# Этап 1: Сборка
-FROM node:20-alpine AS builder
+# frontend/Dockerfile.dev
+FROM node:20-alpine
+
 WORKDIR /app
+
+# Устанавливаем зависимости
 COPY package*.json ./
 RUN npm ci
+
+# Копируем исходники
 COPY . .
-CMD npm run dev & \
-    sleep infinity
-# Этап 2: Раздача
-FROM nginx:alpine
-# Копируем билд из первого этапа в стандартную папку nginx
-COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Копируем конфиг nginx (создадим его ниже)
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Открываем порт для dev сервера
+EXPOSE 5173
 
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
+# Запускаем dev режим с хостом 0.0.0.0
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]

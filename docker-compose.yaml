@@ -3,18 +3,18 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: ${DB_HOST}
+    container_name: ${DB_HOST:-db}
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-app}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 3s
       timeout: 3s
       retries: 5
@@ -25,12 +25,11 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      
     ports:
       - "8080:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING}
+      - ConnectionStrings__DefaultConnection=${DB_CONNECTION_STRING:-Host=db;Database=app;Username=postgres;Password=postgres}
     restart: unless-stopped
     depends_on:
       db:
@@ -38,16 +37,35 @@ services:
     volumes:
       - ./.env:/app/.env:ro
       - static:/app/wwwroot
-      
-  frontend:
-    build: 
+
+  # Сервис для разработки фронтенда
+  frontend_dev:
+    build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: frontend_app
+    container_name: frontend_dev
     ports:
-      - "80:80"
-      - "443:80" # Внешний порт 8080 ведет на Nginx фронтенда
+      - "5173:5173"  # Прямой доступ для отладки (опционально)
+    volumes:
+      - ./frontend:/app  # Монтируем исходники для hot-reload
+      - /app/node_modules  # Изолируем node_modules
+    environment:
+      - NODE_ENV=development
+      - VITE_API_URL=/api  # Для Vite
+    restart: unless-stopped
     depends_on:
+      - backend
+
+  # Nginx прокси
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: nginx_proxy
+    ports:
+      - "80:80"  # Основной вход
+    depends_on:
+      - frontend_dev
       - backend
     restart: unless-stopped
 
